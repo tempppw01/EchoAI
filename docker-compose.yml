@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  shuaihong-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: shuaihong-ai:latest
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+    # 推荐把你的真实密钥放到 server/.env（由你自己创建，来自 server/.env.example）
+    env_file:
+      - server/.env
+    restart: unless-stopped

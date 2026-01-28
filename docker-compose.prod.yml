@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  ai-chat:
+    # 使用您推送的镜像标签
+    image: 34v0wphix/shapi:dav
+    container_name: ai-chat-demo
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      # 在这里直接填入 Key，或者在同级目录创建 .env 文件
+      - API_KEY=${API_KEY}
+    restart: unless-stopped
