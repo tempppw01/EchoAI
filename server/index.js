@@ -30,7 +30,7 @@ const CONFIG = {
     PORT: process.env.PORT || 3001,
     JWT_SECRET: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
     API_KEY: process.env.API_KEY,
-    API_URL: process.env.API_URL || 'https://ai.echoai.fun/v1/chat/completions',
+    API_URL: process.env.API_URL || 'https://ai.shuaihong.fun/v1/chat/completions',
     
     // IP 级别速率限制
     IP_RATE_LIMIT: {

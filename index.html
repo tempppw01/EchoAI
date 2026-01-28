@@ -40,6 +40,12 @@
             <strong style="font-size: 1.1em; display: block; margin-bottom: 5px;">EchoAI</strong>
             v0.2.2<br>
             <span style="font-size: 0.85em; opacity: 0.8; margin-top: 5px; display: block;">WeChat: Ethan_BravoEcho</span>
+            <span style="font-size: 0.8em; opacity: 0.75; margin-top: 8px; display: block; line-height: 1.4;">
+                版权声明：本项目为 EchoAI，遵循 MIT License。
+            </span>
+            <a href="https://github.com/tempppw01/EchoAI" target="_blank" rel="noopener noreferrer" style="font-size: 0.8em; opacity: 0.85; margin-top: 4px; display: block; color: #9aa0a6; text-decoration: none;">
+                项目地址：github.com/tempppw01/EchoAI
+            </a>
         </div>
     </div>
 
@@ -230,8 +236,8 @@
             <!-- 模型渠道设置 -->
             <div id="settingsPanel-channel" class="settings-panel active">
                 <div class="form-group">
-                    <label>API 地址 (API URL)</label>
-                    <input type="text" id="apiUrl" placeholder="https://ai.echoai.fun/v1/chat/completions">
+                    <label>API 渠道</label>
+                    <div class="api-channel-display">SH API</div>
                 </div>
                 <div class="form-group">
                     <label>API 密钥 (API Key)</label>
@@ -500,7 +506,6 @@
         const announcementModal = document.getElementById('announcementModal');
         const historyListEl = document.getElementById('historyList');
         
-        const apiUrlInput = document.getElementById('apiUrl');
         const apiKeyInput = document.getElementById('apiKey');
         const modelNameInput = document.getElementById('modelName');
         
@@ -513,7 +518,7 @@
 
         // 默认配置（不包含敏感信息）
         const DEFAULT_CONFIG = {
-            apiUrl: 'https://ai.echoai.fun/v1/chat/completions',
+            apiUrl: 'https://ai.shuaihong.fun/v1/chat/completions',
             apiKey: '',  // 用户需要自行配置
             model: 'deepseek-v3.2',
             temperature: 0.7,
@@ -532,7 +537,6 @@
         window.onload = function() {
             // 1. 加载配置
             const config = getSettings();
-            apiUrlInput.value = config.apiUrl || DEFAULT_CONFIG.apiUrl;
             apiKeyInput.value = config.apiKey || DEFAULT_CONFIG.apiKey;
             modelNameInput.value = config.model || DEFAULT_CONFIG.model;
             
@@ -585,7 +589,8 @@
         };
 
         function getSettings() {
-            return JSON.parse(localStorage.getItem('chatConfig')) || {};
+            const stored = JSON.parse(localStorage.getItem('chatConfig')) || {};
+            return { ...stored, apiUrl: DEFAULT_CONFIG.apiUrl };
         }
 
         function toggleSidebar() {
@@ -1728,12 +1733,7 @@
         }
 
         function saveSettings() {
-            // 🔒 安全验证：URL
-            const urlValidation = validateUrl(apiUrlInput.value.trim() || DEFAULT_CONFIG.apiUrl);
-            if (!urlValidation.valid) {
-                alert('API 地址无效：' + urlValidation.error);
-                return;
-            }
+            const apiUrlValue = DEFAULT_CONFIG.apiUrl;
 
             // 🔒 安全验证：API Key
             const apiKeyValue = apiKeyInput.value.trim();
@@ -1746,7 +1746,7 @@
             }
 
             const config = {
-                apiUrl: urlValidation.url,
+                apiUrl: apiUrlValue,
                 apiKey: apiKeyValue || DEFAULT_CONFIG.apiKey,
                 model: modelNameInput.value.trim() || DEFAULT_CONFIG.model,
                 temperature: parseFloat(tempRange.value),
@@ -1764,7 +1764,7 @@
         }
 
         async function fetchModels() {
-            const apiUrl = apiUrlInput.value.trim() || DEFAULT_CONFIG.apiUrl;
+            const apiUrl = DEFAULT_CONFIG.apiUrl;
             const apiKey = apiKeyInput.value.trim();
 
             if (!apiKey) {
@@ -1840,7 +1840,7 @@
 
         async function fetchHeaderModels() {
             const config = getSettings();
-            const apiUrl = config.apiUrl || DEFAULT_CONFIG.apiUrl;
+            const apiUrl = DEFAULT_CONFIG.apiUrl;
             const apiKey = config.apiKey || DEFAULT_CONFIG.apiKey;
             const currentModel = config.model || DEFAULT_CONFIG.model;
             

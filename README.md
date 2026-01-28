@@ -194,6 +194,10 @@ server {
 
 MIT License
 
+**版权声明：** 本项目为 EchoAI，版权归作者所有，遵循 MIT License 授权协议。
+
+**项目地址：** https://github.com/tempppw01/EchoAI
+
 ---
 
 **WeChat:** Ethan_BravoEcho
