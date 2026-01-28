@@ -706,6 +706,52 @@ input:checked + .slider-toggle:before {
     display: block;
 }
 
+.webdav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 5px;
+}
+
+.webdav-sync-btn {
+    width: auto;
+    padding: 10px 16px;
+}
+
+.webdav-status {
+    font-size: 0.85em;
+    color: #666;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #f5f6f8;
+    border: 1px solid #e4e7ec;
+}
+
+.webdav-status[data-status="success"] {
+    color: #0f5132;
+    background: #d1e7dd;
+    border-color: #badbcc;
+}
+
+.webdav-status[data-status="error"] {
+    color: #842029;
+    background: #f8d7da;
+    border-color: #f5c2c7;
+}
+
+.webdav-status[data-status="loading"] {
+    color: #055160;
+    background: #cff4fc;
+    border-color: #b6effb;
+}
+
+.webdav-help {
+    margin-top: 10px;
+    font-size: 0.8em;
+    color: #8a8a8a;
+    line-height: 1.5;
+}
+
 @media (max-width: 768px) {
     .settings-tabs {
         flex-wrap: wrap;

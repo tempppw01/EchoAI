@@ -38,7 +38,7 @@
         </button>
         <div class="version-tag">
             <strong style="font-size: 1.1em; display: block; margin-bottom: 5px;">EchoAI</strong>
-            v0.2.2<br>
+            v0.3<br>
             <span style="font-size: 0.85em; opacity: 0.8; margin-top: 5px; display: block;">WeChat: Ethan_BravoEcho</span>
             <span style="font-size: 0.8em; opacity: 0.75; margin-top: 8px; display: block; line-height: 1.4;">
                 版权声明：本项目为 EchoAI，遵循 MIT License。
@@ -187,7 +187,7 @@
             <div class="announcement-text">
                 <p>欢迎使用 EchoAI！</p>
                 <p>本系统集成了最新的 AI 模型，支持上下文对话、代码高亮、流式输出等功能。</p>
-                <p><strong>最新更新 (v0.2.2)：</strong></p>
+                <p><strong>最新更新 (v0.3)：</strong></p>
                 <ul>
                     <li>🖼️ 专业绘图升级：支持多图参考 (以图生图/混图)</li>
                     <li>🔄 交互优化：生成结果可直接作为参考图继续创作</li>
@@ -231,6 +231,7 @@
                 <button class="settings-tab active" onclick="switchSettingsTab('channel')">🔌 模型渠道</button>
                 <button class="settings-tab" onclick="switchSettingsTab('model')">🤖 默认模型</button>
                 <button class="settings-tab" onclick="switchSettingsTab('mcp')">🔧 MCP设置</button>
+                <button class="settings-tab" onclick="switchSettingsTab('webdav')">☁️ WebDAV 同步</button>
             </div>
             
             <!-- 模型渠道设置 -->
@@ -328,6 +329,33 @@
                     <h3 style="margin: 0 0 10px 0; color: #666;">MCP 设置</h3>
                     <p style="margin: 0; font-size: 0.9em;">Model Context Protocol 功能开发中...</p>
                     <p style="margin: 10px 0 0 0; font-size: 0.85em;">敬请期待！</p>
+                </div>
+            </div>
+
+            <!-- WebDAV 同步设置 -->
+            <div id="settingsPanel-webdav" class="settings-panel">
+                <div class="form-group">
+                    <label>WebDAV 地址</label>
+                    <input type="text" id="webdavUrl" placeholder="https://example.com/remote.php/webdav">
+                </div>
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="webdavUsername" placeholder="WebDAV 用户名">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="webdavPassword" placeholder="WebDAV 密码">
+                </div>
+                <div class="form-group">
+                    <label>目录路径 (可选)</label>
+                    <input type="text" id="webdavPath" placeholder="EchoAI/backup">
+                </div>
+                <div class="webdav-actions">
+                    <button type="button" class="save-btn webdav-sync-btn" onclick="syncWebdavNow()">立即同步</button>
+                    <div class="webdav-status" id="webdavStatus">未同步</div>
+                </div>
+                <div class="webdav-help">
+                    将同步聊天记录 (chatSessions) 与绘图历史 (imageGenHistory) 到 WebDAV。
                 </div>
             </div>
 
@@ -515,6 +543,11 @@
         const streamToggle = document.getElementById('streamToggle');
         const maxTokensToggle = document.getElementById('maxTokensToggle');
         const maxTokensInput = document.getElementById('maxTokensInput');
+        const webdavUrlInput = document.getElementById('webdavUrl');
+        const webdavUsernameInput = document.getElementById('webdavUsername');
+        const webdavPasswordInput = document.getElementById('webdavPassword');
+        const webdavPathInput = document.getElementById('webdavPath');
+        const webdavStatus = document.getElementById('webdavStatus');
 
         // 默认配置（不包含敏感信息）
         const DEFAULT_CONFIG = {
@@ -561,6 +594,18 @@
             // 加载自动删除旧消息设置
             document.getElementById('autoDeleteOldestToggle').checked = config.autoDeleteOldest || false;
 
+            // 加载 WebDAV 配置
+            const webdavConfig = getWebdavConfig();
+            webdavUrlInput.value = webdavConfig.url || '';
+            webdavUsernameInput.value = webdavConfig.username || '';
+            webdavPasswordInput.value = webdavConfig.password || '';
+            webdavPathInput.value = webdavConfig.path || '';
+            if (webdavConfig.lastSync) {
+                setWebdavStatus(`已同步：${webdavConfig.lastSync}`, 'success');
+            } else {
+                setWebdavStatus('未同步', 'info');
+            }
+
             // 恢复侧边栏状态
             const isMobile = window.innerWidth <= 768;
             const savedState = localStorage.getItem('sidebarCollapsed');
@@ -591,6 +636,27 @@
         function getSettings() {
             const stored = JSON.parse(localStorage.getItem('chatConfig')) || {};
             return { ...stored, apiUrl: DEFAULT_CONFIG.apiUrl };
+        }
+
+        function getWebdavConfig() {
+            const stored = JSON.parse(localStorage.getItem('webdavConfig')) || {};
+            return {
+                url: stored.url || '',
+                username: stored.username || '',
+                password: stored.password || '',
+                path: stored.path || '',
+                lastSync: stored.lastSync || ''
+            };
+        }
+
+        function saveWebdavConfig(config) {
+            localStorage.setItem('webdavConfig', JSON.stringify(config));
+        }
+
+        function setWebdavStatus(message, type = 'info') {
+            if (!webdavStatus) return;
+            webdavStatus.textContent = message;
+            webdavStatus.dataset.status = type;
         }
 
         function toggleSidebar() {
@@ -1761,6 +1827,164 @@
             localStorage.setItem('chatConfig', JSON.stringify(config));
             closeSettings();
             alert('配置已保存！');
+        }
+
+        function getBasicAuthHeader(username, password) {
+            const token = btoa(unescape(encodeURIComponent(`${username}:${password}`)));
+            return `Basic ${token}`;
+        }
+
+        function normalizeWebdavPath(path) {
+            const trimmed = (path || '').trim();
+            if (!trimmed) return '';
+            return trimmed.split('/').filter(Boolean).map(segment => encodeURIComponent(segment)).join('/');
+        }
+
+        function buildWebdavFileUrl(baseUrl, dirPath, fileName) {
+            const normalizedBase = baseUrl.replace(/\/+$/, '');
+            const normalizedPath = normalizeWebdavPath(dirPath);
+            const dirUrl = normalizedPath ? `${normalizedBase}/${normalizedPath}` : normalizedBase;
+            return `${dirUrl}/${encodeURIComponent(fileName)}`;
+        }
+
+        async function ensureWebdavDirectory(baseUrl, dirPath, authHeader) {
+            const normalizedBase = baseUrl.replace(/\/+$/, '');
+            const normalizedPath = normalizeWebdavPath(dirPath);
+            if (!normalizedPath) return true;
+
+            const segments = normalizedPath.split('/');
+            let currentUrl = normalizedBase;
+
+            for (const segment of segments) {
+                currentUrl = `${currentUrl}/${segment}`;
+                const response = await fetch(currentUrl, {
+                    method: 'MKCOL',
+                    headers: {
+                        'Authorization': authHeader
+                    }
+                });
+
+                if (response.ok) {
+                    continue;
+                }
+
+                if ([405, 409, 301, 302].includes(response.status)) {
+                    continue;
+                }
+
+                if (response.status === 204) {
+                    continue;
+                }
+
+                throw new Error(`创建目录失败 (HTTP ${response.status})`);
+            }
+
+            return true;
+        }
+
+        async function uploadWebdavFile(fileUrl, authHeader, content) {
+            const response = await fetch(fileUrl, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': authHeader,
+                    'Content-Type': 'application/json'
+                },
+                body: content
+            });
+
+            if (!response.ok) {
+                throw new Error(`上传失败 (HTTP ${response.status})`);
+            }
+        }
+
+        async function syncWebdavNow() {
+            const urlValue = webdavUrlInput.value.trim();
+            const usernameValue = webdavUsernameInput.value.trim();
+            const passwordValue = webdavPasswordInput.value;
+            const pathValue = webdavPathInput.value.trim();
+
+            if (!urlValue) {
+                alert('请输入 WebDAV 地址');
+                return;
+            }
+
+            const urlValidation = validateUrl(urlValue);
+            if (!urlValidation.valid) {
+                alert('WebDAV 地址无效：' + urlValidation.error);
+                return;
+            }
+
+            if (!usernameValue) {
+                alert('请输入 WebDAV 用户名');
+                return;
+            }
+
+            if (!passwordValue) {
+                alert('请输入 WebDAV 密码');
+                return;
+            }
+
+            const normalizedBaseUrl = urlValidation.url.replace(/\/+$/, '');
+            webdavUrlInput.value = normalizedBaseUrl;
+
+            const existingWebdav = getWebdavConfig();
+            const updatedWebdavConfig = {
+                url: normalizedBaseUrl,
+                username: usernameValue,
+                password: passwordValue,
+                path: pathValue,
+                lastSync: existingWebdav.lastSync || ''
+            };
+            const isWebdavChanged = updatedWebdavConfig.url !== existingWebdav.url
+                || updatedWebdavConfig.username !== existingWebdav.username
+                || updatedWebdavConfig.password !== existingWebdav.password
+                || updatedWebdavConfig.path !== existingWebdav.path;
+
+            if (isWebdavChanged) {
+                updatedWebdavConfig.lastSync = '';
+            }
+
+            saveWebdavConfig(updatedWebdavConfig);
+            setWebdavStatus('同步中...', 'loading');
+
+            const authHeader = getBasicAuthHeader(usernameValue, passwordValue);
+
+            try {
+                await ensureWebdavDirectory(normalizedBaseUrl, pathValue, authHeader);
+
+                const chatSessionsRaw = localStorage.getItem('chatSessions');
+                const imageHistoryRaw = localStorage.getItem('imageGenHistory');
+
+                const chatSessionsPayload = chatSessionsRaw
+                    ? JSON.stringify(JSON.parse(chatSessionsRaw), null, 2)
+                    : '{}';
+                const imageHistoryPayload = imageHistoryRaw
+                    ? JSON.stringify(JSON.parse(imageHistoryRaw), null, 2)
+                    : '[]';
+
+                await uploadWebdavFile(
+                    buildWebdavFileUrl(normalizedBaseUrl, pathValue, 'echoai-chatSessions.json'),
+                    authHeader,
+                    chatSessionsPayload
+                );
+
+                await uploadWebdavFile(
+                    buildWebdavFileUrl(normalizedBaseUrl, pathValue, 'echoai-imageGenHistory.json'),
+                    authHeader,
+                    imageHistoryPayload
+                );
+
+                const nowText = new Date().toLocaleString('zh-CN', { hour12: false });
+                updatedWebdavConfig.lastSync = nowText;
+                saveWebdavConfig(updatedWebdavConfig);
+
+                setWebdavStatus(`已同步：${nowText}`, 'success');
+                alert('WebDAV 同步完成');
+            } catch (error) {
+                console.error('WebDAV 同步失败:', error);
+                setWebdavStatus(`同步失败：${error.message}`, 'error');
+                alert(`WebDAV 同步失败：${error.message}`);
+            }
         }
 
         async function fetchModels() {
