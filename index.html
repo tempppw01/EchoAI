@@ -565,6 +565,7 @@
         // 当前会话 ID
         let currentSessionId = null;
         let sessions = {};
+        let isRequestInFlight = false;
 
         // 初始化
         window.onload = function() {
@@ -1180,6 +1181,11 @@
         async function sendMessage() {
             const rawText = userInput.value;
             const hasImage = selectedImageBase64 !== null;
+
+            if (isRequestInFlight) {
+                alert('正在等待 AI 回复，请稍后再发送');
+                return;
+            }
             
             // 🔒 安全验证：输入内容（如果有图片，文本可以为空）
             if (!hasImage) {
@@ -1211,13 +1217,13 @@
             }
 
             // 记录请求时间
+            isRequestInFlight = true;
             recordRequest();
 
             // 保存当前图片信息
             const currentImageBase64 = selectedImageBase64;
             
             userInput.value = '';
-            userInput.disabled = true;
             sendBtn.disabled = true;
             
             // 清除图片预览
@@ -1552,6 +1558,7 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
 
             } finally {
+                isRequestInFlight = false;
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 userInput.focus();
@@ -1570,6 +1577,11 @@
         }
 
         async function regenerateMessage(index) {
+            if (isRequestInFlight) {
+                alert('正在等待 AI 回复，请稍后重试');
+                return;
+            }
+
             // 重新生成逻辑：
             // 1. 删除该条 AI 消息以及其后的所有消息（因为上下文变了）
             // 2. 重新发起请求
@@ -1598,8 +1610,8 @@
                 return;
             }
             
-            userInput.disabled = true;
             sendBtn.disabled = true;
+            isRequestInFlight = true;
             
             await performAiRequest(config);
         }
@@ -1623,6 +1635,11 @@
 
         // 重试上一条失败的请求
         async function retryLastMessage(btn) {
+            if (isRequestInFlight) {
+                alert('正在等待 AI 回复，请稍后重试');
+                return;
+            }
+
             // 移除错误消息容器
             const errorContainer = btn.closest('.message-container');
             if (errorContainer) {
@@ -1639,8 +1656,8 @@
             // 显示加载中
             showLoadingIndicator();
             
-            userInput.disabled = true;
             sendBtn.disabled = true;
+            isRequestInFlight = true;
             
             // 重新发起请求
             await performAiRequest(config);
