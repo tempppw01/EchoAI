@@ -1,5 +1,5 @@
 /**
- * 帅红AI - 工具函数库
+ * EchoAI - 工具函数库
  * 提供 API 请求封装、错误处理、数据存储等功能
  */
 
@@ -23,7 +23,7 @@ const CONFIG = {
     MAX_RETRY_ATTEMPTS: 2,       // 最大重试次数
     RETRY_DELAY: 1000,           // 重试延迟 (1秒)
     DEBOUNCE_DELAY: 300,         // 防抖延迟 (300毫秒)
-    STORAGE_PREFIX: 'shai_',     // localStorage 键前缀
+    STORAGE_PREFIX: 'echo_',     // localStorage 键前缀
 };
 
 // ============ API 请求封装 ============
@@ -363,7 +363,7 @@ async function copyToClipboard(text) {
 // ============ 导出（如果需要模块化） ============
 
 // 挂载到全局对象，供 HTML 中的脚本使用
-window.ShaiUtils = {
+window.EchoUtils = {
     CONFIG,
     ApiClient,
     ApiError,
@@ -380,4 +380,4 @@ window.ShaiUtils = {
     copyToClipboard,
 };
 
-console.log('✅ 帅红AI 工具库已加载');
+console.log('✅ EchoAI 工具库已加载');

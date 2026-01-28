@@ -1,7 +1,7 @@
 {
-  "name": "shuaihong-ai-server",
+  "name": "echoai-server",
   "version": "1.0.0",
-  "description": "帅红AI 安全代理服务器 - 提供用户认证、速率限制、Token 监控等功能",
+  "description": "EchoAI 安全代理服务器 - 提供用户认证、速率限制、Token 监控等功能",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -28,6 +28,6 @@
     "proxy",
     "security"
   ],
-  "author": "帅红AI",
+  "author": "EchoAI",
   "license": "MIT"
 }

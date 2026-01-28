@@ -12,7 +12,7 @@
         img-src 'self' data: https:;
         font-src 'self' https:;
     ">
-    <title>帅红AI</title>
+    <title>EchoAI</title>
     <link rel="stylesheet" href="style.css?v=0.2">
 </head>
 <body>
@@ -37,7 +37,7 @@
             ⚙️ 设置
         </button>
         <div class="version-tag">
-            <strong style="font-size: 1.1em; display: block; margin-bottom: 5px;">帅红AI</strong>
+            <strong style="font-size: 1.1em; display: block; margin-bottom: 5px;">EchoAI</strong>
             v0.2.2<br>
             <span style="font-size: 0.85em; opacity: 0.8; margin-top: 5px; display: block;">WeChat: Ethan_BravoEcho</span>
         </div>
@@ -179,7 +179,7 @@
                 <!-- 关闭按钮已移除，请点击下方按钮关闭 -->
             </div>
             <div class="announcement-text">
-                <p>欢迎使用帅红AI！</p>
+                <p>欢迎使用 EchoAI！</p>
                 <p>本系统集成了最新的 AI 模型，支持上下文对话、代码高亮、流式输出等功能。</p>
                 <p><strong>最新更新 (v0.2.2)：</strong></p>
                 <ul>
@@ -231,7 +231,7 @@
             <div id="settingsPanel-channel" class="settings-panel active">
                 <div class="form-group">
                     <label>API 地址 (API URL)</label>
-                    <input type="text" id="apiUrl" placeholder="https://ai.shuaihong.fun/v1/chat/completions">
+                    <input type="text" id="apiUrl" placeholder="https://ai.echoai.fun/v1/chat/completions">
                 </div>
                 <div class="form-group">
                     <label>API 密钥 (API Key)</label>
@@ -348,7 +348,7 @@
         let lastSubmitTime = 0;
 
         // 安全地使用工具库（如果加载失败也不影响主功能）
-        const ShaiUtils = window.ShaiUtils || {};
+        const EchoUtils = window.EchoUtils || {};
 
         // ============ 安全函数 ============
 
@@ -513,7 +513,7 @@
 
         // 默认配置（不包含敏感信息）
         const DEFAULT_CONFIG = {
-            apiUrl: 'https://ai.shuaihong.fun/v1/chat/completions',
+            apiUrl: 'https://ai.echoai.fun/v1/chat/completions',
             apiKey: '',  // 用户需要自行配置
             model: 'deepseek-v3.2',
             temperature: 0.7,

@@ -1,4 +1,4 @@
-# 帅红AI - 安全 AI 对话系统
+# EchoAI - 安全 AI 对话系统
 
 一个功能完整的 AI 对话网站，支持多会话管理、流式输出、安全代理等功能。
 
@@ -46,7 +46,7 @@ npm start
 ## 📁 项目结构
 
 ```
-ai-chat-demo/
+EchoAI/
 ├── index.html          # 主页面
 ├── style.css           # 样式文件
 ├── utils.js            # 工具函数库
@@ -141,7 +141,7 @@ Headers: { "X-Admin-Key": "<admin_key>" }
 ### 使用 PM2 管理进程
 ```bash
 npm install -g pm2
-pm2 start index.js --name shuaihong-ai
+pm2 start index.js --name echoai
 pm2 save
 pm2 startup
 ```
@@ -165,7 +165,7 @@ server {
     }
     
     location / {
-        root /path/to/ai-chat-demo;
+        root /path/to/echoai;
         index index.html;
     }
 }

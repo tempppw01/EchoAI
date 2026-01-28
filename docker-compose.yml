@@ -1,11 +1,11 @@
 version: "3.8"
 
 services:
-  shuaihong-ai:
+  echoai:
     build:
       context: .
       dockerfile: Dockerfile
-    image: shuaihong-ai:latest
+    image: echoai:latest
     ports:
       - "3001:3001"
     environment:
