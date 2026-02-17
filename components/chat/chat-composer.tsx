@@ -6,7 +6,7 @@ import { ChangeEvent, useMemo, useRef, useState } from 'react';
 import { Info, SendHorizontal, SlidersHorizontal, Sparkles, Upload } from 'lucide-react';
 import { Hammer, Info, Mic, Plus, SendHorizontal, SlidersHorizontal, Upload } from 'lucide-react';
 import { Info, SendHorizontal, SlidersHorizontal, Square, Upload } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ChatMode } from '@/lib/types';
@@ -32,7 +32,14 @@ const readAsDataUrl = (file: File) =>
   });
 
 export function ChatComposer({ mode }: { mode: ChatMode }) {
+  const MAX_INPUT_CHARS = 6000;
+  const PASTE_DEBOUNCE_MS = 140;
+
   const [value, setValue] = useState('');
+  const [isComposing, setIsComposing] = useState(false);
+  const [inputHint, setInputHint] = useState<string>('');
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const pasteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dragging, setDragging] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -85,6 +92,52 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     const finalContent = [value.trim(), attachmentText].filter(Boolean).join('\n\n');
     sendMessage(finalContent, sid);
     setValue('');
+    setInputHint('');
+  };
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = '0px';
+    const nextHeight = Math.min(textarea.scrollHeight, 220);
+    textarea.style.height = `${nextHeight}px`;
+  }, [value]);
+
+  useEffect(() => () => {
+    if (pasteTimerRef.current) clearTimeout(pasteTimerRef.current);
+  }, []);
+
+  const upsertValue = (nextValue: string) => {
+    if (nextValue.length > MAX_INPUT_CHARS) {
+      setValue(nextValue.slice(0, MAX_INPUT_CHARS));
+      setInputHint(`已达到 ${MAX_INPUT_CHARS} 字上限，超出内容已被截断。`);
+      return;
+    }
+    setValue(nextValue);
+    if (inputHint && nextValue.length < MAX_INPUT_CHARS) setInputHint('');
+  };
+
+  const applyPaste = (pastedText: string) => {
+    const available = MAX_INPUT_CHARS - value.length;
+    if (available <= 0) {
+      setInputHint(`输入框最多 ${MAX_INPUT_CHARS} 字，请先精简内容。`);
+      return;
+    }
+
+    const clipped = pastedText.slice(0, available);
+    const chunks = clipped.match(/(.|[\r\n]){1,1200}/g) ?? [clipped];
+    const merged = `${value}${chunks.join('\n')}`;
+    setValue(merged);
+
+    if (pastedText.length > available) {
+      setInputHint(`粘贴内容过长，已按分段插入前 ${available} 字。`);
+      return;
+    }
+    if (pastedText.length > 1200) {
+      setInputHint(`大段文本已自动分段插入（共 ${chunks.length} 段），建议发送前再检查格式。`);
+      return;
+    }
+    setInputHint('');
     setAttachments([]);
   };
 
@@ -138,7 +191,31 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         <Button className="hidden rounded-xl bg-transparent text-foreground md:inline-flex"><Upload size={16} /></Button>
         <button className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground md:hidden"><Plus size={20} /></button>
         <Textarea
+          ref={textareaRef}
           value={value}
+          onChange={(e) => upsertValue(e.target.value)}
+          rows={1}
+          className="min-h-16 max-h-[220px] overflow-y-auto rounded-xl border-0 bg-transparent shadow-none focus-visible:ring-0"
+          placeholder="支持 Markdown。Enter 发送，Shift + Enter 换行"
+          onCompositionStart={() => setIsComposing(true)}
+          onCompositionEnd={() => setIsComposing(false)}
+          onPaste={(e) => {
+            const pastedText = e.clipboardData.getData('text');
+            if (!pastedText) return;
+
+            e.preventDefault();
+            if (pasteTimerRef.current) clearTimeout(pasteTimerRef.current);
+            setInputHint('正在处理粘贴内容...');
+            pasteTimerRef.current = setTimeout(() => {
+              applyPaste(pastedText);
+            }, PASTE_DEBOUNCE_MS);
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' || isComposing) return;
+            if (e.shiftKey) return;
+            e.preventDefault();
+            if (value.trim() && !isGenerating) onSend();
+          }}
           onChange={(e) => setValue(e.target.value)}
           rows={3}
           className="max-h-40 min-h-16 resize-y rounded-xl border-0 bg-transparent shadow-none focus-visible:ring-0"
@@ -170,17 +247,23 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         <Button className="rounded-xl bg-transparent text-foreground" onClick={() => setSettings({ stream: !settings.stream })}><SlidersHorizontal size={16} /></Button>
         <Button
           className="rounded-xl"
+          disabled={!value.trim() || isGenerating}
           disabled={!isGenerating && !value.trim() && attachments.length === 0}
           onClick={() => {
-            if (isGenerating && activeSession?.id) {
-              stopMessage(activeSession.id);
-              return;
-            }
             onSend();
           }}
         >
-          {isGenerating ? <Square size={16} /> : <SendHorizontal size={16} />}
+          <SendHorizontal size={16} />
         </Button>
+        {isGenerating && activeSession?.id && (
+          <Button className="rounded-xl bg-transparent text-foreground" onClick={() => stopMessage(activeSession.id)}>
+            <Square size={16} />
+          </Button>
+        )}
+      </div>
+      <div className="mt-1 flex items-center justify-between px-2 text-xs text-muted-foreground">
+        <span>{inputHint || '提示：支持粘贴大文本，系统会自动分段。'}</span>
+        <span>{value.length}/{MAX_INPUT_CHARS}</span>
       </div>
     </div>
   );
