@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { AppSnapshot, ChatMessage, ChatMode, ChatSession } from '@/lib/types';
 import { defaultSettings } from '@/stores/settings-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
+import { useSettingsStore } from '@/stores/settings-store';
 
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -99,12 +100,72 @@ const buildAssistantMessage = (content: string, session: ChatSession): ChatMessa
   };
 };
 
+const buildSystemPromptByMode = (session: ChatSession) => {
+  if (session.mode === 'copywriting') return '你是一名资深中文营销文案专家。输出可直接投放的文案，并给出多版本。';
+  if (session.mode === 'videoScript') return '你是一名短视频脚本策划。输出结构化脚本，包含开场钩子、节奏、镜头建议与CTA。';
+  if (session.mode === 'training') return '你是一名技能训练教练。请输出分步骤训练计划，并给出评估标准和复盘建议。';
+  if (session.mode === 'roleplay') return buildRoleplayPrompt(session);
+  return '你是一个专业、可靠的 AI 助手。';
+};
+
+const buildMessagesForRequest = (session: ChatSession, content: string) => {
+  const systemPrompt = buildSystemPromptByMode(session);
+  const history = session.messages.slice(-12).map((message) => ({ role: message.role, content: message.content }));
+
+  return [
+    ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+    ...history,
+    { role: 'user', content },
+  ];
+};
+
+const requestAssistantReply = async (session: ChatSession, content: string) => {
+  const { settings } = useSettingsStore.getState();
+  const endpoint = settings.baseUrl?.trim();
+  const apiKey = settings.apiKey?.trim();
+
+  if (!endpoint || !apiKey) {
+    return {
+      content: `${buildAssistantMessage(content, session).content}\n\n⚠️ 未检测到 API 配置，当前为本地演示回复。`,
+      status: 'done' as const,
+    };
+  }
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: session.model || settings.defaultTextModel,
+      messages: buildMessagesForRequest(session, content),
+      temperature: settings.temperature,
+      max_tokens: settings.maxTokens,
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`LLM request failed (${response.status}): ${detail}`);
+  }
+
+  const data = await response.json();
+  const message = data?.choices?.[0]?.message?.content;
+  if (!message || typeof message !== 'string') {
+    throw new Error('LLM response missing choices[0].message.content');
+  }
+
+  return { content: message, status: 'done' as const };
+};
+
 interface ChatState {
   sessions: ChatSession[];
   activeSessionId?: string;
   createSession: (mode: ChatMode, subtype?: string, model?: string, roleplayConfig?: { characterId?: string; worldId?: string }) => string;
   selectSession: (id: string) => void;
-  sendMessage: (content: string, targetSessionId?: string) => void;
+  sendMessage: (content: string, targetSessionId?: string) => Promise<void>;
   renameSession: (id: string, title: string) => void;
   updateSession: (id: string, patch: Partial<ChatSession>) => void;
   deleteSession: (id: string) => void;
@@ -133,7 +194,7 @@ export const useChatStore = create<ChatState>()(
         return session.id;
       },
       selectSession: (activeSessionId) => set({ activeSessionId }),
-      sendMessage: (content, targetSessionId) => {
+      sendMessage: async (content, targetSessionId) => {
         const { activeSessionId, sessions } = get();
         const targetId = targetSessionId ?? activeSessionId ?? sessions[0]?.id;
         if (!targetId || !content.trim()) return;
@@ -142,7 +203,13 @@ export const useChatStore = create<ChatState>()(
         if (!session) return;
 
         const user: ChatMessage = { id: uid(), role: 'user', content, createdAt: now(), status: 'done' };
-        const assistant = buildAssistantMessage(content, { ...session, messages: [...session.messages, user] });
+        const assistant: ChatMessage = {
+          id: uid(),
+          role: 'assistant',
+          content: '思考中...',
+          createdAt: now(),
+          status: 'streaming',
+        };
 
         set((state) => ({
           sessions: sortedSessions(
@@ -172,7 +239,8 @@ export const useChatStore = create<ChatState>()(
           ),
         }));
 
-        setTimeout(() => {
+        try {
+          const result = await requestAssistantReply({ ...session, messages: [...session.messages, user] }, content);
           set((state) => ({
             sessions: sortedSessions(
               state.sessions.map((item) =>
@@ -181,7 +249,7 @@ export const useChatStore = create<ChatState>()(
                       ...item,
                       messages: item.messages.map((message) =>
                         message.id === assistant.id
-                          ? { ...message, status: 'done', content: `${message.content}\n\n✅ 渲染完成。` }
+                          ? { ...message, status: result.status, content: result.content }
                           : message,
                       ),
                     }
@@ -189,7 +257,29 @@ export const useChatStore = create<ChatState>()(
               ),
             ),
           }));
-        }, 500);
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : 'unknown error';
+          set((state) => ({
+            sessions: sortedSessions(
+              state.sessions.map((item) =>
+                item.id === targetId
+                  ? {
+                      ...item,
+                      messages: item.messages.map((message) =>
+                        message.id === assistant.id
+                          ? {
+                              ...message,
+                              status: 'error',
+                              content: `请求模型失败：${detail}\n\n已切换到本地演示回复：\n\n${buildAssistantMessage(content, session).content}`,
+                            }
+                          : message,
+                      ),
+                    }
+                  : item,
+              ),
+            ),
+          }));
+        }
       },
       renameSession: (id, title) => set((state) => ({ sessions: state.sessions.map((s) => (s.id === id ? { ...s, title: title.trim() || s.title } : s)) })),
       updateSession: (id, patch) =>

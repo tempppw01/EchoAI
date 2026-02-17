@@ -83,7 +83,17 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     if (!targetMode) return;
 
     const existing = sessions.find((item) => item.mode === targetMode);
-    if (existing) selectSession(existing.id);
+    if (existing) {
+      selectSession(existing.id);
+      return;
+    }
+
+    if (targetMode === 'roleplay') {
+      createSession('roleplay', undefined, undefined, { characterId: recentCharacterId ?? activeCharacterId, worldId: activeWorldId });
+      return;
+    }
+
+    createSession(targetMode);
   };
 
   const createInSection = (target: SectionKey) => {
