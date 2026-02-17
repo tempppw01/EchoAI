@@ -1,4 +1,5 @@
 import * as Tabs from '@radix-ui/react-tabs';
+import { ImageIcon, MessageSquareText } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,9 +34,24 @@ export function SettingsTabs({ form }: SettingsTabsProps) {
         <p className="text-xs text-muted-foreground">安全提示：API Key 仅本地存储。</p>
       </Tabs.Content>
 
-      <Tabs.Content value="model" className="grid gap-2">
-        <Input placeholder="默认文本模型" {...form.register('defaultTextModel')} />
-        <Input placeholder="默认图片模型" {...form.register('defaultImageModel')} />
+      <Tabs.Content value="model" className="grid gap-3 text-sm">
+        <div className="rounded-2xl border border-border/60 bg-gradient-to-b from-background to-muted/30 p-3 shadow-sm">
+          <label className="mb-2 inline-flex items-center gap-2 font-medium">
+            <MessageSquareText size={14} className="text-primary" />
+            默认文本模型
+          </label>
+          <Input placeholder="例如：gpt-4.1-mini" className="shadow-sm" {...form.register('defaultTextModel')} />
+          <p className="mt-2 text-xs text-muted-foreground">用于普通对话、写作和代码场景。</p>
+        </div>
+
+        <div className="rounded-2xl border border-border/60 bg-gradient-to-b from-background to-muted/30 p-3 shadow-sm">
+          <label className="mb-2 inline-flex items-center gap-2 font-medium">
+            <ImageIcon size={14} className="text-primary" />
+            默认图片模型
+          </label>
+          <Input placeholder="例如：gpt-image-1" className="shadow-sm" {...form.register('defaultImageModel')} />
+          <p className="mt-2 text-xs text-muted-foreground">用于文生图与图片编辑场景。</p>
+        </div>
       </Tabs.Content>
 
       <Tabs.Content value="chat" className="grid gap-2 md:grid-cols-2">

@@ -1,7 +1,7 @@
 'use client';
 
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { Info, SendHorizontal, SlidersHorizontal, Upload } from 'lucide-react';
+import { Info, SendHorizontal, SlidersHorizontal, Sparkles, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,19 +28,22 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
   return (
     <div className="border-t bg-card/95 p-3 backdrop-blur md:p-4">
-      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded-full bg-muted px-2 py-1">当前模块 /{mode}</span>
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+        <span className="rounded-full border border-border/60 bg-background/80 px-2.5 py-1 text-muted-foreground shadow-sm">当前模块 /{mode}</span>
         <select
-          className="rounded-full border bg-background px-3 py-1"
+          className="h-9 rounded-xl border border-border/60 bg-background px-3 pr-8 text-sm font-medium shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           value={model}
           onChange={(e) => activeSession && updateSession(activeSession.id, { model: e.target.value })}
         >
           {[settings.defaultTextModel, settings.defaultImageModel, 'gpt-4o', 'gpt-4.1-mini'].map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
+        <span className="inline-flex items-center gap-1 rounded-xl border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary shadow-sm">
+          <Sparkles size={12} /> 推荐
+        </span>
         <Tooltip.Provider>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
-              <button className="inline-flex items-center gap-1 rounded border px-2 py-1">会话级模型<Info size={12} /></button>
+              <button className="inline-flex h-9 items-center gap-1 rounded-xl border border-border/60 bg-background px-2.5 py-1 text-muted-foreground shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">会话级模型<Info size={12} /></button>
             </Tooltip.Trigger>
             <Tooltip.Portal>
               <Tooltip.Content className="z-50 rounded bg-foreground px-2 py-1 text-xs text-background" sideOffset={6}>
