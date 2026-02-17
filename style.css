@@ -1692,3 +1692,53 @@ input:checked + .slider-toggle:before {
         height: 150px;
     }
 }
+
+/* ============ 技能训练样式 ============ */
+.skill-training-modal-content {
+    width: 520px;
+}
+
+.skill-training-tip {
+    font-size: 0.9em;
+    color: #666;
+    line-height: 1.6;
+}
+
+.choice-question-modal-content {
+    width: 560px;
+}
+
+.choice-question-progress {
+    color: #667eea;
+    font-weight: 600;
+    margin: 0 0 8px;
+}
+
+.choice-question-title {
+    font-size: 1.05em;
+    color: #333;
+    margin: 0 0 15px;
+    line-height: 1.6;
+}
+
+.choice-question-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.choice-option-btn {
+    border: 1px solid #d9def7;
+    background: #f7f8ff;
+    color: #2f365f;
+    padding: 12px;
+    border-radius: 10px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.choice-option-btn:hover {
+    background: #eaeefe;
+    border-color: #9facff;
+}
