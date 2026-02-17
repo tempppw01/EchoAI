@@ -35,7 +35,19 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
     setLoading(true);
     try {
       const values = form.getValues();
-      const models = await fetchModelCatalog(values);
+      const normalizedBaseUrl = (values.baseUrl ?? '').trim();
+      const normalizedApiKey = (values.apiKey ?? '').trim();
+
+      onPersistSettings({
+        baseUrl: normalizedBaseUrl,
+        apiKey: normalizedApiKey,
+      });
+
+      const models = await fetchModelCatalog({
+        ...values,
+        baseUrl: normalizedBaseUrl,
+        apiKey: normalizedApiKey,
+      });
       form.setValue('modelCatalog', models, { shouldDirty: true });
 
       const fallback = models[0] || '';

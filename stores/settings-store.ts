@@ -18,11 +18,11 @@ export const defaultSettings: AppSettings = {
   modelCatalog: [],
 };
 
-const LEGACY_PRESET_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-image-1'];
+const LEGACY_PRESET_MODELS = new Set(['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-image-1']);
 
 const isLegacyPresetModels = (models?: string[]) => {
-  if (!Array.isArray(models) || models.length !== LEGACY_PRESET_MODELS.length) return false;
-  return LEGACY_PRESET_MODELS.every((model, index) => model === models[index]);
+  if (!Array.isArray(models) || models.length === 0) return false;
+  return models.every((model) => LEGACY_PRESET_MODELS.has(model));
 };
 
 export const useSettingsStore = create<{
