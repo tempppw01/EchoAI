@@ -7,12 +7,11 @@ export const normalizeOpenAIBaseUrl = (baseUrl?: string) => {
   if (!trimmed) return DEFAULT_OPENAI_BASE_URL;
 
   const noTrailingSlash = stripTrailingSlash(trimmed);
-  const withoutCompletionsPath = noTrailingSlash.replace(/\/chat\/completions$/i, '');
+  const withoutCompletionsPath = noTrailingSlash.replace(/\/(chat\/completions|models)$/i, '');
 
-  if (/\/v1$/i.test(withoutCompletionsPath)) {
+  if (/\/v\d+(\/|$)/i.test(withoutCompletionsPath)) {
     return withoutCompletionsPath;
   }
 
   return `${withoutCompletionsPath}/v1`;
 };
-

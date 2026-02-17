@@ -67,7 +67,7 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
         <Input
           placeholder="OpenAI 兼容 Base URL"
           {...form.register('baseUrl', {
-            onBlur: (event) => onPersistSettings({ baseUrl: event.target.value }),
+            onChange: (event) => onPersistSettings({ baseUrl: event.target.value }),
           })}
         />
         <Input
@@ -75,7 +75,7 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
           type="password"
           autoComplete="off"
           {...form.register('apiKey', {
-            onBlur: (event) => {
+            onChange: (event) => {
               onPersistSettings({ apiKey: event.target.value });
               onShowNotice('API Key 已自动保存');
             },
@@ -89,8 +89,6 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
           <p>已持久化模型：{modelCatalog.length}</p>
           <p className="mt-1 max-h-20 overflow-y-auto break-all">{modelCatalog.length ? modelCatalog.join('、') : '暂无，请点击“拉取模型列表”'}</p>
         </div>
-        <Input placeholder="默认文本模型" list="model-catalog" {...form.register('defaultTextModel')} />
-        <Input placeholder="默认图片模型" list="model-catalog" {...form.register('defaultImageModel')} />
         <datalist id="model-catalog">
           {modelCatalog.map((model) => (
             <option key={model} value={model} />
