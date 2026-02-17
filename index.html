@@ -84,8 +84,8 @@
     <!-- 主界面 -->
     <div class="main-content">
         <div class="chat-header">
+            <button class="toggle-btn header-menu-btn" onclick="toggleSidebar()" title="切换侧边栏">☰</button>
             <div class="header-left">
-                <button class="toggle-btn" onclick="toggleSidebar()" title="切换侧边栏">☰</button>
                 <div class="topic-wrapper">
                     <span id="currentTopicTitle" class="topic-title" title="当前话题">新对话</span>
                     <span id="systemPromptHint" class="system-prompt-hint" onclick="editSystemPrompt()" title="点击编辑系统提示词">✨ 点击设置助手角色</span>
@@ -95,7 +95,6 @@
                 <select id="headerModelSelect" class="header-model-select" title="选择模型" onchange="onHeaderModelChange(this.value)">
                     <option value="">加载中...</option>
                 </select>
-                <button class="announcement-btn" onclick="openAnnouncement()" title="公告">📢</button>
             </div>
         </div>
         
@@ -227,48 +226,6 @@
             </div>
             <p class="skill-training-tip">确认后，模型会自动出 5 道题（选择题 / 填空题），并在结束后给出 100 分制掌握度。</p>
             <button class="save-btn" onclick="confirmSkillTraining()">开始训练</button>
-        </div>
-    </div>
-
-    <!-- 公告模态框 -->
-    <div id="announcementModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span>系统公告</span>
-                <!-- 关闭按钮已移除，请点击下方按钮关闭 -->
-            </div>
-            <div class="announcement-text">
-                <p>欢迎使用 EchoAI！</p>
-                <p>本系统集成了最新的 AI 模型，支持上下文对话、代码高亮、流式输出等功能。</p>
-                <p><strong>最新更新 (v0.3)：</strong></p>
-                <ul>
-                    <li>🖼️ 专业绘图升级：支持多图参考 (以图生图/混图)</li>
-                    <li>🔄 交互优化：生成结果可直接作为参考图继续创作</li>
-                </ul>
-                <p><strong>历史更新 (v0.2.1)：</strong></p>
-                <ul>
-                    <li>🖼️ 双模绘图：支持“对话模式”和“专业面板”两种绘图方式</li>
-                    <li> 垫图功能：专业面板支持上传参考图进行以图生图</li>
-                </ul>
-                <p><strong>历史更新 (v0.2)：</strong></p>
-                <ul>
-                    <li>🎨 绘图对话模式：图片生成已集成到对话界面</li>
-                </ul>
-                <p><strong>历史更新 (v0.1)：</strong></p>
-                <ul>
-                    <li>🎨 AI 图片生成：支持使用 Gemini 模型生成图片</li>
-                </ul>
-                <p><strong>历史更新 (v0.03)：</strong></p>
-                <ul>
-                    <li>🎭 新增角色预设：12 种内置助手角色一键切换</li>
-                    <li>🛡️ 安全性升级：多层防护机制保障服务稳定</li>
-                    <li>✨ 消息操作：支持重新生成、删除和复制消息</li>
-                    <li>⏳ 加载动画：AI 思考时显示动态提示</li>
-                    <li>📱 移动端优化：更好的触屏交互体验</li>
-                </ul>
-                <p style="margin-top: 20px; color: #666; font-size: 0.9em;">如遇问题，请联系管理员或查看侧边栏联系方式。</p>
-            </div>
-            <button onclick="closeAnnouncement()" class="save-btn">我知道了</button>
         </div>
     </div>
 
@@ -645,7 +602,6 @@
         let selectedImage = null;
         let selectedImageBase64 = null;
         const settingsModal = document.getElementById('settingsModal');
-        const announcementModal = document.getElementById('announcementModal');
         const skillTrainingModal = document.getElementById('skillTrainingModal');
         const skillTrainingInput = document.getElementById('skillTrainingInput');
         const featureHistoryEls = {
@@ -2565,14 +2521,6 @@ ${summary}`, 'ai');
             document.getElementById(`settingsPanel-${tabName}`).classList.add('active');
         }
 
-        function openAnnouncement() {
-            announcementModal.style.display = 'flex';
-        }
-
-        function closeAnnouncement() {
-            announcementModal.style.display = 'none';
-        }
-
         function saveSettings() {
             const apiUrlValue = DEFAULT_CONFIG.apiUrl;
 
@@ -3119,12 +3067,6 @@ ${summary}`, 'ai');
         settingsModal.addEventListener('click', function(e) {
             if (e.target === settingsModal) {
                 closeSettings();
-            }
-        });
-
-        announcementModal.addEventListener('click', function(e) {
-            if (e.target === announcementModal) {
-                closeAnnouncement();
             }
         });
 

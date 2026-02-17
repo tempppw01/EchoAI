@@ -352,7 +352,7 @@ body {
     }
 }
 
-.toggle-btn, .settings-btn, .announcement-btn {
+.toggle-btn, .settings-btn {
     background: none;
     border: none;
     color: #666;
@@ -367,7 +367,12 @@ body {
     flex-shrink: 0;
 }
 
-.toggle-btn:hover, .settings-btn:hover, .announcement-btn:hover {
+
+.header-menu-btn {
+    margin-left: calc(env(safe-area-inset-left) - 17px);
+}
+
+.toggle-btn:hover, .settings-btn:hover {
     background-color: #f0f0f0;
     color: #333;
 }
@@ -428,7 +433,7 @@ body {
         background-position: right 3px center;
     }
     
-    .toggle-btn, .announcement-btn {
+    .toggle-btn {
         font-size: 1em;
         padding: 5px 6px;
     }
@@ -443,15 +448,6 @@ body {
     }
 }
 
-.announcement-text {
-    line-height: 1.6;
-    color: #444;
-    font-size: 15px;
-}
-
-.announcement-text p {
-    margin-bottom: 10px;
-}
 
 .chat-messages {
     flex: 1;
