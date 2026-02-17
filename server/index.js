@@ -601,6 +601,44 @@ function authenticateToken(req, res, next) {
 // ============ API 路由 ============
 
 /**
+ * 根路径（Railway/浏览器直开）
+ * 避免出现 "Cannot GET /" 空白页，提供可读的服务状态页
+ */
+app.get('/', (req, res) => {
+    res.type('html').send(`<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EchoAI 服务已启动</title>
+  <style>
+    body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; margin:0; background:#0b1020; color:#e6edf3; }
+    .wrap { max-width:720px; margin:64px auto; padding:0 20px; }
+    .card { background:#111a32; border:1px solid #22315c; border-radius:14px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+    h1 { margin:0 0 12px; font-size:24px; }
+    p { margin:0 0 16px; line-height:1.6; color:#b7c3d0; }
+    code { background:#0b1430; padding:2px 6px; border-radius:6px; color:#8bd5ff; }
+    ul { margin:0; padding-left:18px; }
+    a { color:#8bd5ff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>EchoAI 服务运行中 ✅</h1>
+      <p>当前实例为 API 服务。若你希望打开前端页面，请确认前端（Next.js）已单独部署，或将其域名反向代理到此入口。</p>
+      <ul>
+        <li>健康检查：<a href="/health"><code>/health</code></a></li>
+        <li>登录接口：<code>POST /api/auth/login</code></li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>`);
+});
+
+/**
  * 健康检查
  */
 app.get('/health', (req, res) => {
