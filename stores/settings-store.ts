@@ -15,6 +15,7 @@ export const defaultSettings: AppSettings = {
   webdavUsername: '',
   autoSyncMinutes: 30,
   showTokenUsage: false,
+  modelCatalog: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-image-1'],
 };
 
 export const useSettingsStore = create<{
@@ -26,7 +27,7 @@ export const useSettingsStore = create<{
     (set) => ({
       settings: defaultSettings,
       setSettings: (incoming) => set((state) => ({ settings: { ...state.settings, ...incoming } })),
-      replaceSettings: (settings) => set({ settings }),
+      replaceSettings: (settings) => set({ settings: { ...defaultSettings, ...settings } }),
     }),
     { name: 'echoai-settings' },
   ),
