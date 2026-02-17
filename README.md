@@ -47,6 +47,9 @@ lib/
   - `SettingsCenter`
   - `ImagePanel(ProImagePanel)`
 
+## 迁移说明
+- 已移除根目录历史静态页面（`index.html` / `style.css` / `utils.js`），统一使用 Next.js App Router 作为唯一 UI 架构入口。
+
 ## 运行
 
 ```bash
