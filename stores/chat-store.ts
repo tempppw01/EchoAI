@@ -256,6 +256,23 @@ export const useChatStore = create<ChatState>()(
             ),
           }));
         } catch (error) {
+          const message = error instanceof Error ? error.message : '未知错误';
+          set((state) => ({
+            sessions: sortedSessions(
+              state.sessions.map((item) =>
+                item.id === targetId
+                  ? {
+                      ...item,
+                      messages: item.messages.map((msg) =>
+                        msg.id === assistant.id
+                          ? { ...msg, status: 'error', content: `请求失败：${message}` }
+                          : msg,
+                      ),
+                    }
+                  : item,
+              ),
+            ),
+          }));
           const wasAborted = error instanceof Error && error.name === 'AbortError';
           if (wasAborted) {
             set((state) => ({
