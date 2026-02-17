@@ -30,6 +30,19 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   const character = characters.find((item) => item.id === (session?.characterId || activeCharacterId));
   const activeWorld = useMemo(() => worlds.find((item) => item.id === (session?.worldId || activeWorldId)), [worlds, session?.worldId, activeWorldId]);
   const filtered = characters.filter((item) => `${item.name} ${item.personality}`.toLowerCase().includes(search.toLowerCase()));
+  const activeWorld = useMemo(
+    () => worlds.find((item) => item.id === (session?.worldId || activeWorldId)),
+    [worlds, session?.worldId, activeWorldId],
+  );
+
+  const filteredCharacters = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) return characters;
+
+    return characters.filter((item) => {
+      return [item.name, item.personality, item.tags.join(' ')].join(' ').toLowerCase().includes(keyword);
+    });
+  }, [characters, search]);
 
   const startWithCharacter = (characterId: string) => {
     const sid = createSession('roleplay', undefined, undefined, { characterId, worldId: activeWorld?.id });
@@ -45,6 +58,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
   return (
     <div className="grid min-h-[70vh] grid-cols-1 gap-3 lg:grid-cols-[240px_1fr_1.3fr]">
+    <div className="grid min-h-[70vh] grid-cols-1 gap-3 rounded-xl border bg-card p-3 lg:grid-cols-[260px_1fr_1.4fr]">
       <section className="chat-panel p-3">
         <div className="mb-2 flex items-center gap-2">
           <Input placeholder="搜索角色" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -52,6 +66,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         </div>
         <div className="space-y-2 overflow-y-auto">
           {filtered.map((item) => (
+          {filteredCharacters.map((item) => (
             <button
               key={item.id}
               className={`w-full rounded border p-2 text-left text-sm ${item.id === character?.id ? 'border-primary bg-primary/10' : ''}`}
@@ -65,7 +80,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
       </section>
 
       <section className="chat-panel p-3">
-        {!character ? <p className="text-sm text-muted-foreground">请先创建角色。</p> : (
+        {!character ? (
+          <p className="text-sm text-muted-foreground">请先创建角色。</p>
+        ) : (
           <div className="space-y-2">
             <div className="grid gap-2 md:grid-cols-2">
               <Input value={character.name} onChange={(e) => updateCharacter(character.id, { name: e.target.value })} placeholder="角色名称" />
@@ -81,6 +98,22 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             <div className="flex gap-2">
               <Button onClick={() => createCharacter()}><Plus size={14} className="mr-1" />新角色</Button>
               <Button onClick={() => startWithCharacter(character.id)}>新会话</Button>
+            <Textarea value={character.personality} onChange={(e) => updateCharacter(character.id, { personality: e.target.value })} placeholder="personality" rows={2} />
+            <Textarea value={character.background} onChange={(e) => updateCharacter(character.id, { background: e.target.value })} placeholder="background" rows={2} />
+            <Textarea value={character.speakingStyle} onChange={(e) => updateCharacter(character.id, { speakingStyle: e.target.value })} placeholder="speakingStyle" rows={2} />
+            <Textarea value={character.scenario} onChange={(e) => updateCharacter(character.id, { scenario: e.target.value })} placeholder="scenario" rows={2} />
+            <Textarea value={character.exampleDialogues} onChange={(e) => updateCharacter(character.id, { exampleDialogues: e.target.value })} placeholder="exampleDialogues" rows={2} />
+            <Textarea value={character.systemPrompt} onChange={(e) => updateCharacter(character.id, { systemPrompt: e.target.value })} placeholder="systemPrompt" rows={2} />
+            <select className="w-full rounded border bg-background p-2 text-sm" value={activeWorld?.id || ''} onChange={(e) => setActiveWorld(e.target.value)}>
+              <option value="">选择世界观</option>
+              {worlds.map((world) => <option key={world.id} value={world.id}>{world.name}</option>)}
+            </select>
+            {activeWorld && (
+              <Textarea value={activeWorld.prompt} onChange={(e) => updateWorld(activeWorld.id, { prompt: e.target.value })} placeholder="世界观 Prompt" rows={2} />
+            )}
+            <div className="flex gap-2">
+              <Button onClick={() => createCharacter()}><Plus size={14} className="mr-1" />新角色</Button>
+              <Button onClick={() => character?.id && startWithCharacter(character.id)}>新会话</Button>
             </div>
           </div>
         )}

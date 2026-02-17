@@ -2,8 +2,13 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { Brush, ChevronDown, Ellipsis, Menu, Moon, Plus, Settings, Sparkles, Sun, Swords, Video, PenSquare } from 'lucide-react';
+import { Brush, ChevronDown, Menu, MonitorCog, Moon, Plus, Settings, Sparkles, Sun, Swords, Video, PenSquare } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { Brush, ChevronDown, Menu, Moon, Plus, RefreshCw, Settings, Sparkles, Sun, Swords, Trash2, Video, PenSquare } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useEffect, useMemo, useState } from 'react';
+import { fetchModelCatalog } from '@/lib/model-service';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatList } from '@/components/chat/chat-list';
 import { MessageList } from '@/components/chat/message-list';
@@ -14,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { ChatMode } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useUIStore } from '@/stores/ui-store';
+import { useSettingsStore } from '@/stores/settings-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 
 type SectionKey = 'chat' | 'copywriting' | 'videoScript' | 'roleplay' | 'training' | 'image';
@@ -63,8 +69,10 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   }, []);
 
   const { settingsOpen, setSettingsOpen, sidebarOpen, setSidebarOpen } = useUIStore();
-  const { sessions, activeSessionId, createSession, selectSession } = useChatStore();
+  const { sessions, activeSessionId, createSession, selectSession, updateSession, clearContext } = useChatStore();
   const { recentCharacterId, activeCharacterId, activeWorldId } = useRoleplayStore();
+  const { settings, setSettings } = useSettingsStore();
+  const [loadingModels, setLoadingModels] = useState(false);
 
   const active = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
 
@@ -110,6 +118,21 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
   const contentMode = active?.mode ?? mode;
 
+  const canSwitchModel = Boolean(active) && contentMode !== 'roleplay';
+  const modelOptions = settings.modelCatalog?.length
+    ? settings.modelCatalog
+    : [settings.defaultTextModel, settings.defaultImageModel, 'gpt-4o', 'gpt-4.1-mini'];
+
+  const refreshModels = async () => {
+    setLoadingModels(true);
+    try {
+      const models = await fetchModelCatalog(settings);
+      if (models.length) setSettings({ modelCatalog: models });
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
   if (!mounted) {
     return <div className="h-screen bg-muted/30" />;
   }
@@ -122,9 +145,6 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           <p className="text-sm font-semibold">EchoAI 创作空间</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button className="bg-transparent text-foreground" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-            {mounted && theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          </Button>
           <Button className="bg-transparent text-foreground" onClick={() => setSettingsOpen(true)}><Settings size={16} /></Button>
         </div>
       </header>
@@ -144,6 +164,14 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
       <div className="grid h-[calc(100vh-88px)] md:h-[calc(100vh-56px)] md:grid-cols-[300px_1fr]">
         <aside className="hidden border-r bg-card/70 px-3 py-2 backdrop-blur md:flex md:flex-col">
+      <div className="fixed right-4 top-4 z-50 flex items-center gap-1 rounded-full border bg-card/90 p-1 shadow-sm backdrop-blur">
+        <ThemeIconButton active={theme === 'system'} onClick={() => setTheme('system')} icon={<MonitorCog size={15} />} />
+        <ThemeIconButton active={theme === 'light'} onClick={() => setTheme('light')} icon={<Sun size={15} />} />
+        <ThemeIconButton active={theme === 'dark'} onClick={() => setTheme('dark')} icon={<Moon size={15} />} />
+      </div>
+
+      <div className="grid h-[calc(100vh-56px)] md:grid-cols-[300px_1fr]">
+        <aside className="hidden min-h-0 overflow-y-auto border-r bg-card/70 px-3 py-2 backdrop-blur md:flex md:flex-col">
           <SidebarNav
             section={section}
             expanded={expanded}
@@ -153,7 +181,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             sessionCountByMode={sessionCountByMode}
             onSettings={() => setSettingsOpen(true)}
           />
-          <div className="mt-3 border-t pt-3">
+          <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden border-t pt-3">
             <ChatList search={search} setSearch={setSearch} />
           </div>
         </aside>
@@ -165,7 +193,26 @@ export function Workspace({ mode }: { mode: ChatMode }) {
                 <p className="text-sm text-muted-foreground">当前工作流</p>
                 <p className="text-3xl font-bold leading-tight">{sections.find((n) => n.key === section)?.label ?? '通用对话'}</p>
               </div>
-              <Button onClick={() => createInSection(section)}><Plus size={15} className="mr-1" />新建</Button>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {canSwitchModel && (
+                  <>
+                    <select
+                      className="h-9 rounded-md border bg-background px-3 text-sm"
+                      value={active?.model}
+                      onChange={(e) => active && updateSession(active.id, { model: e.target.value })}
+                    >
+                      {modelOptions.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <Button className="bg-transparent text-foreground" onClick={refreshModels} disabled={loadingModels}>
+                      <RefreshCw size={15} className={loadingModels ? 'animate-spin' : ''} />
+                    </Button>
+                    <Button className="bg-transparent text-foreground" onClick={() => active && clearContext(active.id)}>
+                      <Trash2 size={15} className="mr-1" />清除上下文
+                    </Button>
+                  </>
+                )}
+                <Button onClick={() => createInSection(section)}><Plus size={15} className="mr-1" />新建</Button>
+              </div>
             </div>
           </div>
 
@@ -194,6 +241,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               aria-label="关闭侧边栏"
             />
             <motion.div initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="fixed inset-y-0 left-0 z-40 w-[86vw] max-w-80 border-r bg-card p-3 md:hidden">
+          <motion.div initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="fixed inset-y-0 left-0 z-40 flex w-80 flex-col overflow-y-auto border-r bg-card p-3 md:hidden">
             <SidebarNav
               section={section}
               expanded={expanded}
@@ -213,11 +261,25 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             <button onClick={() => setSettingsOpen(true)} className="mt-3 flex w-full items-center gap-3 border-t pt-4 text-left text-base"><Settings size={18} />设置</button>
             </motion.div>
           </>
+            <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden border-t pt-3"><ChatList search={search} setSearch={setSearch} closeMobile={() => setSidebarOpen(false)} /></div>
+          </motion.div>
         )}
       </AnimatePresence>
 
       <SettingsCenter open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
+  );
+}
+
+function ThemeIconButton({ active, onClick, icon }: { active: boolean; onClick: () => void; icon: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex h-8 w-8 items-center justify-center rounded-full transition ${active ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+    >
+      {icon}
+    </button>
   );
 }
 

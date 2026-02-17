@@ -61,6 +61,7 @@ export interface AppSettings {
   webdavUsername: string;
   autoSyncMinutes: number;
   showTokenUsage: boolean;
+  modelCatalog: string[];
 }
 
 export interface AppSnapshot {

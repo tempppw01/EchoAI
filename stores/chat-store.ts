@@ -4,6 +4,7 @@ import { AppSnapshot, ChatMessage, ChatMode, ChatSession } from '@/lib/types';
 import { defaultSettings } from '@/stores/settings-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 import { useSettingsStore } from '@/stores/settings-store';
+import { requestOpenAICompatible } from '@/lib/openai-compatible';
 
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -92,18 +93,25 @@ const buildSystemPromptByMode = (session: ChatSession) => {
   return '你是一个专业、可靠的 AI 助手。';
 };
 
-const buildMessagesForRequest = (session: ChatSession, content: string) => {
+const buildMessagesForRequest = (session: ChatSession, content: string): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> => {
   const systemPrompt = buildSystemPromptByMode(session);
-  const history = session.messages.slice(-12).map((message) => ({ role: message.role, content: message.content }));
+  const history: Array<{ role: 'user' | 'assistant'; content: string }> = session.messages
+    .slice(-12)
+    .map((message) => ({ role: message.role, content: message.content }));
+  const systemMessages: Array<{ role: 'system'; content: string }> = systemPrompt
+    ? [{ role: 'system', content: systemPrompt }]
+    : [];
 
   return [
-    ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+    ...systemMessages,
     ...history,
     { role: 'user', content },
   ];
 };
 
-const requestAssistantReply = async (session: ChatSession, content: string) => {
+const inflightRequests = new Map<string, AbortController>();
+
+const requestAssistantReply = async (session: ChatSession, content: string, signal?: AbortSignal) => {
   const { settings } = useSettingsStore.getState();
   const endpoint = settings.baseUrl?.trim();
   const apiKey = settings.apiKey?.trim();
@@ -122,6 +130,7 @@ const requestAssistantReply = async (session: ChatSession, content: string) => {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
+    signal,
     body: JSON.stringify({
       model: session.model || settings.defaultTextModel,
       messages: buildMessagesForRequest(session, content),
@@ -148,9 +157,12 @@ const requestAssistantReply = async (session: ChatSession, content: string) => {
 interface ChatState {
   sessions: ChatSession[];
   activeSessionId?: string;
+  generatingSessionIds: string[];
   createSession: (mode: ChatMode, subtype?: string, model?: string, roleplayConfig?: { characterId?: string; worldId?: string }) => string;
   selectSession: (id: string) => void;
   sendMessage: (content: string, targetSessionId?: string) => Promise<void>;
+  stopMessage: (sessionId: string) => void;
+  clearContext: (sessionId: string) => void;
   renameSession: (id: string, title: string) => void;
   updateSession: (id: string, patch: Partial<ChatSession>) => void;
   deleteSession: (id: string) => void;
@@ -166,6 +178,7 @@ export const useChatStore = create<ChatState>()(
     (set, get) => ({
       sessions: [createInitialSession()],
       activeSessionId: undefined,
+      generatingSessionIds: [],
       createSession: (mode, subtype, model, roleplayConfig) => {
         const roleplayState = useRoleplayStore.getState();
         const session = {
@@ -187,10 +200,15 @@ export const useChatStore = create<ChatState>()(
         const session = sessions.find((s) => s.id === targetId);
         if (!session) return;
 
+        inflightRequests.get(targetId)?.abort();
+        const controller = new AbortController();
+        inflightRequests.set(targetId, controller);
+
         const user: ChatMessage = { id: uid(), role: 'user', content, createdAt: now(), status: 'done' };
         const assistant = buildAssistantMessage();
 
         set((state) => ({
+          generatingSessionIds: [...new Set([...state.generatingSessionIds, targetId])],
           sessions: sortedSessions(
             state.sessions.map((item) => {
               if (item.id !== targetId) return item;
@@ -219,8 +237,9 @@ export const useChatStore = create<ChatState>()(
         }));
 
         try {
-          const result = await requestAssistantReply({ ...session, messages: [...session.messages, user] }, content);
+          const result = await requestAssistantReply({ ...session, messages: [...session.messages, user] }, content, controller.signal);
           set((state) => ({
+            generatingSessionIds: state.generatingSessionIds.filter((id) => id !== targetId),
             sessions: sortedSessions(
               state.sessions.map((item) =>
                 item.id === targetId
@@ -254,8 +273,104 @@ export const useChatStore = create<ChatState>()(
               ),
             ),
           }));
+          const wasAborted = error instanceof Error && error.name === 'AbortError';
+          if (wasAborted) {
+            set((state) => ({
+              generatingSessionIds: state.generatingSessionIds.filter((id) => id !== targetId),
+              sessions: state.sessions.map((item) =>
+                item.id === targetId
+                  ? {
+                      ...item,
+                      messages: item.messages.map((message) =>
+                        message.id === assistant.id
+                          ? { ...message, status: 'error', content: '已停止生成。' }
+                          : message,
+                      ),
+                    }
+                  : item,
+              ),
+            }));
+            return;
+          }
+
+          const detail = error instanceof Error ? error.message : 'unknown error';
+
+          try {
+            const settings = useSettingsStore.getState().settings;
+            const model = session.model || getDefaultModelByMode(session.mode);
+            const response = await requestOpenAICompatible({
+              settings,
+              model,
+              messages: buildMessagesForRequest(session, content),
+            });
+
+            set((state) => ({
+              generatingSessionIds: state.generatingSessionIds.filter((id) => id !== targetId),
+              sessions: sortedSessions(
+                state.sessions.map((item) =>
+                  item.id === targetId
+                    ? {
+                        ...item,
+                        messages: item.messages.map((message) =>
+                          message.id === assistant.id
+                            ? {
+                                ...message,
+                                status: 'done',
+                                content: `请求模型失败：${detail}
+
+已切换到兼容模型回复：
+
+${response}`,
+                              }
+                            : message,
+                        ),
+                      }
+                    : item,
+                ),
+              ),
+            }));
+          } catch (fallbackError) {
+            const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : '未知错误';
+
+            set((state) => ({
+              generatingSessionIds: state.generatingSessionIds.filter((id) => id !== targetId),
+              sessions: sortedSessions(
+                state.sessions.map((item) =>
+                  item.id === targetId
+                    ? {
+                        ...item,
+                        messages: item.messages.map((msg) =>
+                          msg.id === assistant.id
+                            ? {
+                                ...msg,
+                                status: 'error',
+                                content: `请求失败：${detail}
+
+兼容模型也不可用：${fallbackMessage}`,
+                              }
+                            : msg,
+                        ),
+                      }
+                    : item,
+                ),
+              ),
+            }));
+          }
+        } finally {
+          inflightRequests.delete(targetId);
         }
       },
+      stopMessage: (sessionId) => {
+        inflightRequests.get(sessionId)?.abort();
+      },
+      clearContext: (sessionId) =>
+        set((state) => ({
+          sessions: state.sessions.map((session) =>
+            session.id === sessionId
+              ? { ...session, messages: [], summary: '开始你的第一条消息', memorySummary: '', pinnedMemory: '', updatedAt: now() }
+              : session,
+          ),
+        })),
       renameSession: (id, title) => set((state) => ({ sessions: state.sessions.map((s) => (s.id === id ? { ...s, title: title.trim() || s.title } : s)) })),
       updateSession: (id, patch) =>
         set((state) => ({
@@ -307,6 +422,12 @@ export const useChatStore = create<ChatState>()(
         set({ sessions: safeSessions, activeSessionId: safeActiveId });
       },
     }),
-    { name: 'echoai-chats' },
+    {
+      name: 'echoai-chats',
+      partialize: (state) => ({
+        sessions: state.sessions,
+        activeSessionId: state.activeSessionId,
+      }),
+    },
   ),
 );
