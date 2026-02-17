@@ -744,6 +744,7 @@
                 if (!session.featureType || !FEATURE_META[session.featureType]) {
                     session.featureType = 'copywriting';
                 }
+                ensureRoleplayConfig(session);
             });
 
             renderHistoryList();
@@ -1049,13 +1050,104 @@
             }
         ];
 
+        const BUILTIN_ROLEPLAY_PRESETS = [
+            {
+                id: 'mafia-boss',
+                name: '🕶️ 黑帮教父',
+                description: '强势、讲规矩，适合剧情对话',
+                prompt: '你是黑帮家族的教父，沉稳、威严、说话简洁，重视利益与承诺。',
+                worldBook: [
+                    { key: '家族', content: '维克托家族掌控港口物流、地下情报与灰色金融。' },
+                    { key: '禁忌', content: '严禁背叛家族，任何叛徒都必须接受审判。' }
+                ],
+                presets: [
+                    { name: '谈判模式', content: '优先以交易和筹码推动剧情，避免无意义冲突。' },
+                    { name: '压迫感语气', content: '每次回复控制在 2-5 句，保持冷静但压迫感。' }
+                ]
+            },
+            {
+                id: 'fantasy-mage',
+                name: '🪄 幻想法师',
+                description: '高幻想设定，适合冒险世界观',
+                prompt: '你是奥术学院首席法师，擅长符文、召唤与元素魔法。',
+                worldBook: [
+                    { key: '大陆', content: '埃兰大陆分为北境、群星帝国、灰烬荒原三大势力。' },
+                    { key: '法则', content: '高阶魔法会消耗精神力，过度施法可能导致失控。' }
+                ],
+                presets: [
+                    { name: '沉浸描写', content: '使用环境描写和动作描写增强代入感。' }
+                ]
+            },
+            {
+                id: 'campus-sweet',
+                name: '🎓 校园青梅',
+                description: '轻松日常风格，适合陪伴聊天',
+                prompt: '你是用户的青梅竹马，性格温柔开朗，熟悉校园生活细节。',
+                worldBook: [
+                    { key: '学校', content: '星河高中以社团文化闻名，每周五有社团开放日。' }
+                ],
+                presets: [
+                    { name: '轻松互动', content: '多用口语表达，减少说教式回答。' }
+                ]
+            },
+            {
+                id: 'sci-fi-ai',
+                name: '🚀 星舰 AI',
+                description: '科幻助手，适合任务推进',
+                prompt: '你是星舰“曙光号”的舰载 AI，负责导航、战术和船员支持。',
+                worldBook: [
+                    { key: '飞船', content: '曙光号拥有跃迁引擎、无人机群和多层防护护盾。' }
+                ],
+                presets: [
+                    { name: '任务简报', content: '输出使用“目标/风险/建议行动”三段格式。' }
+                ]
+            }
+        ];
+
         function editSystemPrompt() {
             if (!currentSessionId || !sessions[currentSessionId]) return;
             openRoleSelector();
         }
 
+        function ensureRoleplayConfig(session) {
+            if (!session) return { worldBook: [], presets: [] };
+            if (!session.roleplayConfig) {
+                session.roleplayConfig = {
+                    roleName: '',
+                    roleDescription: '',
+                    worldBook: [],
+                    presets: []
+                };
+            }
+            if (!Array.isArray(session.roleplayConfig.worldBook)) session.roleplayConfig.worldBook = [];
+            if (!Array.isArray(session.roleplayConfig.presets)) session.roleplayConfig.presets = [];
+            return session.roleplayConfig;
+        }
+
+        function buildEffectiveSystemPrompt(session) {
+            if (!session) return '';
+            const basePrompt = session.systemPrompt || '';
+            const roleplayConfig = ensureRoleplayConfig(session);
+            const sections = [];
+            if (basePrompt) sections.push(basePrompt);
+            if (roleplayConfig.worldBook.length > 0) {
+                const wbText = roleplayConfig.worldBook
+                    .map(item => `- ${item.key || '条目'}: ${item.content || ''}`)
+                    .join('\n');
+                sections.push(`【世界书】
+${wbText}`);
+            }
+            if (roleplayConfig.presets.length > 0) {
+                const presetText = roleplayConfig.presets
+                    .map(item => `- ${item.name || '预设'}: ${item.content || ''}`)
+                    .join('\n');
+                sections.push(`【行为预设】
+${presetText}`);
+            }
+            return sections.join('\n\n').trim();
+        }
+
         function openRoleSelector() {
-            // 创建角色选择模态框
             let roleModal = document.getElementById('roleModal');
             if (!roleModal) {
                 roleModal = document.createElement('div');
@@ -1063,39 +1155,48 @@
                 roleModal.className = 'modal';
                 roleModal.innerHTML = `
                     <div class="modal-content role-modal-content">
-                        <div class="modal-header">
-                            <span>🎭 选择助手角色</span>
-                        </div>
+                        <div class="modal-header"><span>🎭 角色扮演工作台</span></div>
                         <div class="role-grid" id="roleGrid"></div>
                         <div class="custom-prompt-section" id="customPromptSection" style="display: none;">
-                            <label>自定义角色设定：</label>
-                            <textarea id="customPromptInput" rows="4" placeholder="请输入你想要的角色设定..."></textarea>
+                            <label>角色设定（System Prompt）</label>
+                            <textarea id="customPromptInput" rows="4" placeholder="请输入角色设定..."></textarea>
+                            <label>角色名（可选）</label>
+                            <input id="roleNameInput" type="text" placeholder="例如：维克托教父" />
+                            <label>角色描述（可选）</label>
+                            <input id="roleDescriptionInput" type="text" placeholder="例如：掌控港口的家族首领" />
+                            <label>世界书（每行：关键词::内容）</label>
+                            <textarea id="worldBookInput" rows="4" placeholder="家族::维克托家族掌控港口
+禁忌::严禁背叛"></textarea>
+                            <label>行为预设（每行：名称::规则）</label>
+                            <textarea id="presetInput" rows="4" placeholder="谈判模式::优先交易与筹码
+压迫语气::每次回复 2-5 句"></textarea>
                         </div>
-                        <button onclick="applyRole()" class="save-btn" id="applyRoleBtn">应用角色</button>
+                        <div class="role-modal-actions">
+                            <label class="import-btn" for="roleJsonImport">📥 导入角色 JSON</label>
+                            <input id="roleJsonImport" type="file" accept="application/json,.json" style="display:none;" onchange="importRoleJson(event)">
+                            <button onclick="exportCurrentRoleJson()" class="save-btn save-btn-secondary">📤 导出当前角色</button>
+                            <button onclick="applyRole()" class="save-btn" id="applyRoleBtn">应用角色</button>
+                        </div>
                     </div>
                 `;
                 document.body.appendChild(roleModal);
-                
+
                 roleModal.addEventListener('click', function(e) {
                     if (e.target === roleModal) closeRoleSelector();
                 });
             }
-            
-            // 渲染角色卡片
+
             const roleGrid = document.getElementById('roleGrid');
             const session = sessions[currentSessionId];
+            const roleplayConfig = ensureRoleplayConfig(session);
             const currentPrompt = session?.systemPrompt || '';
-            
+
             roleGrid.innerHTML = '';
-            PRESET_ROLES.forEach(role => {
+            [...BUILTIN_ROLEPLAY_PRESETS, ...PRESET_ROLES].forEach(role => {
                 const card = document.createElement('div');
                 card.className = 'role-card' + (role.id === 'custom' ? ' custom' : '');
                 card.dataset.roleId = role.id;
-                card.innerHTML = `
-                    <div class="role-icon">${role.icon}</div>
-                    <div class="role-name">${role.name}</div>
-                    <div class="role-desc">${role.description}</div>
-                `;
+                card.innerHTML = `<div class="role-icon">${role.icon || '🎭'}</div><div class="role-name">${role.name}</div><div class="role-desc">${role.description}</div>`;
                 card.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1103,53 +1204,135 @@
                 });
                 roleGrid.appendChild(card);
             });
-            
-            // 检查当前是否匹配某个预设角色
+
             const matchedRole = PRESET_ROLES.find(r => r.prompt && r.prompt === currentPrompt);
             if (matchedRole) {
                 selectRole(matchedRole.id);
-            } else if (currentPrompt) {
+            } else {
                 selectRole('custom');
-                document.getElementById('customPromptInput').value = currentPrompt;
             }
-            
+            document.getElementById('customPromptInput').value = currentPrompt;
+            document.getElementById('roleNameInput').value = roleplayConfig.roleName || '';
+            document.getElementById('roleDescriptionInput').value = roleplayConfig.roleDescription || '';
+            document.getElementById('worldBookInput').value = (roleplayConfig.worldBook || []).map(item => `${item.key || ''}::${item.content || ''}`).join('\n');
+            document.getElementById('presetInput').value = (roleplayConfig.presets || []).map(item => `${item.name || ''}::${item.content || ''}`).join('\n');
+
             roleModal.style.display = 'flex';
         }
 
         let selectedRoleId = null;
 
+        function parseMultiLinePairs(text, fallbackKey = '条目') {
+            return text
+                .split('\n')
+                .map(line => line.trim())
+                .filter(Boolean)
+                .map((line, index) => {
+                    const parts = line.split('::');
+                    if (parts.length >= 2) {
+                        return { key: parts[0].trim() || `${fallbackKey}${index + 1}`, content: parts.slice(1).join('::').trim() };
+                    }
+                    return { key: `${fallbackKey}${index + 1}`, content: line };
+                });
+        }
+
         function selectRole(roleId) {
             selectedRoleId = roleId;
-            
-            // 更新选中状态
             document.querySelectorAll('.role-card').forEach(card => {
                 card.classList.toggle('selected', card.dataset.roleId === roleId);
             });
-            
-            // 显示/隐藏自定义输入框
+
             const customSection = document.getElementById('customPromptSection');
-            customSection.style.display = roleId === 'custom' ? 'block' : 'none';
+            customSection.style.display = 'block';
+
+            const role = [...BUILTIN_ROLEPLAY_PRESETS, ...PRESET_ROLES].find(r => r.id === roleId);
+            if (!role) return;
+
+            if (role.id === 'custom') return;
+            document.getElementById('customPromptInput').value = role.prompt || '';
+            document.getElementById('roleNameInput').value = role.name || '';
+            document.getElementById('roleDescriptionInput').value = role.description || '';
+            document.getElementById('worldBookInput').value = (role.worldBook || []).map(item => `${item.key || ''}::${item.content || ''}`).join('\n');
+            document.getElementById('presetInput').value = (role.presets || []).map(item => `${item.name || ''}::${item.content || ''}`).join('\n');
+        }
+
+        async function importRoleJson(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                const cardData = data.data || data;
+                const worldEntries = cardData.character_book?.entries || cardData.world_book?.entries || [];
+                const worldBook = worldEntries.map((entry, index) => ({
+                    key: (entry.keys && entry.keys[0]) || entry.comment || `世界书${index + 1}`,
+                    content: entry.content || ''
+                })).filter(item => item.content);
+
+                document.getElementById('customPromptInput').value = cardData.system_prompt || cardData.description || data.description || '';
+                document.getElementById('roleNameInput').value = cardData.name || data.name || '';
+                document.getElementById('roleDescriptionInput').value = cardData.personality || cardData.first_mes || '';
+                document.getElementById('worldBookInput').value = worldBook.map(item => `${item.key}::${item.content}`).join('\n');
+                document.getElementById('presetInput').value = '';
+                selectRole('custom');
+                alert('角色 JSON 导入成功，请确认后点击“应用角色”。');
+            } catch (error) {
+                alert(`导入失败：${error.message}`);
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        function exportCurrentRoleJson() {
+            if (!currentSessionId || !sessions[currentSessionId]) return;
+            const session = sessions[currentSessionId];
+            const roleplayConfig = ensureRoleplayConfig(session);
+            const payload = {
+                spec: 'chara_card_v2',
+                spec_version: '2.0',
+                data: {
+                    name: roleplayConfig.roleName || '自定义角色',
+                    description: session.systemPrompt || '',
+                    personality: roleplayConfig.roleDescription || '',
+                    system_prompt: session.systemPrompt || '',
+                    character_book: {
+                        entries: roleplayConfig.worldBook.map((item, index) => ({
+                            keys: [item.key || `world_${index + 1}`],
+                            content: item.content || '',
+                            enabled: true,
+                            insertion_order: index
+                        }))
+                    },
+                    extensions: {
+                        echoai_presets: roleplayConfig.presets
+                    }
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${(roleplayConfig.roleName || 'echoai-role').replace(/\s+/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
         }
 
         function applyRole() {
-            if (!selectedRoleId) {
-                alert('请选择一个角色');
-                return;
-            }
-            
             const session = sessions[currentSessionId];
             if (!session) return;
-            
-            if (selectedRoleId === 'custom') {
-                const customPrompt = document.getElementById('customPromptInput').value.trim();
-                session.systemPrompt = customPrompt;
-            } else {
-                const role = PRESET_ROLES.find(r => r.id === selectedRoleId);
-                if (role) {
-                    session.systemPrompt = role.prompt;
-                }
-            }
-            
+
+            const customPrompt = document.getElementById('customPromptInput').value.trim();
+            session.systemPrompt = customPrompt;
+
+            const roleplayConfig = ensureRoleplayConfig(session);
+            roleplayConfig.roleName = document.getElementById('roleNameInput').value.trim();
+            roleplayConfig.roleDescription = document.getElementById('roleDescriptionInput').value.trim();
+            roleplayConfig.worldBook = parseMultiLinePairs(document.getElementById('worldBookInput').value.trim(), '世界书');
+            roleplayConfig.presets = parseMultiLinePairs(document.getElementById('presetInput').value.trim(), '预设').map(item => ({ name: item.key, content: item.content }));
+
             saveSessionsToStorage();
             updateHeaderInfo();
             closeRoleSelector();
@@ -1403,8 +1586,9 @@
             });
 
             // 如果设置了系统提示词，添加到消息开头
-            if (session.systemPrompt) {
-                contextMessages.unshift({ role: 'system', content: session.systemPrompt });
+            const effectiveSystemPrompt = buildEffectiveSystemPrompt(session);
+            if (effectiveSystemPrompt) {
+                contextMessages.unshift({ role: 'system', content: effectiveSystemPrompt });
             }
 
             // 是否使用流式输出（真正的 SSE 流式）
