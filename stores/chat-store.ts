@@ -4,6 +4,7 @@ import { AppSnapshot, ChatMessage, ChatMode, ChatSession } from '@/lib/types';
 import { defaultSettings } from '@/stores/settings-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 import { useSettingsStore } from '@/stores/settings-store';
+import { requestOpenAICompatible } from '@/lib/openai-compatible';
 
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -92,12 +93,17 @@ const buildSystemPromptByMode = (session: ChatSession) => {
   return '你是一个专业、可靠的 AI 助手。';
 };
 
-const buildMessagesForRequest = (session: ChatSession, content: string) => {
+const buildMessagesForRequest = (session: ChatSession, content: string): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> => {
   const systemPrompt = buildSystemPromptByMode(session);
-  const history = session.messages.slice(-12).map((message) => ({ role: message.role, content: message.content }));
+  const history: Array<{ role: 'user' | 'assistant'; content: string }> = session.messages
+    .slice(-12)
+    .map((message) => ({ role: message.role, content: message.content }));
+  const systemMessages: Array<{ role: 'system'; content: string }> = systemPrompt
+    ? [{ role: 'system', content: systemPrompt }]
+    : [];
 
   return [
-    ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+    ...systemMessages,
     ...history,
     { role: 'user', content },
   ];
@@ -188,14 +194,6 @@ export const useChatStore = create<ChatState>()(
         if (!session) return;
 
         const user: ChatMessage = { id: uid(), role: 'user', content, createdAt: now(), status: 'done' };
-        const assistant: ChatMessage = {
-          id: uid(),
-          role: 'assistant',
-          content: '思考中...',
-          createdAt: now(),
-          status: 'streaming',
-        };
-        const nextMessages = [...session.messages, user];
         const assistant = buildAssistantMessage();
 
         set((state) => ({
@@ -250,8 +248,11 @@ export const useChatStore = create<ChatState>()(
           try {
             const settings = useSettingsStore.getState().settings;
             const model = session.model || getDefaultModelByMode(session.mode);
-            const requestMessages = buildRequestMessages(session, nextMessages);
-            const response = await requestOpenAICompatible({ settings, model, messages: requestMessages });
+            const response = await requestOpenAICompatible({
+              settings,
+              model,
+              messages: buildMessagesForRequest(session, content),
+            });
 
             set((state) => ({
               sessions: sortedSessions(
@@ -264,7 +265,11 @@ export const useChatStore = create<ChatState>()(
                             ? {
                                 ...message,
                                 status: 'done',
-                                content: `请求模型失败：${detail}\n\n已切换到兼容模型回复：\n\n${response}`,
+                                content: `请求模型失败：${detail}
+
+已切换到兼容模型回复：
+
+${response}`,
                               }
                             : message,
                         ),
@@ -287,27 +292,15 @@ export const useChatStore = create<ChatState>()(
                             ? {
                                 ...msg,
                                 status: 'error',
-                                content: `请求失败：${detail}\n\n兼容模型也不可用：${fallbackMessage}`,
+                                content: `请求失败：${detail}
+
+兼容模型也不可用：${fallbackMessage}`,
                               }
                             : msg,
                         ),
                       }
                     : item,
                 ),
-          const message = error instanceof Error ? error.message : '未知错误';
-          set((state) => ({
-            sessions: sortedSessions(
-              state.sessions.map((item) =>
-                item.id === targetId
-                  ? {
-                      ...item,
-                      messages: item.messages.map((msg) =>
-                        msg.id === assistant.id
-                          ? { ...msg, status: 'error', content: `请求失败：${message}` }
-                          : msg,
-                      ),
-                    }
-                  : item,
               ),
             }));
           }
