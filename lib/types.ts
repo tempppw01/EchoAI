@@ -15,7 +15,6 @@ export interface ChatSession {
   mode: ChatMode;
   subtype?: string;
   pinned: boolean;
-  favorite: boolean;
   updatedAt: string;
   summary: string;
   model: string;
@@ -28,8 +27,19 @@ export interface AppSettings {
   temperature: number;
   maxTokens: number;
   stream: boolean;
+  provider: string;
+  apiKey: string;
+  baseUrl: string;
   webdavUrl: string;
   webdavUsername: string;
   autoSyncMinutes: number;
   showTokenUsage: boolean;
+}
+
+export interface AppSnapshot {
+  version: number;
+  exportedAt: string;
+  settings: AppSettings;
+  sessions: ChatSession[];
+  activeSessionId?: string;
 }
