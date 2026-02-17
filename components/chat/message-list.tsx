@@ -91,6 +91,9 @@ export function MessageList({ session }: { session?: ChatSession }) {
       )}
       {session.messages.map((msg) => (
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} key={msg.id} className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} p-4`}>
+          <div className={`mb-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${msg.role === 'user' ? 'bg-primary/20 text-primary' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'}`}>
+            {msg.role === 'user' ? '你的提示' : 'AI 回答'}
+          </div>
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <ReactMarkdown
               components={{
