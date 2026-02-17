@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+dist
+coverage
+.env*
+server/node_modules
+npm-debug.log*
+yarn-debug.log*
+pnpm-lock.yaml
