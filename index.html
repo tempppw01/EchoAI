@@ -34,11 +34,8 @@
             <button class="sidebar-feature-btn" onclick="startFeatureChat('qaTest')">
                 <span>🧠</span> 技能训练
             </button>
-            <button class="sidebar-feature-btn" onclick="startImageChat()">
-                <span>🎨</span> 绘图对话
-            </button>
-            <button class="sidebar-feature-btn sidebar-feature-btn-secondary" onclick="openImageGenerator()">
-                <span>🖼️</span> 专业绘图
+            <button class="sidebar-feature-btn" onclick="openDrawingHub()">
+                <span>🎨</span> 绘图中心
             </button>
         </div>
 
@@ -134,13 +131,17 @@
     <div id="imageGenModal" class="modal">
         <div class="modal-content image-gen-modal-content">
             <div class="modal-header">
-                <span>🎨 专业绘图模式</span>
+                <span>🎨 绘图中心</span>
+            </div>
+            <div class="draw-entry-switcher">
+                <button class="draw-entry-btn" onclick="startQuickDrawChat()">⚡ 普通绘图（对话）</button>
+                <button class="draw-entry-btn draw-entry-btn-active" disabled>🖼️ 专业绘图（面板）</button>
             </div>
             
             <!-- 图片生成标签页 -->
             <div class="image-gen-tabs">
-                <button class="image-gen-tab active" onclick="switchImageGenTab('generate')">🎨 生成图片</button>
-                <button class="image-gen-tab" onclick="switchImageGenTab('history')">📜 生成记录</button>
+                <button class="image-gen-tab active" onclick="switchImageGenTab('generate', this)">🎨 生成图片</button>
+                <button class="image-gen-tab" onclick="switchImageGenTab('history', this)">📜 生成记录</button>
             </div>
             
             <!-- 生成图片面板 -->
@@ -148,16 +149,17 @@
                 <div class="image-gen-body">
                     <div class="form-group">
                         <label>图片描述 (Prompt)</label>
-                        <textarea id="imageGenPrompt" rows="3" placeholder="请描述你想要生成的图片...&#10;例如：一只可爱的橘猫在阳光下打盹，画风温馨治愈"></textarea>
+                        <textarea id="imageGenPrompt" rows="4" placeholder="请尽量完整描述：主体 + 环境 + 构图 + 光线 + 风格 + 细节。&#10;示例：一只橘猫趴在木窗边，午后阳光斜射，浅景深特写，电影感暖色调，水彩插画风，细节清晰。"></textarea>
+                        <p class="image-gen-hint">提示：可加入风格词（赛博朋克/水彩/写实）、镜头词（特写/广角/俯拍）、画质词（超清/细节丰富）来提升效果。</p>
                     </div>
                     <div class="form-group">
                         <label>参考图片 (以图生图/垫图)</label>
                         <div class="image-gen-upload">
                             <input type="file" id="imageGenUpload" accept="image/*" multiple style="display:none" onchange="handleImageGenUpload(event)">
-                            <div class="image-gen-upload-area" onclick="document.getElementById('imageGenUpload').click()">
+                            <div id="imageGenUploadArea" class="image-gen-upload-area" onclick="document.getElementById('imageGenUpload').click()">
                                 <div class="image-gen-upload-text">
                                     <span style="font-size: 2em; display: block; margin-bottom: 5px;">📷</span>
-                                    点击上传参考图片 (支持多张)
+                                    点击或拖拽上传参考图片（支持多张）
                                 </div>
                             </div>
                             <div id="imageGenPreviewList" class="image-gen-preview-list" style="display:none;"></div>
@@ -196,6 +198,7 @@
             <!-- 生成记录面板 -->
             <div id="imageGenPanel-history" class="image-gen-panel">
                 <div class="image-gen-history">
+                    <div class="image-history-sort">默认按时间倒序展示（最新在前）</div>
                     <div id="imageHistoryList" class="image-history-list">
                         <!-- 历史记录动态生成 -->
                     </div>
@@ -834,9 +837,10 @@
             currentSessionId = generateId();
             sessions[currentSessionId] = {
                 id: currentSessionId,
-                title: "🎨 绘图模式",
+                title: "🎨 绘图对话",
                 timestamp: Date.now(),
                 featureType: 'copywriting',
+                isImageChat: true,
                 messages: [],
                 systemPrompt: "你是一个专业的 AI 绘图助手。当用户描述画面时，请调用绘图能力生成图片。如果用户上传了图片，请根据用户的要求进行以图生图或图片分析。"
             };
@@ -847,10 +851,10 @@
             const imageModel = "gemini-3-pro-image-preview"; 
             config.model = imageModel;
             localStorage.setItem('chatConfig', JSON.stringify(config));
-            
+
             // 更新 UI
             document.getElementById('modelName').value = imageModel;
-            initHeaderModelSelect(); // 刷新头部下拉框
+            refreshHeaderModelSelect();
 
             // 3. 初始化界面
             chatMessages.innerHTML = `
@@ -869,6 +873,15 @@
             }
         }
 
+        function startQuickDrawChat() {
+            closeImageGenerator();
+            startImageChat();
+        }
+
+        function openDrawingHub() {
+            openImageGenerator();
+        }
+
         function switchChat(sessionId, render = true) {
             if (!sessions[sessionId]) return;
             currentSessionId = sessionId;
@@ -881,6 +894,7 @@
             // 更新 UI 高亮
             renderHistoryList();
             updateHeaderInfo();
+            refreshHeaderModelSelect();
 
             if (render) {
                 chatMessages.innerHTML = '';
@@ -1716,6 +1730,7 @@ ${summary}`, 'ai');
                     } else {
                         contentEl.innerHTML = safeMarkdownRender(text);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
+                        appendImageBubbleActions(container, text, sender, index);
                     }
                 }
                 type();
@@ -1723,7 +1738,71 @@ ${summary}`, 'ai');
                 // 🔒 使用安全的 Markdown 渲染
                 contentEl.innerHTML = safeMarkdownRender(text);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
+                appendImageBubbleActions(container, text, sender, index);
             }
+        }
+
+        function extractImageUrls(text = '') {
+            const urls = [];
+            const mdRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
+            const directRegex = /(data:image\/[^;]+;base64,[A-Za-z0-9+/=]+|https?:\/\/[^\s"'<>]+\.(?:png|jpe?g|gif|webp))/ig;
+            let match;
+
+            while ((match = mdRegex.exec(text)) !== null) {
+                urls.push(match[1]);
+            }
+            while ((match = directRegex.exec(text)) !== null) {
+                urls.push(match[1]);
+            }
+
+            return [...new Set(urls)];
+        }
+
+        function appendImageBubbleActions(container, text, sender, index) {
+            if (sender !== 'ai') return;
+            const imageUrls = extractImageUrls(text);
+            if (imageUrls.length === 0) return;
+            const firstImage = imageUrls[0];
+
+            const btnBar = document.createElement('div');
+            btnBar.className = 'image-bubble-actions';
+            btnBar.innerHTML = `
+                <button onclick="downloadImageByUrl('${firstImage}')">💾 下载</button>
+                <button onclick="reuseImageAsReference('${firstImage}', '请基于这张图生成相似风格的新版本')">🔁 相似重绘</button>
+                <button onclick="openImageModal('${firstImage}')">🔍 放大预览</button>
+                <button onclick="reuseImageAsReference('${firstImage}', '请改用水彩风格重画这张图')">🎨 水彩重画</button>
+            `;
+            container.querySelector('.content-wrapper')?.appendChild(btnBar);
+        }
+
+        function downloadImageByUrl(imageUrl) {
+            if (!imageUrl) return;
+            const link = document.createElement('a');
+            link.href = imageUrl;
+            link.download = `echoai-image-${Date.now()}.png`;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.click();
+        }
+
+        async function reuseImageAsReference(imageUrl, promptText) {
+            if (!imageUrl) return;
+            selectedImageBase64 = imageUrl;
+            document.getElementById('imagePreview').src = imageUrl;
+            document.getElementById('imagePreviewContainer').style.display = 'block';
+            userInput.value = promptText || '请基于这张图继续重绘';
+            userInput.focus();
+        }
+
+        function getLastSessionImage(session) {
+            if (!session?.messages?.length) return null;
+            for (let i = session.messages.length - 1; i >= 0; i--) {
+                const msg = session.messages[i];
+                if (msg.role !== 'assistant') continue;
+                const found = extractImageUrls(msg.content || '');
+                if (found.length > 0) return found[0];
+            }
+            return null;
         }
 
         function showLoadingIndicator() {
@@ -1746,9 +1825,17 @@ ${summary}`, 'ai');
 
         async function sendMessage() {
             const rawText = userInput.value;
-            const hasImage = selectedImageBase64 !== null;
+            let autoRefImage = null;
 
             const currentSession = sessions[currentSessionId];
+            if (currentSession?.isImageChat && !selectedImageBase64 && rawText.trim()) {
+                if (/(这张图|上一张|重画|改用|风格|基于这张)/.test(rawText)) {
+                    autoRefImage = getLastSessionImage(currentSession);
+                }
+            }
+
+            const activeImage = selectedImageBase64 || autoRefImage;
+            const hasImage = activeImage !== null;
             if (currentSession?.featureType === 'qaTest') {
                 const quizState = currentSession.quizState;
                 if (quizState?.status === 'setup') {
@@ -1810,7 +1897,7 @@ ${summary}`, 'ai');
             recordRequest();
 
             // 保存当前图片信息
-            const currentImageBase64 = selectedImageBase64;
+            const currentImageBase64 = activeImage;
             
             userInput.value = '';
             sendBtn.disabled = true;
@@ -2664,6 +2751,7 @@ ${summary}`, 'ai');
             
             // 先显示当前模型
             headerSelect.innerHTML = `<option value="${currentModel}" selected>${currentModel}</option>`;
+            refreshHeaderModelSelect();
             
             // 尝试获取完整模型列表
             await fetchHeaderModels();
@@ -2697,21 +2785,42 @@ ${summary}`, 'ai');
                 
                 if (data.data && Array.isArray(data.data)) {
                     cachedModelList = data.data.map(m => m.id).sort();
-                    
-                    headerSelect.innerHTML = '';
-                    cachedModelList.forEach(modelId => {
-                        const option = document.createElement('option');
-                        option.value = modelId;
-                        option.textContent = modelId;
-                        if (modelId === currentModel) {
-                            option.selected = true;
-                        }
-                        headerSelect.appendChild(option);
-                    });
+                    refreshHeaderModelSelect();
+                    populateImageGenModels();
                 }
             } catch (e) {
                 console.warn('获取模型列表失败:', e);
             }
+        }
+
+        function isImageModel(modelId = '') {
+            return /image|vision|flux|midjourney|sdxl|dall|paint|绘图/i.test(modelId);
+        }
+
+        function refreshHeaderModelSelect() {
+            const headerSelect = document.getElementById('headerModelSelect');
+            const config = getSettings();
+            const currentModel = config.model || DEFAULT_CONFIG.model;
+            const currentSession = sessions[currentSessionId];
+            const imageOnly = !!currentSession?.isImageChat;
+            const source = (cachedModelList && cachedModelList.length > 0) ? cachedModelList : [currentModel];
+            let models = imageOnly ? source.filter(isImageModel) : [...source];
+
+            if (models.length === 0) {
+                models = [currentModel];
+            }
+            if (!models.includes(currentModel)) {
+                models.unshift(currentModel);
+            }
+
+            headerSelect.innerHTML = '';
+            models.forEach(modelId => {
+                const option = document.createElement('option');
+                option.value = modelId;
+                option.textContent = imageOnly && !isImageModel(modelId) ? `${modelId}（当前）` : modelId;
+                if (modelId === currentModel) option.selected = true;
+                headerSelect.appendChild(option);
+            });
         }
 
         function onHeaderModelChange(newModel) {
@@ -2786,6 +2895,15 @@ ${summary}`, 'ai');
             
             // 清空 input，以便允许重复上传同一文件
             event.target.value = '';
+        }
+
+        function handleImageGenDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const files = event.dataTransfer?.files;
+            if (!files?.length) return;
+            handleImageGenUpload({ target: { files, value: '' } });
+            document.getElementById('imageGenUploadArea').classList.remove('drag-over');
         }
 
         // 添加参考图
@@ -2897,12 +3015,30 @@ ${summary}`, 'ai');
                         <img src="${record.imageUrl}" alt="${record.prompt}" loading="lazy">
                         <div class="image-history-info">
                             <div class="image-history-prompt" title="${record.prompt}">${record.prompt}</div>
-                            <div class="image-history-time">${timeStr}</div>
+                            <div class="image-history-time">${timeStr} · ${record.model}</div>
+                            <div class="image-history-item-actions">
+                                <button onclick="downloadImageHistoryItem(event, '${record.id}')">下载</button>
+                                <button onclick="copyImageHistoryLink(event, '${record.id}')">复制链接</button>
+                                <button onclick="deleteImageHistory(event, '${record.id}')">删除</button>
+                            </div>
                         </div>
-                        <button class="image-history-delete" onclick="deleteImageHistory(event, '${record.id}')" title="删除">×</button>
                     </div>
                 `;
             }).join('');
+        }
+
+        function downloadImageHistoryItem(event, id) {
+            event.stopPropagation();
+            const record = imageGenHistory.find(r => r.id === id);
+            if (record) downloadImageByUrl(record.imageUrl);
+        }
+
+        async function copyImageHistoryLink(event, id) {
+            event.stopPropagation();
+            const record = imageGenHistory.find(r => r.id === id);
+            if (!record?.imageUrl) return;
+            await navigator.clipboard.writeText(record.imageUrl);
+            alert('图片链接已复制');
         }
 
         // 查看历史图片
@@ -2931,12 +3067,12 @@ ${summary}`, 'ai');
         }
 
         // 切换图片生成标签页
-        function switchImageGenTab(tabName) {
+        function switchImageGenTab(tabName, tabElement) {
             // 更新标签页按钮状态
             document.querySelectorAll('.image-gen-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
-            event.target.classList.add('active');
+            if (tabElement) tabElement.classList.add('active');
             
             // 更新面板显示
             document.querySelectorAll('.image-gen-panel').forEach(panel => {
@@ -2952,8 +3088,26 @@ ${summary}`, 'ai');
             document.getElementById('imageGenResult').style.display = 'none';
             document.getElementById('imageGenError').style.display = 'none';
             document.getElementById('generateImageBtn').disabled = false;
+            switchImageGenTab('generate', document.querySelector('.image-gen-tab'));
+            populateImageGenModels();
             // 加载历史记录
             loadImageGenHistory();
+        }
+
+        function populateImageGenModels() {
+            const imageModelSelect = document.getElementById('imageGenModel');
+            const config = getSettings();
+            const fallback = ['gemini-3-pro-image-preview'];
+            const models = (cachedModelList || []).filter(isImageModel);
+            const finalModels = models.length > 0 ? models : fallback;
+            imageModelSelect.innerHTML = '';
+            finalModels.forEach(model => {
+                const opt = document.createElement('option');
+                opt.value = model;
+                opt.textContent = model;
+                if (model === config.model) opt.selected = true;
+                imageModelSelect.appendChild(opt);
+            });
         }
 
         function closeImageGenerator() {
@@ -2965,6 +3119,18 @@ ${summary}`, 'ai');
                 closeImageGenerator();
             }
         });
+
+        const imageGenUploadArea = document.getElementById('imageGenUploadArea');
+        if (imageGenUploadArea) {
+            imageGenUploadArea.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                imageGenUploadArea.classList.add('drag-over');
+            });
+            imageGenUploadArea.addEventListener('dragleave', () => {
+                imageGenUploadArea.classList.remove('drag-over');
+            });
+            imageGenUploadArea.addEventListener('drop', handleImageGenDrop);
+        }
 
         async function generateImage() {
             const prompt = document.getElementById('imageGenPrompt').value.trim();
