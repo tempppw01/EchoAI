@@ -80,7 +80,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
   return (
     <div className="h-screen overflow-hidden bg-[#f6f6f8] dark:bg-background">
-      <header className="hidden h-14 items-center justify-between border-b bg-card/85 px-4 backdrop-blur md:flex">
+      <header className="flex h-14 items-center justify-between border-b bg-card/85 px-4 backdrop-blur">
         <div className="flex items-center gap-2">
           <Button className="bg-transparent text-foreground md:hidden" onClick={() => setSidebarOpen(true)}><Menu size={16} /></Button>
           <span className="text-sm font-medium">EchoAI 工作区</span>
@@ -119,6 +119,30 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           </AnimatePresence>
         </main>
       </div>
+
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-30 md:hidden">
+          <button className="absolute inset-0 bg-black/45" onClick={() => setSidebarOpen(false)} aria-label="关闭侧边栏" />
+          <aside className="absolute left-0 top-0 flex h-full w-[84vw] max-w-xs flex-col border-r bg-background p-3 shadow-xl">
+            <SidebarNav
+              section={section}
+              expanded={expanded}
+              onToggle={(key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
+              onSelect={(key) => {
+                openSection(key);
+                setSidebarOpen(false);
+              }}
+              onCreate={(key) => {
+                createInSection(key);
+                setSidebarOpen(false);
+              }}
+            />
+            <div className="mt-3 min-h-0 flex-1 border-t pt-3">
+              <ChatList search={search} setSearch={setSearch} />
+            </div>
+          </aside>
+        </div>
+      )}
 
       <SettingsCenter open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
