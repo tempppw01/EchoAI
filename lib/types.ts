@@ -14,11 +14,38 @@ export interface ChatSession {
   title: string;
   mode: ChatMode;
   subtype?: string;
+  characterId?: string;
+  worldId?: string;
+  pinnedMemory?: string;
+  memorySummary?: string;
   pinned: boolean;
   updatedAt: string;
   summary: string;
   model: string;
   messages: ChatMessage[];
+}
+
+export interface CharacterCard {
+  id: string;
+  name: string;
+  avatar: string;
+  personality: string;
+  background: string;
+  speakingStyle: string;
+  scenario: string;
+  exampleDialogues: string;
+  systemPrompt: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorldConfig {
+  id: string;
+  name: string;
+  prompt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AppSettings {
