@@ -26,7 +26,14 @@ export const useSettingsStore = create<{
   persist(
     (set) => ({
       settings: defaultSettings,
-      setSettings: (incoming) => set((state) => ({ settings: { ...state.settings, ...incoming } })),
+      setSettings: (incoming) =>
+        set((state) => {
+          const sanitizedIncoming = Object.fromEntries(
+            Object.entries(incoming).filter(([, value]) => value !== undefined),
+          ) as Partial<AppSettings>;
+
+          return { settings: { ...state.settings, ...sanitizedIncoming } };
+        }),
       replaceSettings: (settings) => set({ settings: { ...defaultSettings, ...settings } }),
     }),
     { name: 'echoai-settings' },
