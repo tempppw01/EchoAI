@@ -132,7 +132,7 @@ const requestAssistantReply = async (session: ChatSession, content: string) => {
 
   if (!endpoint || !apiKey) {
     return {
-      content: `${buildAssistantMessage(content, session).content}\n\n⚠️ 未检测到 API 配置，当前为本地演示回复。`,
+      content: `已收到你的消息：${content}\n\n⚠️ 未检测到 API 配置，当前为本地演示回复。`,
       status: 'done' as const,
     };
   }
@@ -216,7 +216,6 @@ export const useChatStore = create<ChatState>()(
           createdAt: now(),
           status: 'streaming',
         };
-        const assistant = buildAssistantMessage();
         const nextMessages = [...session.messages, user];
 
         set((state) => ({
@@ -267,50 +266,57 @@ export const useChatStore = create<ChatState>()(
           }));
         } catch (error) {
           const detail = error instanceof Error ? error.message : 'unknown error';
-          const settings = useSettingsStore.getState().settings;
-          const model = session.model || getDefaultModelByMode(session.mode);
-          const requestMessages = buildRequestMessages(session, nextMessages);
-          const response = await requestOpenAICompatible({ settings, model, messages: requestMessages });
 
-          set((state) => ({
-            sessions: sortedSessions(
-              state.sessions.map((item) =>
-                item.id === targetId
-                  ? {
-                      ...item,
-                      messages: item.messages.map((message) =>
-                        message.id === assistant.id
-                          ? {
-                              ...message,
-                              status: 'error',
-                              content: `请求模型失败：${detail}\n\n已切换到本地演示回复：\n\n${buildAssistantMessage(content, session).content}`,
-                            }
-                          ? { ...message, status: 'done', content: response }
-                          : message,
-                      ),
-                    }
-                  : item,
+          try {
+            const settings = useSettingsStore.getState().settings;
+            const model = session.model || getDefaultModelByMode(session.mode);
+            const requestMessages = buildRequestMessages(session, nextMessages);
+            const response = await requestOpenAICompatible({ settings, model, messages: requestMessages });
+
+            set((state) => ({
+              sessions: sortedSessions(
+                state.sessions.map((item) =>
+                  item.id === targetId
+                    ? {
+                        ...item,
+                        messages: item.messages.map((message) =>
+                          message.id === assistant.id
+                            ? {
+                                ...message,
+                                status: 'done',
+                                content: `请求模型失败：${detail}\n\n已切换到兼容模型回复：\n\n${response}`,
+                              }
+                            : message,
+                        ),
+                      }
+                    : item,
+                ),
               ),
-            ),
-          }));
-        } catch (error) {
-          const message = error instanceof Error ? error.message : '未知错误';
-          set((state) => ({
-            sessions: sortedSessions(
-              state.sessions.map((item) =>
-                item.id === targetId
-                  ? {
-                      ...item,
-                      messages: item.messages.map((msg) =>
-                        msg.id === assistant.id
-                          ? { ...msg, status: 'error', content: `请求失败：${message}` }
-                          : msg,
-                      ),
-                    }
-                  : item,
+            }));
+          } catch (fallbackError) {
+            const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : '未知错误';
+
+            set((state) => ({
+              sessions: sortedSessions(
+                state.sessions.map((item) =>
+                  item.id === targetId
+                    ? {
+                        ...item,
+                        messages: item.messages.map((msg) =>
+                          msg.id === assistant.id
+                            ? {
+                                ...msg,
+                                status: 'error',
+                                content: `请求失败：${detail}\n\n兼容模型也不可用：${fallbackMessage}`,
+                              }
+                            : msg,
+                        ),
+                      }
+                    : item,
+                ),
               ),
-            ),
-          }));
+            }));
+          }
         }
       },
       renameSession: (id, title) => set((state) => ({ sessions: state.sessions.map((s) => (s.id === id ? { ...s, title: title.trim() || s.title } : s)) })),
