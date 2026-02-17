@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Paperclip, SendHorizontal, SlidersHorizontal, Square, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ChatMode } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
@@ -156,11 +157,36 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       </div>
 
       {showOptions && (
-        <div className="mt-2 rounded-xl border bg-background/80 p-2 text-xs">
-          <button className="flex w-full items-center justify-between rounded-lg px-2 py-1 hover:bg-muted/60" onClick={() => setSettings({ stream: !settings.stream })}>
-            <span>流式响应</span>
-            <span>{settings.stream ? '已开启' : '已关闭'}</span>
-          </button>
+        <div className="mt-2 grid gap-2 rounded-xl border bg-background/80 p-3 text-xs md:grid-cols-2">
+          <label className="grid gap-1">
+            <span className="text-muted-foreground">temperature</span>
+            <Input
+              type="number"
+              step="0.1"
+              min={0}
+              max={2}
+              value={settings.temperature}
+              onChange={(e) => setSettings({ temperature: Number(e.target.value) || 0 })}
+            />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-muted-foreground">max tokens</span>
+            <Input
+              type="number"
+              min={256}
+              max={8192}
+              value={settings.maxTokens}
+              onChange={(e) => setSettings({ maxTokens: Number(e.target.value) || 256 })}
+            />
+          </label>
+          <label className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-muted/60">
+            <input type="checkbox" checked={settings.stream} onChange={(e) => setSettings({ stream: e.target.checked })} />
+            <span>流式输出</span>
+          </label>
+          <label className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-muted/60">
+            <input type="checkbox" checked={settings.showTokenUsage} onChange={(e) => setSettings({ showTokenUsage: e.target.checked })} />
+            <span>显示 token 用量</span>
+          </label>
         </div>
       )}
 

@@ -14,9 +14,7 @@ interface SettingsTabsProps {
 }
 
 const tabs = [
-  { value: 'channel', label: '模型渠道' },
-  { value: 'model', label: '模型' },
-  { value: 'chat', label: '参数' },
+  { value: 'model', label: '模型设置' },
   { value: 'webdav', label: 'WebDAV' },
 ] as const;
 
@@ -56,7 +54,7 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
   };
 
   return (
-    <Tabs.Root defaultValue="channel">
+    <Tabs.Root defaultValue="model">
       <Tabs.List className="mb-3 flex flex-wrap gap-2 text-xs">
         {tabs.map((tab) => (
           <Tabs.Trigger key={tab.value} value={tab.value} className="rounded border px-2 py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
@@ -65,7 +63,7 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
         ))}
       </Tabs.List>
 
-      <Tabs.Content value="channel" className="space-y-2 text-sm">
+      <Tabs.Content value="model" className="space-y-2 text-sm">
         <Input
           placeholder="OpenAI 兼容 Base URL"
           {...form.register('baseUrl', {
@@ -91,10 +89,6 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
           <p>已持久化模型：{modelCatalog.length}</p>
           <p className="mt-1 max-h-20 overflow-y-auto break-all">{modelCatalog.length ? modelCatalog.join('、') : '暂无，请点击“拉取模型列表”'}</p>
         </div>
-        <p className="text-xs text-muted-foreground">安全提示：API Key 仅本地存储。</p>
-      </Tabs.Content>
-
-      <Tabs.Content value="model" className="grid gap-3 text-sm">
         <Input placeholder="默认文本模型" list="model-catalog" {...form.register('defaultTextModel')} />
         <Input placeholder="默认图片模型" list="model-catalog" {...form.register('defaultImageModel')} />
         <datalist id="model-catalog">
@@ -102,13 +96,7 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
             <option key={model} value={model} />
           ))}
         </datalist>
-      </Tabs.Content>
-
-      <Tabs.Content value="chat" className="grid gap-2 md:grid-cols-2">
-        <Input type="number" step="0.1" placeholder="temperature" {...form.register('temperature')} />
-        <Input type="number" placeholder="max tokens" {...form.register('maxTokens')} />
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...form.register('stream')} /> 流式输出</label>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...form.register('showTokenUsage')} /> 显示 token 用量</label>
+        <p className="text-xs text-muted-foreground">安全提示：API Key 仅本地存储。</p>
       </Tabs.Content>
 
       <Tabs.Content value="webdav" className="grid gap-2">
