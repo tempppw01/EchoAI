@@ -262,6 +262,8 @@ interface ChatState {
   deleteSession: (id: string) => void;
   togglePinSession: (id: string) => void;
   retryMessage: (sessionId: string, messageId: string) => void;
+  deleteMessage: (sessionId: string, messageId: string) => void;
+  editUserMessage: (sessionId: string, messageId: string, content: string) => void;
   regenerateLastAssistant: (sessionId: string) => void;
   exportSnapshot: (settings: AppSnapshot['settings']) => AppSnapshot;
   importSnapshot: (snapshot: AppSnapshot) => void;
@@ -445,6 +447,34 @@ export const useChatStore = create<ChatState>()(
         const message = session?.messages.find((m) => m.id === messageId && m.role === 'user');
         if (!message) return;
         get().sendMessage(message.content, sessionId);
+      },
+      deleteMessage: (sessionId, messageId) =>
+        set((state) => ({
+          sessions: state.sessions.map((session) =>
+            session.id === sessionId
+              ? { ...session, messages: session.messages.filter((message) => message.id !== messageId), updatedAt: now() }
+              : session,
+          ),
+        })),
+      editUserMessage: (sessionId, messageId, content) => {
+        if (!content.trim()) return;
+        set((state) => ({
+          sessions: state.sessions.map((session) => {
+            if (session.id !== sessionId) return session;
+            return {
+              ...session,
+              updatedAt: now(),
+              messages: session.messages.map((message) => {
+                if (message.id !== messageId || message.role !== 'user') return message;
+                return {
+                  ...message,
+                  content,
+                  originalContent: message.originalContent ?? message.content,
+                };
+              }),
+            };
+          }),
+        }));
       },
       regenerateLastAssistant: (sessionId) => {
         const session = get().sessions.find((s) => s.id === sessionId);
