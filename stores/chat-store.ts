@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { requestOpenAICompatible, toOpenAIMessages } from '@/lib/openai-compatible';
 import { AppSnapshot, ChatMessage, ChatMode, ChatSession } from '@/lib/types';
 import { defaultSettings } from '@/stores/settings-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
@@ -85,27 +84,6 @@ const buildAssistantMessage = (): ChatMessage => ({
   status: 'streaming',
 });
 
-const getSystemPromptByMode = (mode: ChatMode) => {
-  if (mode === 'copywriting') return '你是一位资深中文文案顾问，优先输出可直接使用的文案并给出可选版本。';
-  if (mode === 'videoScript') return '你是一位短视频编导，输出结构化脚本，默认包含开场钩子、正文和结尾行动号召。';
-  if (mode === 'training') return '你是一位学习教练，回答时包含目标拆解、执行建议和复盘方式。';
-  return '你是一个中文 AI 助手，请直接、准确地回答用户问题。';
-};
-
-const buildRequestMessages = (session: ChatSession, nextMessages: ChatMessage[]) => {
-  const roleplayStore = useRoleplayStore.getState();
-  const baseMessages = toOpenAIMessages(nextMessages);
-
-  if (session.mode !== 'roleplay') {
-    return [{ role: 'system' as const, content: getSystemPromptByMode(session.mode) }, ...baseMessages];
-  }
-
-  const character = roleplayStore.characters.find((char) => char.id === session.characterId);
-  const prompt = buildRoleplayPrompt(session);
-
-  return [{ role: 'system' as const, content: prompt || `${character?.name || '角色'}设定` }, ...baseMessages];
-};
-
 const buildSystemPromptByMode = (session: ChatSession) => {
   if (session.mode === 'copywriting') return '你是一名资深中文营销文案专家。输出可直接投放的文案，并给出多版本。';
   if (session.mode === 'videoScript') return '你是一名短视频脚本策划。输出结构化脚本，包含开场钩子、节奏、镜头建议与CTA。';
@@ -131,10 +109,7 @@ const requestAssistantReply = async (session: ChatSession, content: string) => {
   const apiKey = settings.apiKey?.trim();
 
   if (!endpoint || !apiKey) {
-    return {
-      content: `${buildAssistantMessage(content, session).content}\n\n⚠️ 未检测到 API 配置，当前为本地演示回复。`,
-      status: 'done' as const,
-    };
+    throw new Error('未检测到可用的 API 配置，请先在设置中填写 Base URL 和 API Key。');
   }
 
   const response = await fetch(endpoint, {
@@ -209,15 +184,7 @@ export const useChatStore = create<ChatState>()(
         if (!session) return;
 
         const user: ChatMessage = { id: uid(), role: 'user', content, createdAt: now(), status: 'done' };
-        const assistant: ChatMessage = {
-          id: uid(),
-          role: 'assistant',
-          content: '思考中...',
-          createdAt: now(),
-          status: 'streaming',
-        };
         const assistant = buildAssistantMessage();
-        const nextMessages = [...session.messages, user];
 
         set((state) => ({
           sessions: sortedSessions(
@@ -258,34 +225,6 @@ export const useChatStore = create<ChatState>()(
                       messages: item.messages.map((message) =>
                         message.id === assistant.id
                           ? { ...message, status: result.status, content: result.content }
-                          : message,
-                      ),
-                    }
-                  : item,
-              ),
-            ),
-          }));
-        } catch (error) {
-          const detail = error instanceof Error ? error.message : 'unknown error';
-          const settings = useSettingsStore.getState().settings;
-          const model = session.model || getDefaultModelByMode(session.mode);
-          const requestMessages = buildRequestMessages(session, nextMessages);
-          const response = await requestOpenAICompatible({ settings, model, messages: requestMessages });
-
-          set((state) => ({
-            sessions: sortedSessions(
-              state.sessions.map((item) =>
-                item.id === targetId
-                  ? {
-                      ...item,
-                      messages: item.messages.map((message) =>
-                        message.id === assistant.id
-                          ? {
-                              ...message,
-                              status: 'error',
-                              content: `请求模型失败：${detail}\n\n已切换到本地演示回复：\n\n${buildAssistantMessage(content, session).content}`,
-                            }
-                          ? { ...message, status: 'done', content: response }
                           : message,
                       ),
                     }
