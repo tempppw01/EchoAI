@@ -8,7 +8,7 @@ export async function fetchModelCatalog(settings: ModelFetchSettings): Promise<s
   const apiKey = settings.apiKey?.trim();
 
   if (!baseUrl || !apiKey) {
-    return settings.modelCatalog || [];
+    throw new Error('请先填写并保存 OpenAI 渠道地址和 API Key');
   }
 
   const response = await fetch(`${normalizeOpenAIBaseUrl(baseUrl)}/models`, {
