@@ -149,7 +149,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
       </header>
 
       <div className="grid h-[calc(100vh-56px)] md:grid-cols-[300px_1fr]">
-        <aside className="hidden border-r bg-card/70 px-3 py-2 backdrop-blur md:flex md:flex-col">
+        <aside className="hidden min-h-0 overflow-y-auto border-r bg-card/70 px-3 py-2 backdrop-blur md:flex md:flex-col">
           <SidebarNav
             section={section}
             expanded={expanded}
@@ -159,7 +159,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             sessionCountByMode={sessionCountByMode}
             onSettings={() => setSettingsOpen(true)}
           />
-          <div className="mt-3 border-t pt-3">
+          <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden border-t pt-3">
             <ChatList search={search} setSearch={setSearch} />
           </div>
         </aside>
@@ -209,7 +209,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
       <AnimatePresence>
         {sidebarOpen && (
-          <motion.div initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="fixed inset-y-0 left-0 z-40 w-80 border-r bg-card p-3 md:hidden">
+          <motion.div initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="fixed inset-y-0 left-0 z-40 flex w-80 flex-col overflow-y-auto border-r bg-card p-3 md:hidden">
             <SidebarNav
               section={section}
               expanded={expanded}
@@ -225,7 +225,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               sessionCountByMode={sessionCountByMode}
               onSettings={() => setSettingsOpen(true)}
             />
-            <div className="mt-3 border-t pt-3"><ChatList search={search} setSearch={setSearch} closeMobile={() => setSidebarOpen(false)} /></div>
+            <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden border-t pt-3"><ChatList search={search} setSearch={setSearch} closeMobile={() => setSidebarOpen(false)} /></div>
           </motion.div>
         )}
       </AnimatePresence>
