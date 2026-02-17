@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AppSnapshot, ChatMessage, ChatMode, ChatSession, TrainingQuestion } from '@/lib/types';
+import { AppSnapshot, ChatMessage, ChatMode, ChatSession, TrainingQuestion, TrainingRecord } from '@/lib/types';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
 import { defaultSettings, useSettingsStore } from '@/stores/settings-store';
 
@@ -143,10 +143,52 @@ const normalizeTrainingQuestion = (raw: string): TrainingQuestion | undefined =>
   }
 };
 
+const getDifficultyLevelByScore = (score: number) => {
+  if (score >= 85) return { level: 5, label: '挑战', guidance: '提高综合推理、跨知识点迁移与迷惑项质量。' };
+  if (score >= 70) return { level: 4, label: '进阶', guidance: '提升情境化应用和概念辨析强度。' };
+  if (score >= 55) return { level: 3, label: '标准', guidance: '保持核心概念理解与基础应用。' };
+  if (score >= 40) return { level: 2, label: '巩固', guidance: '降低跨度，优先单一知识点与直接判断。' };
+  return { level: 1, label: '基础', guidance: '显著降低难度，聚焦定义识别和最基础计算。' };
+};
+
+const buildTrainingSummary = async (session: ChatSession): Promise<string> => {
+  const records = (session.trainingRecentRecords || []).slice(-10);
+  if (!records.length) return '阶段汇总：本轮数据不足，继续下一题巩固。';
+  const fallback = (() => {
+    const total = records.length;
+    const correctCount = records.filter((item) => item.isCorrect).length;
+    const wrongKnowledgePoints = records
+      .filter((item) => !item.isCorrect)
+      .map((item) => `第${item.round}题：${item.stem}`)
+      .slice(0, 3);
+    return `📌 10轮阶段汇总\n- 正确率：${correctCount}/${total}\n- 当前分数：${session.trainingScore ?? 60}/100\n- 优先巩固：${wrongKnowledgePoints.length ? wrongKnowledgePoints.join('；') : '本轮无明显薄弱点，建议继续提高综合题占比。'}\n- 建议：先复盘错题解析，再进入下一题。`;
+  })();
+
+  try {
+    const settings = useSettingsStore.getState().settings;
+    const reply = await requestOpenAICompatible({
+      settings,
+      model: session.model || settings.defaultTextModel,
+      messages: [
+        { role: 'system', content: '你是学习复盘助手。请输出简洁中文文本，不要 Markdown 表格，不要输出 JSON。' },
+        {
+          role: 'user',
+          content: `基于以下10轮答题记录，输出“汇总巩固解析”：\n1) 先给一句整体表现结论。\n2) 再给“掌握较好”最多2点。\n3) 再给“需要巩固”最多3点。\n4) 最后给“下一轮建议”最多2条。\n语气积极、简洁。\n\n主题：${session.trainingTopic || '综合基础'}\n当前分数：${session.trainingScore ?? 60}/100\n记录：${JSON.stringify(records)}`,
+        },
+      ],
+    });
+    return `📌 10轮阶段汇总\n${reply.trim()}`;
+  } catch {
+    return fallback;
+  }
+};
+
 const buildTrainingQuestion = async (session: ChatSession): Promise<TrainingQuestion | undefined> => {
   const settings = useSettingsStore.getState().settings;
   const topic = session.trainingTopic || '综合基础';
   const avoid = session.trainingLastCorrectOption || '无';
+  const score = session.trainingScore ?? 60;
+  const { level, label, guidance } = getDifficultyLevelByScore(score);
   const prompt = `请围绕主题“${topic}”出一道难度自适应的单选题，并只输出 JSON，不要输出其它文字。
 JSON schema:
 {
@@ -158,7 +200,10 @@ JSON schema:
 要求：
 1) 题干简洁，四个选项长度相近。
 2) 正确选项不要总固定在同一个字母，尽量随机。本轮避免 ${avoid}。
-3) 与最近题目保持发散，不要重复同一考点表述。`;
+3) 与最近题目保持发散，不要重复同一考点表述。
+4) 当前学习者分数为 ${score}/100，目标难度等级为 L${level}-${label}。
+5) 分数越高题目越难，分数下降时请主动降低难度，避免连续挫败。
+6) 本轮难度策略：${guidance}`;
 
   try {
     const reply = await requestOpenAICompatible({
@@ -280,7 +325,17 @@ export const useChatStore = create<ChatState>()(
         set((state) => ({
           sessions: state.sessions.map((session) =>
             session.id === sessionId
-              ? { ...session, messages: [], summary: '开始你的第一条消息', memorySummary: '', pinnedMemory: '', trainingCurrentQuestion: undefined, trainingRound: 0, updatedAt: now() }
+              ? {
+                  ...session,
+                  messages: [],
+                  summary: '开始你的第一条消息',
+                  memorySummary: '',
+                  pinnedMemory: '',
+                  trainingCurrentQuestion: undefined,
+                  trainingRound: 0,
+                  trainingRecentRecords: [],
+                  updatedAt: now(),
+                }
               : session,
           ),
         })),
@@ -298,6 +353,7 @@ export const useChatStore = create<ChatState>()(
                   trainingTopic: trimmedTopic,
                   trainingScore: item.trainingScore ?? 60,
                   trainingRound: item.trainingRound ?? 0,
+                  trainingRecentRecords: item.trainingRecentRecords ?? [],
                   messages: item.messages.length ? item.messages : [{ id: uid(), role: 'assistant', createdAt: now(), status: 'done', content: `学习主题已设置为：${trimmedTopic}` }],
                   updatedAt: now(),
                 }
@@ -359,6 +415,18 @@ export const useChatStore = create<ChatState>()(
         if (!picked) return;
         const correct = optionId === currentQuestion.correctOptionId;
         const score = Math.max(0, Math.min(100, (session.trainingScore ?? 60) + (correct ? 6 : -4)));
+        const nextRound = (session.trainingRound ?? 0) + 1;
+        const recentRecords = [
+          ...(session.trainingRecentRecords || []),
+          {
+            round: nextRound,
+            stem: currentQuestion.stem,
+            pickedOptionId: picked.id,
+            correctOptionId: currentQuestion.correctOptionId,
+            isCorrect: correct,
+            explanation: currentQuestion.explanation,
+          } satisfies TrainingRecord,
+        ].slice(-10);
 
         set((state) => ({
           generatingSessionIds: [...new Set([...state.generatingSessionIds, sessionId])],
@@ -367,7 +435,8 @@ export const useChatStore = create<ChatState>()(
               ? {
                   ...item,
                   trainingScore: score,
-                  trainingRound: (item.trainingRound ?? 0) + 1,
+                  trainingRound: nextRound,
+                  trainingRecentRecords: recentRecords,
                   trainingCurrentQuestion: undefined,
                   messages: [
                     ...item.messages,
@@ -389,6 +458,20 @@ export const useChatStore = create<ChatState>()(
 
         const updated = get().sessions.find((item) => item.id === sessionId);
         if (!updated) return;
+        if ((updated.trainingRound ?? 0) > 0 && (updated.trainingRound ?? 0) % 10 === 0) {
+          const summary = await buildTrainingSummary(updated);
+          set((state) => ({
+            sessions: state.sessions.map((item) =>
+              item.id === sessionId
+                ? {
+                    ...item,
+                    messages: [...item.messages, { id: uid(), role: 'assistant', createdAt: now(), status: 'done', content: summary }],
+                  }
+                : item,
+            ),
+          }));
+        }
+
         const nextQuestion = await buildTrainingQuestion(updated);
         if (!nextQuestion) {
           set((state) => ({
