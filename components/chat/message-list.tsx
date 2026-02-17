@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Bot, Copy, Download, Pencil, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
 import { ChatMode, ChatSession } from '@/lib/types';
@@ -30,6 +30,14 @@ export function MessageList({ session }: { session?: ChatSession }) {
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
   const [editingId, setEditingId] = useState<string>();
   const [editingText, setEditingText] = useState('');
+  const trainingQuestionRef = useRef<HTMLDivElement>(null);
+  const isTrainingMode = session?.mode === 'training';
+  const trainingQuestionStem = session?.trainingCurrentQuestion?.stem;
+
+  useEffect(() => {
+    if (!isTrainingMode || !trainingQuestionStem) return;
+    trainingQuestionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [isTrainingMode, trainingQuestionStem]);
 
   if (!session) return null;
 
@@ -93,24 +101,6 @@ export function MessageList({ session }: { session?: ChatSession }) {
         </div>
       )}
 
-      {session.mode === 'training' && session.trainingCurrentQuestion && (
-        <div className="space-y-3 rounded-2xl border bg-card/80 p-4">
-          <p className="text-base font-semibold">{session.trainingCurrentQuestion.stem}</p>
-          <div className="grid gap-3 md:grid-cols-2">
-            {session.trainingCurrentQuestion.options.map((option) => (
-              <button
-                key={option.id}
-                className="min-h-24 rounded-2xl border border-primary/20 bg-gradient-to-br from-indigo-500/20 via-blue-500/10 to-cyan-500/20 p-4 text-left text-base font-medium transition hover:scale-[1.01] hover:border-primary/40"
-                onClick={() => answerTrainingQuestion(session.id, option.id)}
-              >
-                <p className="text-xs text-muted-foreground">选项 {option.id}</p>
-                <p className="mt-2">{option.text}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {session.messages.map((msg) => {
         if (editingId === msg.id && msg.role === 'user') {
           return (
@@ -145,6 +135,23 @@ export function MessageList({ session }: { session?: ChatSession }) {
           />
         );
       })}
+      {session.mode === 'training' && session.trainingCurrentQuestion && (
+        <div ref={trainingQuestionRef} className="space-y-3 rounded-2xl border bg-card/80 p-4">
+          <p className="text-base font-semibold">{session.trainingCurrentQuestion.stem}</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {session.trainingCurrentQuestion.options.map((option) => (
+              <button
+                key={option.id}
+                className="min-h-24 rounded-2xl border border-primary/20 bg-gradient-to-br from-indigo-500/20 via-blue-500/10 to-cyan-500/20 p-4 text-left text-base font-medium transition hover:scale-[1.01] hover:border-primary/40"
+                onClick={() => answerTrainingQuestion(session.id, option.id)}
+              >
+                <p className="text-xs text-muted-foreground">选项 {option.id}</p>
+                <p className="mt-2">{option.text}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
