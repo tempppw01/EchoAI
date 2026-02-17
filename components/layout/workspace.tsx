@@ -117,17 +117,19 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
       <div className="flex h-[calc(100vh-56px)]">
         <aside className={`hidden border-r p-3 md:flex md:flex-col ${workspaceCollapsed ? 'md:hidden' : 'md:w-80'}`}>
-          <SidebarNav
-            section={section}
-            sessions={sessions}
-            expanded={expanded}
-            moduleCollapsed={moduleCollapsed}
-            onToggleModule={() => setModuleCollapsed((prev) => !prev)}
-            onToggle={(key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
-            onSelect={openSection}
-            onSelectSession={selectSession}
-            onCreate={createInSection}
-          />
+          <div className="min-h-0 overflow-y-auto">
+            <SidebarNav
+              section={section}
+              sessions={sessions}
+              expanded={expanded}
+              moduleCollapsed={moduleCollapsed}
+              onToggleModule={() => setModuleCollapsed((prev) => !prev)}
+              onToggle={(key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
+              onSelect={openSection}
+              onSelectSession={selectSession}
+              onCreate={createInSection}
+            />
+          </div>
           <div className="mt-3 min-h-0 flex-1 border-t pt-3">
             <ChatList search={search} setSearch={setSearch} />
           </div>
@@ -158,26 +160,28 @@ export function Workspace({ mode }: { mode: ChatMode }) {
         <div className="fixed inset-0 z-30 md:hidden">
           <button className="absolute inset-0 bg-black/45" onClick={() => setSidebarOpen(false)} aria-label="关闭侧边栏" />
           <aside className="absolute left-0 top-0 flex h-full w-[84vw] max-w-xs flex-col border-r bg-background p-3 shadow-xl">
-            <SidebarNav
-              section={section}
-              sessions={sessions}
-              expanded={expanded}
-              moduleCollapsed={moduleCollapsed}
-              onToggleModule={() => setModuleCollapsed((prev) => !prev)}
-              onToggle={(key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
-              onSelect={(key) => {
-                openSection(key);
-                setSidebarOpen(false);
-              }}
-              onSelectSession={(id) => {
-                selectSession(id);
-                setSidebarOpen(false);
-              }}
-              onCreate={(key) => {
-                createInSection(key);
-                setSidebarOpen(false);
-              }}
-            />
+            <div className="min-h-0 overflow-y-auto">
+              <SidebarNav
+                section={section}
+                sessions={sessions}
+                expanded={expanded}
+                moduleCollapsed={moduleCollapsed}
+                onToggleModule={() => setModuleCollapsed((prev) => !prev)}
+                onToggle={(key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
+                onSelect={(key) => {
+                  openSection(key);
+                  setSidebarOpen(false);
+                }}
+                onSelectSession={(id) => {
+                  selectSession(id);
+                  setSidebarOpen(false);
+                }}
+                onCreate={(key) => {
+                  createInSection(key);
+                  setSidebarOpen(false);
+                }}
+              />
+            </div>
             <div className="mt-3 min-h-0 flex-1 border-t pt-3">
               <ChatList search={search} setSearch={setSearch} />
             </div>
