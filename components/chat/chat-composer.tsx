@@ -32,6 +32,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [isComposing, setIsComposing] = useState(false);
   const [inputHint, setInputHint] = useState('');
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+  const [showOptions, setShowOptions] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -81,7 +82,8 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
     setValue('');
     setAttachments([]);
-    setInputHint('');
+    setInputHint('已发送，附件内容已随消息提交。');
+    setShowOptions(false);
   };
 
   return (
@@ -148,14 +150,22 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           </Button>
         )}
 
-        <Button className="rounded-xl bg-transparent text-foreground" onClick={() => setSettings({ stream: !settings.stream })}>
+        <Button className="rounded-xl bg-transparent text-foreground" onClick={() => setShowOptions((prev) => !prev)}>
           <SlidersHorizontal size={16} />
         </Button>
       </div>
 
-      <div className="mt-1 flex items-center justify-between px-2 text-xs text-muted-foreground">
+      {showOptions && (
+        <div className="mt-2 rounded-xl border bg-background/80 p-2 text-xs">
+          <button className="flex w-full items-center justify-between rounded-lg px-2 py-1 hover:bg-muted/60" onClick={() => setSettings({ stream: !settings.stream })}>
+            <span>流式响应</span>
+            <span>{settings.stream ? '已开启' : '已关闭'}</span>
+          </button>
+        </div>
+      )}
+
+      <div className="mt-1 flex items-center px-2 text-xs text-muted-foreground">
         <span>{inputHint || '提示：支持文件内容随消息发送。'}</span>
-        <span>{value.length}/{MAX_INPUT_CHARS}</span>
       </div>
     </div>
   );
