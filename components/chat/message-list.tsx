@@ -24,7 +24,7 @@ const stabilizeMarkdownForStreaming = (content: string) => {
 };
 
 export function MessageList({ session }: { session?: ChatSession }) {
-  const { retryMessage, regenerateLastAssistant, sendMessage, deleteMessage, editUserMessage } = useChatStore();
+  const { retryMessage, regenerateLastAssistant, sendMessage, deleteMessage, editUserMessage, answerTrainingQuestion } = useChatStore();
   const apiKey = useSettingsStore((state) => state.settings.apiKey);
   const normalizedApiKey = (apiKey ?? '').trim();
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
@@ -46,6 +46,19 @@ export function MessageList({ session }: { session?: ChatSession }) {
 
   return (
     <div className="space-y-4">
+      {session.mode === 'training' && (
+        <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-indigo-500/10 via-cyan-500/10 to-emerald-500/10 p-4">
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span>当前水平分数</span>
+            <span className="text-lg font-semibold">{session.trainingScore ?? 60} / 100</span>
+          </div>
+          <div className="h-3 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 transition-all" style={{ width: `${session.trainingScore ?? 60}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">主题：{session.trainingTopic || '尚未设置'} · 已完成 {session.trainingRound ?? 0} 题</p>
+        </div>
+      )}
+
       {!normalizedApiKey && (
         <div className="rounded-xl border border-amber-300/80 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
           <p>尚未配置 API Key，发送消息前请先完成设置。</p>
@@ -74,6 +87,24 @@ export function MessageList({ session }: { session?: ChatSession }) {
             {modeStarterMap[session.mode].prompts.map((prompt) => (
               <button key={prompt} onClick={() => sendMessage(prompt, session.id)} className="rounded-xl border bg-muted/30 px-3 py-2 text-left text-sm">
                 {prompt}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {session.mode === 'training' && session.trainingCurrentQuestion && (
+        <div className="space-y-3 rounded-2xl border bg-card/80 p-4">
+          <p className="text-base font-semibold">{session.trainingCurrentQuestion.stem}</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {session.trainingCurrentQuestion.options.map((option) => (
+              <button
+                key={option.id}
+                className="min-h-24 rounded-2xl border border-primary/20 bg-gradient-to-br from-indigo-500/20 via-blue-500/10 to-cyan-500/20 p-4 text-left text-base font-medium transition hover:scale-[1.01] hover:border-primary/40"
+                onClick={() => answerTrainingQuestion(session.id, option.id)}
+              >
+                <p className="text-xs text-muted-foreground">选项 {option.id}</p>
+                <p className="mt-2">{option.text}</p>
               </button>
             ))}
           </div>

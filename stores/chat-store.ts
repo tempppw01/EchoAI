@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AppSnapshot, ChatMessage, ChatMode, ChatSession } from '@/lib/types';
+import { AppSnapshot, ChatMessage, ChatMode, ChatSession, TrainingQuestion } from '@/lib/types';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
 import { defaultSettings, useSettingsStore } from '@/stores/settings-store';
 
@@ -92,6 +92,8 @@ interface ChatState {
   createSession: (mode: ChatMode, subtype?: string, model?: string, roleplayConfig?: { characterId?: string; worldId?: string }) => string;
   selectSession: (id: string) => void;
   sendMessage: (content: string, targetSessionId?: string) => Promise<void>;
+  startTraining: (sessionId: string, topic: string) => Promise<void>;
+  answerTrainingQuestion: (sessionId: string, optionId: string) => Promise<void>;
   stopMessage: (sessionId: string) => void;
   clearContext: (sessionId: string) => void;
   renameSession: (id: string, title: string) => void;
@@ -107,6 +109,85 @@ interface ChatState {
 }
 
 const inflightRequests = new Map<string, AbortController>();
+
+const normalizeTrainingQuestion = (raw: string): TrainingQuestion | undefined => {
+  try {
+    const match = raw.match(/```json\s*([\s\S]*?)\s*```/) || raw.match(/\{[\s\S]*\}/);
+    const json = match ? (match[1] || match[0]) : raw;
+    const parsed = JSON.parse(json);
+    if (!parsed?.stem || !Array.isArray(parsed?.options)) return undefined;
+    const options = parsed.options
+      .map((item: { id?: string; text?: string }, idx: number) => ({ id: String(item.id || String.fromCharCode(65 + idx)), text: String(item.text || '') }))
+      .filter((item: { id: string; text: string }) => item.text.trim());
+    if (options.length < 2) return undefined;
+    const safeCorrect = options.some((item: { id: string }) => item.id === parsed.correctOptionId) ? parsed.correctOptionId : options[0].id;
+    return {
+      stem: String(parsed.stem),
+      options,
+      correctOptionId: String(safeCorrect),
+      explanation: String(parsed.explanation || '继续保持，你正在稳步进步。'),
+    };
+  } catch {
+    return undefined;
+  }
+};
+
+const fallbackQuestion = (topic: string): TrainingQuestion => {
+  const pool = [
+    {
+      stem: `关于「${topic}」，哪一项最符合核心概念？`,
+      options: [
+        { id: 'A', text: '先明确定义，再通过例子验证理解。' },
+        { id: 'B', text: '只记结论，不需要理解过程。' },
+        { id: 'C', text: '跳过基础直接做高阶题。' },
+        { id: 'D', text: '只看答案，不做复盘。' },
+      ],
+      correctOptionId: 'A',
+      explanation: '先把定义与应用建立连接，才能稳定迁移到新题型。',
+    },
+    {
+      stem: `学习「${topic}」时，哪种方法更能提高长期记忆？`,
+      options: [
+        { id: 'A', text: '集中突击一次后不再复习。' },
+        { id: 'B', text: '间隔复习 + 主动回忆。' },
+        { id: 'C', text: '只看视频不做题。' },
+        { id: 'D', text: '遇到错题直接跳过。' },
+      ],
+      correctOptionId: 'B',
+      explanation: '间隔复习和主动回忆是强化记忆的经典组合。',
+    },
+  ];
+  return pool[Math.floor(Math.random() * pool.length)];
+};
+
+const buildTrainingQuestion = async (session: ChatSession) => {
+  const settings = useSettingsStore.getState().settings;
+  const topic = session.trainingTopic || '综合基础';
+  const avoid = session.trainingLastCorrectOption || '无';
+  const prompt = `请围绕主题“${topic}”出一道难度自适应的单选题，并只输出 JSON，不要输出其它文字。
+JSON schema:
+{
+  "stem": "题干",
+  "options": [{"id":"A","text":"..."},{"id":"B","text":"..."},{"id":"C","text":"..."},{"id":"D","text":"..."}],
+  "correctOptionId": "A/B/C/D",
+  "explanation": "简短解析"
+}
+要求：
+1) 题干简洁，四个选项长度相近。
+2) 正确选项不要总固定在同一个字母，尽量随机。本轮避免 ${avoid}。
+3) 与最近题目保持发散，不要重复同一考点表述。`;
+
+  try {
+    const reply = await requestOpenAICompatible({
+      settings,
+      model: session.model || settings.defaultTextModel,
+      messages: [{ role: 'system', content: '你是严谨的出题引擎，只能输出合法 JSON。' }, { role: 'user', content: prompt }],
+    });
+    return normalizeTrainingQuestion(reply) || fallbackQuestion(topic);
+  } catch {
+    return fallbackQuestion(topic);
+  }
+};
 
 export const useChatStore = create<ChatState>()(
   persist(
@@ -130,6 +211,10 @@ export const useChatStore = create<ChatState>()(
 
         const session = sessions.find((s) => s.id === targetId);
         if (!session) return;
+        if (session.mode === 'training' && session.trainingCurrentQuestion) {
+          await get().answerTrainingQuestion(targetId, rawContent.trim());
+          return;
+        }
 
         inflightRequests.get(targetId)?.abort();
         const controller = new AbortController();
@@ -211,9 +296,114 @@ export const useChatStore = create<ChatState>()(
       clearContext: (sessionId) =>
         set((state) => ({
           sessions: state.sessions.map((session) =>
-            session.id === sessionId ? { ...session, messages: [], summary: '开始你的第一条消息', memorySummary: '', pinnedMemory: '', updatedAt: now() } : session,
+            session.id === sessionId
+              ? { ...session, messages: [], summary: '开始你的第一条消息', memorySummary: '', pinnedMemory: '', trainingCurrentQuestion: undefined, trainingRound: 0, updatedAt: now() }
+              : session,
           ),
         })),
+      startTraining: async (sessionId, topic) => {
+        const trimmedTopic = topic.trim();
+        if (!trimmedTopic) return;
+        const targetSession = get().sessions.find((item) => item.id === sessionId);
+        if (!targetSession || targetSession.mode !== 'training') return;
+
+        set((state) => ({
+          sessions: state.sessions.map((item) =>
+            item.id === sessionId
+              ? {
+                  ...item,
+                  trainingTopic: trimmedTopic,
+                  trainingScore: item.trainingScore ?? 60,
+                  trainingRound: item.trainingRound ?? 0,
+                  messages: item.messages.length ? item.messages : [{ id: uid(), role: 'assistant', createdAt: now(), status: 'done', content: `学习主题已设置为：${trimmedTopic}` }],
+                  updatedAt: now(),
+                }
+              : item,
+          ),
+          generatingSessionIds: [...new Set([...state.generatingSessionIds, sessionId])],
+        }));
+
+        const nextQuestion = await buildTrainingQuestion({ ...targetSession, trainingTopic: trimmedTopic });
+
+        set((state) => ({
+          generatingSessionIds: state.generatingSessionIds.filter((id) => id !== sessionId),
+          sessions: sortedSessions(
+            state.sessions.map((item) =>
+              item.id === sessionId
+                ? {
+                    ...item,
+                    trainingCurrentQuestion: nextQuestion,
+                    trainingLastCorrectOption: nextQuestion.correctOptionId,
+                    messages: [
+                      ...item.messages,
+                      { id: uid(), role: 'assistant', createdAt: now(), status: 'done', content: `第 ${(item.trainingRound ?? 0) + 1} 题：${nextQuestion.stem}` },
+                    ],
+                  }
+                : item,
+            ),
+          ),
+        }));
+      },
+      answerTrainingQuestion: async (sessionId, optionId) => {
+        const session = get().sessions.find((item) => item.id === sessionId);
+        if (!session || session.mode !== 'training' || !session.trainingCurrentQuestion) return;
+
+        const currentQuestion = session.trainingCurrentQuestion;
+        const picked = currentQuestion.options.find((item) => item.id === optionId);
+        if (!picked) return;
+        const correct = optionId === currentQuestion.correctOptionId;
+        const score = Math.max(0, Math.min(100, (session.trainingScore ?? 60) + (correct ? 6 : -4)));
+
+        set((state) => ({
+          generatingSessionIds: [...new Set([...state.generatingSessionIds, sessionId])],
+          sessions: state.sessions.map((item) =>
+            item.id === sessionId
+              ? {
+                  ...item,
+                  trainingScore: score,
+                  trainingRound: (item.trainingRound ?? 0) + 1,
+                  trainingCurrentQuestion: undefined,
+                  messages: [
+                    ...item.messages,
+                    { id: uid(), role: 'user', content: `我选择了 ${picked.id}. ${picked.text}`, createdAt: now(), status: 'done' },
+                    {
+                      id: uid(),
+                      role: 'assistant',
+                      createdAt: now(),
+                      status: 'done',
+                      content: correct
+                        ? `回答正确，+6 分。当前分数 ${score}/100。\n\n解析：${currentQuestion.explanation}`
+                        : `回答错误，-4 分。正确答案是 ${currentQuestion.correctOptionId}。当前分数 ${score}/100。\n\n解析：${currentQuestion.explanation}`,
+                    },
+                  ],
+                }
+              : item,
+          ),
+        }));
+
+        const updated = get().sessions.find((item) => item.id === sessionId);
+        if (!updated) return;
+        const nextQuestion = await buildTrainingQuestion(updated);
+
+        set((state) => ({
+          generatingSessionIds: state.generatingSessionIds.filter((id) => id !== sessionId),
+          sessions: sortedSessions(
+            state.sessions.map((item) =>
+              item.id === sessionId
+                ? {
+                    ...item,
+                    trainingCurrentQuestion: nextQuestion,
+                    trainingLastCorrectOption: nextQuestion.correctOptionId,
+                    messages: [
+                      ...item.messages,
+                      { id: uid(), role: 'assistant', createdAt: now(), status: 'done', content: `第 ${(item.trainingRound ?? 0) + 1} 题：${nextQuestion.stem}` },
+                    ],
+                  }
+                : item,
+            ),
+          ),
+        }));
+      },
       renameSession: (id, title) => set((state) => ({ sessions: state.sessions.map((s) => (s.id === id ? { ...s, title: title.trim() || s.title } : s)) })),
       updateSession: (id, patch) => set((state) => ({ sessions: sortedSessions(state.sessions.map((session) => (session.id === id ? { ...session, ...patch, updatedAt: now() } : session))) })),
       deleteSession: (id) =>

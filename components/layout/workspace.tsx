@@ -44,9 +44,11 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const [section, setSection] = useState<SectionKey>(modeToSection(mode));
   const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({ chat: true, copywriting: true, videoScript: true, roleplay: true, training: true, image: true });
   const [moduleCollapsed, setModuleCollapsed] = useState(false);
+  const [trainingTopicDialog, setTrainingTopicDialog] = useState<{ open: boolean; sessionId?: string }>({ open: false });
+  const [trainingTopicInput, setTrainingTopicInput] = useState('');
 
   const { settingsOpen, setSettingsOpen, sidebarOpen, setSidebarOpen } = useUIStore();
-  const { sessions, activeSessionId, createSession, selectSession } = useChatStore();
+  const { sessions, activeSessionId, createSession, selectSession, startTraining } = useChatStore();
   const { recentCharacterId, activeCharacterId, activeWorldId } = useRoleplayStore();
 
   const active = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
@@ -63,6 +65,11 @@ export function Workspace({ mode }: { mode: ChatMode }) {
       createSession('roleplay', undefined, undefined, { characterId: recentCharacterId ?? activeCharacterId, worldId: activeWorldId });
       return;
     }
+    if (targetMode === 'training') {
+      const sid = createSession('training');
+      setTrainingTopicDialog({ open: true, sessionId: sid });
+      return;
+    }
     createSession(targetMode);
   };
 
@@ -72,6 +79,11 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     if (!targetMode) return;
     if (targetMode === 'roleplay') {
       createSession('roleplay', undefined, undefined, { characterId: recentCharacterId ?? activeCharacterId, worldId: activeWorldId });
+      return;
+    }
+    if (targetMode === 'training') {
+      const sid = createSession('training');
+      setTrainingTopicDialog({ open: true, sessionId: sid });
       return;
     }
     createSession(targetMode);
@@ -153,6 +165,35 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               <ChatList search={search} setSearch={setSearch} />
             </div>
           </aside>
+        </div>
+      )}
+
+
+      {trainingTopicDialog.open && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-lg rounded-2xl border bg-background p-5 shadow-2xl">
+            <h3 className="text-lg font-semibold">开始学习型聊天</h3>
+            <p className="mt-1 text-sm text-muted-foreground">请输入你想学习/测验的主题，确认后将持续无限出题。</p>
+            <input
+              value={trainingTopicInput}
+              onChange={(e) => setTrainingTopicInput(e.target.value)}
+              placeholder="例如：Python 基础、英语语法、产品经理面试"
+              className="mt-4 w-full rounded-xl border bg-background px-3 py-2 text-sm"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <Button className="bg-transparent text-foreground" onClick={() => setTrainingTopicDialog({ open: false })}>取消</Button>
+              <Button
+                onClick={async () => {
+                  if (!trainingTopicDialog.sessionId || !trainingTopicInput.trim()) return;
+                  await startTraining(trainingTopicDialog.sessionId, trainingTopicInput.trim());
+                  setTrainingTopicDialog({ open: false });
+                  setTrainingTopicInput('');
+                }}
+              >
+                开始测验
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

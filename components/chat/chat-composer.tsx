@@ -111,11 +111,16 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       )}
 
       <div className="chat-panel flex items-end gap-2 p-2">
-        <Button className="rounded-xl bg-transparent text-foreground" onClick={() => fileRef.current?.click()}>
+        {mode === 'training' && (
+          <div className="flex-1 rounded-xl border border-dashed border-primary/30 bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 px-3 py-4 text-sm text-muted-foreground">
+            训练模式请在上方点击大卡片选项作答，系统会自动连续出题并更新分数。
+          </div>
+        )}
+        <Button className="rounded-xl bg-transparent text-foreground" disabled={mode === 'training'} onClick={() => fileRef.current?.click()}>
           <Upload size={16} />
         </Button>
 
-        <Textarea
+        {mode !== 'training' && <Textarea
           ref={textareaRef}
           value={value}
           onChange={(e) => {
@@ -138,14 +143,14 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             e.preventDefault();
             onSend();
           }}
-        />
+        />}
 
         {isGenerating && activeSession?.id ? (
           <Button className="rounded-xl bg-transparent text-foreground" onClick={() => stopMessage(activeSession.id)}>
             <Square size={16} />
           </Button>
         ) : (
-          <Button className="rounded-xl" disabled={!value.trim() && attachments.length === 0} onClick={onSend}>
+          <Button className="rounded-xl" disabled={mode === 'training' || (!value.trim() && attachments.length === 0)} onClick={onSend}>
             <SendHorizontal size={16} />
           </Button>
         )}
