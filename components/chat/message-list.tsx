@@ -13,7 +13,7 @@ const modeStarterMap: Record<Exclude<ChatMode, 'image' | 'proImage'>, { title: s
   copywriting: { title: '文案生成中心', hint: '支持广告文案、社媒口播等。', prompts: ['写 3 条电商卖点文案。', '给“周年庆 7 折”生成标题。'] },
   videoScript: { title: '视频脚本工坊', hint: '可快速生成分镜和口播结构。', prompts: ['写一个 60 秒短视频脚本。', '按“钩子-痛点-方案-CTA”输出口播。'] },
   roleplay: { title: '角色扮演模式', hint: '让 AI 扮演特定身份进行陪练。', prompts: ['你扮演产品面试官，连续问我 5 个问题。', '你扮演英语口语教练。'] },
-  training: { title: '技能训练台', hint: '支持计划、打卡与复盘。', prompts: ['制定 14 天 Prompt 工程计划。', '按沟通表达目标设计 7 天训练。'] },
+  training: { title: '学习型聊天窗口', hint: '专注做题、讲解、批改与进度跟踪。', prompts: ['请给我一道 Python 基础选择题。', '按选择/判断/填空轮换给我出题。'] },
 };
 
 const stabilizeMarkdownForStreaming = (content: string) => {
