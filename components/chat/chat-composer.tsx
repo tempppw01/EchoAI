@@ -1,7 +1,7 @@
 'use client';
 
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { Info, SendHorizontal, SlidersHorizontal, Upload } from 'lucide-react';
+import { Info, SendHorizontal, SlidersHorizontal, Square, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,11 +11,12 @@ import { useSettingsStore } from '@/stores/settings-store';
 
 export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [value, setValue] = useState('');
-  const { sessions, activeSessionId, sendMessage, updateSession, createSession } = useChatStore();
+  const { sessions, activeSessionId, sendMessage, updateSession, createSession, generatingSessionIds, stopMessage } = useChatStore();
   const { settings, setSettings } = useSettingsStore();
 
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
   const model = activeSession?.model ?? (mode === 'image' || mode === 'proImage' ? settings.defaultImageModel : settings.defaultTextModel);
+  const isGenerating = !!activeSession?.id && generatingSessionIds.includes(activeSession.id);
 
   // 发送逻辑：没有活动会话时自动创建，保证“随手就能聊”。
   const onSend = () => {
@@ -35,7 +36,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           value={model}
           onChange={(e) => activeSession && updateSession(activeSession.id, { model: e.target.value })}
         >
-          {[settings.defaultTextModel, settings.defaultImageModel, 'gpt-4o', 'gpt-4.1-mini'].map((m) => <option key={m} value={m}>{m}</option>)}
+          {(settings.modelCatalog?.length ? settings.modelCatalog : [settings.defaultTextModel, settings.defaultImageModel, 'gpt-4o', 'gpt-4.1-mini']).map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
         <Tooltip.Provider>
           <Tooltip.Root>
@@ -61,7 +62,19 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && value.trim()) onSend(); }}
         />
         <Button className="rounded-xl bg-transparent text-foreground" onClick={() => setSettings({ stream: !settings.stream })}><SlidersHorizontal size={16} /></Button>
-        <Button className="rounded-xl" disabled={!value.trim()} onClick={onSend}><SendHorizontal size={16} /></Button>
+        <Button
+          className="rounded-xl"
+          disabled={!isGenerating && !value.trim()}
+          onClick={() => {
+            if (isGenerating && activeSession?.id) {
+              stopMessage(activeSession.id);
+              return;
+            }
+            onSend();
+          }}
+        >
+          {isGenerating ? <Square size={16} /> : <SendHorizontal size={16} />}
+        </Button>
       </div>
     </div>
   );

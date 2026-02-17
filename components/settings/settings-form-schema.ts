@@ -14,6 +14,7 @@ export const settingsSchema = z.object({
   webdavUsername: z.string().optional(),
   autoSyncMinutes: z.coerce.number().min(5).max(720),
   showTokenUsage: z.boolean(),
+  modelCatalog: z.array(z.string()).optional(),
 });
 
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
