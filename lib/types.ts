@@ -4,6 +4,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  originalContent?: string;
   createdAt: string;
   imageUrl?: string;
   status?: 'streaming' | 'error' | 'done';
