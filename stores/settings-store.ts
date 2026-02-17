@@ -3,8 +3,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { AppSettings } from '@/lib/types';
 
 export const defaultSettings: AppSettings = {
-  defaultTextModel: 'gpt-4o-mini',
-  defaultImageModel: 'gpt-image-1',
+  defaultTextModel: '',
+  defaultImageModel: '',
   temperature: 0.7,
   maxTokens: 2048,
   stream: true,

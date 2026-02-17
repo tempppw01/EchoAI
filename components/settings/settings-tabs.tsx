@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { Loader2, RefreshCcw } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
@@ -20,7 +20,16 @@ const tabs = [
 
 export function SettingsTabs({ form, onPersistSettings, onShowNotice }: SettingsTabsProps) {
   const [loading, setLoading] = useState(false);
+  const baseUrl = form.watch('baseUrl');
+  const apiKey = form.watch('apiKey');
   const modelCatalog = form.watch('modelCatalog') || [];
+
+  useEffect(() => {
+    onPersistSettings({
+      baseUrl: (baseUrl ?? '').trim(),
+      apiKey: (apiKey ?? '').trim(),
+    });
+  }, [apiKey, baseUrl, onPersistSettings]);
 
   const pullModels = async () => {
     setLoading(true);
@@ -66,19 +75,14 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
       <Tabs.Content value="model" className="space-y-2 text-sm">
         <Input
           placeholder="OpenAI 兼容 Base URL"
-          {...form.register('baseUrl', {
-            onChange: (event) => onPersistSettings({ baseUrl: event.target.value }),
-          })}
+          {...form.register('baseUrl')}
         />
         <Input
           placeholder="API Key"
           type="password"
           autoComplete="off"
           {...form.register('apiKey', {
-            onChange: (event) => {
-              onPersistSettings({ apiKey: event.target.value });
-              onShowNotice('API Key 已自动保存');
-            },
+            onChange: () => onShowNotice('API Key 已自动保存'),
           })}
         />
         <Button type="button" className="w-full" onClick={pullModels} disabled={loading}>
