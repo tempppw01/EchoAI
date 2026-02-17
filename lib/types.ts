@@ -24,6 +24,18 @@ export interface ChatSession {
   summary: string;
   model: string;
   messages: ChatMessage[];
+  trainingTopic?: string;
+  trainingScore?: number;
+  trainingCurrentQuestion?: TrainingQuestion;
+  trainingRound?: number;
+  trainingLastCorrectOption?: string;
+}
+
+export interface TrainingQuestion {
+  stem: string;
+  options: { id: string; text: string }[];
+  correctOptionId: string;
+  explanation: string;
 }
 
 export interface CharacterCard {
