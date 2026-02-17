@@ -1,4 +1,5 @@
 import { AppSettings, ChatMessage } from '@/lib/types';
+import { normalizeOpenAIBaseUrl } from '@/lib/openai-endpoint';
 
 type OpenAICompatibleMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -15,19 +16,13 @@ type ChatCompletionResponse = {
   choices?: ChatCompletionChoice[];
 };
 
-const ensureBaseUrl = (baseUrl?: string) => {
-  const trimmed = (baseUrl || '').trim();
-  if (!trimmed) return 'https://api.openai.com/v1';
-  return trimmed.replace(/\/$/, '');
-};
-
 export async function requestOpenAICompatible(params: {
   settings: AppSettings;
   model: string;
   messages: OpenAICompatibleMessage[];
 }) {
   const { settings, model, messages } = params;
-  const url = `${ensureBaseUrl(settings.baseUrl)}/chat/completions`;
+  const url = `${normalizeOpenAIBaseUrl(settings.baseUrl)}/chat/completions`;
   const apiKey = settings.apiKey?.trim();
 
   if (!apiKey) {
@@ -65,4 +60,3 @@ export async function requestOpenAICompatible(params: {
 
 export const toOpenAIMessages = (messages: ChatMessage[]): OpenAICompatibleMessage[] =>
   messages.map((item) => ({ role: item.role, content: item.content }));
-
