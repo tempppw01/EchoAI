@@ -1,8 +1,10 @@
 import { AppSettings } from '@/lib/types';
 
+type ModelFetchSettings = Partial<Pick<AppSettings, 'modelCatalog' | 'baseUrl' | 'apiKey'>>;
+
 const ensureBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
-export async function fetchModelCatalog(settings: AppSettings): Promise<string[]> {
+export async function fetchModelCatalog(settings: ModelFetchSettings): Promise<string[]> {
   const baseUrl = settings.baseUrl?.trim();
   const apiKey = settings.apiKey?.trim();
 

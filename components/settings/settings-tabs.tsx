@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { ImageIcon, MessageSquareText } from 'lucide-react';
+import { Loader2, RefreshCcw } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { fetchModelCatalog } from '@/lib/model-service';
 import { SettingsFormValues } from '@/components/settings/settings-form-schema';
 
 interface SettingsTabsProps {
   form: UseFormReturn<SettingsFormValues>;
+  onPersistSettings: (settings: Partial<SettingsFormValues>) => void;
+  onShowNotice: (message: string) => void;
 }
 
 const tabs = [
@@ -16,7 +20,41 @@ const tabs = [
   { value: 'webdav', label: 'WebDAV' },
 ] as const;
 
-export function SettingsTabs({ form }: SettingsTabsProps) {
+export function SettingsTabs({ form, onPersistSettings, onShowNotice }: SettingsTabsProps) {
+  const [loading, setLoading] = useState(false);
+  const modelCatalog = form.watch('modelCatalog') || [];
+
+  const pullModels = async () => {
+    setLoading(true);
+    try {
+      const values = form.getValues();
+      const models = await fetchModelCatalog(values);
+      form.setValue('modelCatalog', models, { shouldDirty: true });
+
+      const fallback = models[0] || '';
+      if (models.length > 0) {
+        if (!models.includes(values.defaultTextModel)) {
+          form.setValue('defaultTextModel', fallback, { shouldDirty: true });
+        }
+        if (!models.includes(values.defaultImageModel)) {
+          form.setValue('defaultImageModel', fallback, { shouldDirty: true });
+        }
+      }
+
+      onPersistSettings({
+        modelCatalog: models,
+        defaultTextModel: form.getValues('defaultTextModel'),
+        defaultImageModel: form.getValues('defaultImageModel'),
+      });
+      onShowNotice(`模型列表已更新（${models.length} 个）`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '拉取失败，请检查渠道地址和密钥';
+      onShowNotice(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Tabs.Root defaultValue="channel">
       <Tabs.List className="mb-3 flex flex-wrap gap-2 text-xs">
@@ -28,30 +66,42 @@ export function SettingsTabs({ form }: SettingsTabsProps) {
       </Tabs.List>
 
       <Tabs.Content value="channel" className="space-y-2 text-sm">
-        <Input placeholder="Provider" {...form.register('provider')} />
-        <Input placeholder="API Key" {...form.register('apiKey')} />
-        <Input placeholder="Base URL" {...form.register('baseUrl')} />
+        <Input
+          placeholder="OpenAI 兼容 Base URL"
+          {...form.register('baseUrl', {
+            onBlur: (event) => onPersistSettings({ baseUrl: event.target.value }),
+          })}
+        />
+        <Input
+          placeholder="API Key"
+          type="password"
+          autoComplete="off"
+          {...form.register('apiKey', {
+            onBlur: (event) => {
+              onPersistSettings({ apiKey: event.target.value });
+              onShowNotice('API Key 已自动保存');
+            },
+          })}
+        />
+        <Button type="button" className="w-full" onClick={pullModels} disabled={loading}>
+          {loading ? <Loader2 size={14} className="mr-2 animate-spin" /> : <RefreshCcw size={14} className="mr-2" />}
+          拉取模型列表
+        </Button>
+        <div className="rounded-lg border bg-muted/20 p-2 text-xs text-muted-foreground">
+          <p>已持久化模型：{modelCatalog.length}</p>
+          <p className="mt-1 max-h-20 overflow-y-auto break-all">{modelCatalog.length ? modelCatalog.join('、') : '暂无，请点击“拉取模型列表”'}</p>
+        </div>
         <p className="text-xs text-muted-foreground">安全提示：API Key 仅本地存储。</p>
       </Tabs.Content>
 
       <Tabs.Content value="model" className="grid gap-3 text-sm">
-        <div className="rounded-2xl border border-border/60 bg-gradient-to-b from-background to-muted/30 p-3 shadow-sm">
-          <label className="mb-2 inline-flex items-center gap-2 font-medium">
-            <MessageSquareText size={14} className="text-primary" />
-            默认文本模型
-          </label>
-          <Input placeholder="例如：gpt-4.1-mini" className="shadow-sm" {...form.register('defaultTextModel')} />
-          <p className="mt-2 text-xs text-muted-foreground">用于普通对话、写作和代码场景。</p>
-        </div>
-
-        <div className="rounded-2xl border border-border/60 bg-gradient-to-b from-background to-muted/30 p-3 shadow-sm">
-          <label className="mb-2 inline-flex items-center gap-2 font-medium">
-            <ImageIcon size={14} className="text-primary" />
-            默认图片模型
-          </label>
-          <Input placeholder="例如：gpt-image-1" className="shadow-sm" {...form.register('defaultImageModel')} />
-          <p className="mt-2 text-xs text-muted-foreground">用于文生图与图片编辑场景。</p>
-        </div>
+        <Input placeholder="默认文本模型" list="model-catalog" {...form.register('defaultTextModel')} />
+        <Input placeholder="默认图片模型" list="model-catalog" {...form.register('defaultImageModel')} />
+        <datalist id="model-catalog">
+          {modelCatalog.map((model) => (
+            <option key={model} value={model} />
+          ))}
+        </datalist>
       </Tabs.Content>
 
       <Tabs.Content value="chat" className="grid gap-2 md:grid-cols-2">
