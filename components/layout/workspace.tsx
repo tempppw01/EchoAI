@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Brush, ChevronDown, Menu, Moon, Plus, Settings, Sparkles, Sun, Swords, Video, PenSquare } from 'lucide-react';
+import { Brush, ChevronDown, Menu, Moon, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sparkles, Sun, Swords, Video, PenSquare } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { ReactNode, useMemo, useState } from 'react';
 import { ChatComposer } from '@/components/chat/chat-composer';
@@ -43,6 +43,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const [search, setSearch] = useState('');
   const [section, setSection] = useState<SectionKey>(modeToSection(mode));
   const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({ chat: true, copywriting: true, videoScript: true, roleplay: true, training: true, image: true });
+  const [moduleCollapsed, setModuleCollapsed] = useState(false);
 
   const { settingsOpen, setSettingsOpen, sidebarOpen, setSidebarOpen } = useUIStore();
   const { sessions, activeSessionId, createSession, selectSession } = useChatStore();
@@ -96,9 +97,13 @@ export function Workspace({ mode }: { mode: ChatMode }) {
         <aside className="hidden w-80 border-r p-3 md:flex md:flex-col">
           <SidebarNav
             section={section}
+            sessions={sessions}
             expanded={expanded}
+            moduleCollapsed={moduleCollapsed}
+            onToggleModule={() => setModuleCollapsed((prev) => !prev)}
             onToggle={(key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
             onSelect={openSection}
+            onSelectSession={selectSession}
             onCreate={createInSection}
           />
           <div className="mt-3 min-h-0 flex-1 border-t pt-3">
@@ -126,10 +131,17 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           <aside className="absolute left-0 top-0 flex h-full w-[84vw] max-w-xs flex-col border-r bg-background p-3 shadow-xl">
             <SidebarNav
               section={section}
+              sessions={sessions}
               expanded={expanded}
+              moduleCollapsed={moduleCollapsed}
+              onToggleModule={() => setModuleCollapsed((prev) => !prev)}
               onToggle={(key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
               onSelect={(key) => {
                 openSection(key);
+                setSidebarOpen(false);
+              }}
+              onSelectSession={(id) => {
+                selectSession(id);
                 setSidebarOpen(false);
               }}
               onCreate={(key) => {
@@ -153,11 +165,18 @@ function ThemeIconButton({ active, onClick, icon }: { active: boolean; onClick: 
   return <button type="button" onClick={onClick} className={`flex h-8 w-8 items-center justify-center rounded-full ${active ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>{icon}</button>;
 }
 
-function SidebarNav({ section, expanded, onToggle, onSelect, onCreate }: { section: SectionKey; expanded: Record<SectionKey, boolean>; onToggle: (key: SectionKey) => void; onSelect: (key: SectionKey) => void; onCreate: (key: SectionKey) => void }) {
+function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModule, onToggle, onSelect, onSelectSession, onCreate }: { section: SectionKey; sessions: ReturnType<typeof useChatStore.getState>['sessions']; expanded: Record<SectionKey, boolean>; moduleCollapsed: boolean; onToggleModule: () => void; onToggle: (key: SectionKey) => void; onSelect: (key: SectionKey) => void; onSelectSession: (id: string) => void; onCreate: (key: SectionKey) => void }) {
   return (
     <div className="space-y-3">
-      <p className="px-2 text-sm">工作区模块</p>
-      {sections.map((item) => {
+      <div className="flex items-center justify-between px-2">
+        <p className="text-sm">工作区模块</p>
+        <button onClick={onToggleModule} className="rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label={moduleCollapsed ? '展开工作区模块' : '折叠工作区模块'}>
+          {moduleCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+        </button>
+      </div>
+      {moduleCollapsed && <p className="px-2 text-xs text-muted-foreground">模块列表已折叠</p>}
+      {!moduleCollapsed && sections.map((item) => {
+        const recentSessions = sessions.filter((session) => modeToSection(session.mode) === item.key).slice(0, 3);
         const Icon = item.icon;
         const isOpen = expanded[item.key];
         return (
@@ -170,8 +189,22 @@ function SidebarNav({ section, expanded, onToggle, onSelect, onCreate }: { secti
               </span>
             </button>
             {isOpen && (
-              <div className="mt-2 px-1">
+              <div className="mt-2 space-y-2 px-1">
                 <Button className="h-8 w-full text-xs" onClick={() => onCreate(item.key)}><Plus size={12} className="mr-1" />新建</Button>
+                {recentSessions.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {recentSessions.map((sessionItem) => (
+                      <button
+                        key={sessionItem.id}
+                        onClick={() => onSelectSession(sessionItem.id)}
+                        className="max-w-full rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground"
+                        title={sessionItem.title}
+                      >
+                        <span className="line-clamp-1">{sessionItem.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

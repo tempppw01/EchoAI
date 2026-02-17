@@ -55,14 +55,16 @@ export function MessageList({ session }: { session?: ChatSession }) {
         </div>
       )}
 
-      <div className="flex justify-end gap-2">
-        <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={() => regenerateLastAssistant(session.id)}>
-          <RotateCw size={13} />重新生成
-        </button>
-        <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={exportContent}>
-          <Download size={13} />导出内容
-        </button>
-      </div>
+      {session.messages.length > 0 && (
+        <div className="flex justify-end gap-2">
+          <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={() => regenerateLastAssistant(session.id)}>
+            <RotateCw size={13} />重新生成
+          </button>
+          <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={exportContent}>
+            <Download size={13} />导出内容
+          </button>
+        </div>
+      )}
 
       {session.messages.length === 0 && session.mode !== 'image' && session.mode !== 'proImage' && (
         <div className="chat-panel p-5">
