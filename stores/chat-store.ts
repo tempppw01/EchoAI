@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { requestOpenAICompatible, toOpenAIMessages } from '@/lib/openai-compatible';
 import { AppSnapshot, ChatMessage, ChatMode, ChatSession } from '@/lib/types';
 import { defaultSettings } from '@/stores/settings-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
+import { useSettingsStore } from '@/stores/settings-store';
 
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -75,28 +77,33 @@ const buildRoleplayPrompt = (session: ChatSession) => {
   return layers.join('\n\n');
 };
 
-const buildAssistantMessage = (content: string, session: ChatSession): ChatMessage => {
+const buildAssistantMessage = (): ChatMessage => ({
+  id: uid(),
+  role: 'assistant',
+  content: '思考中...',
+  createdAt: now(),
+  status: 'streaming',
+});
+
+const getSystemPromptByMode = (mode: ChatMode) => {
+  if (mode === 'copywriting') return '你是一位资深中文文案顾问，优先输出可直接使用的文案并给出可选版本。';
+  if (mode === 'videoScript') return '你是一位短视频编导，输出结构化脚本，默认包含开场钩子、正文和结尾行动号召。';
+  if (mode === 'training') return '你是一位学习教练，回答时包含目标拆解、执行建议和复盘方式。';
+  return '你是一个中文 AI 助手，请直接、准确地回答用户问题。';
+};
+
+const buildRequestMessages = (session: ChatSession, nextMessages: ChatMessage[]) => {
+  const roleplayStore = useRoleplayStore.getState();
+  const baseMessages = toOpenAIMessages(nextMessages);
+
   if (session.mode !== 'roleplay') {
-    return {
-      id: uid(),
-      role: 'assistant',
-      content: `已收到：${content}\n\n这是一条用于演示 AI 内容创作工作台的回复。`,
-      createdAt: now(),
-      status: 'streaming',
-    };
+    return [{ role: 'system' as const, content: getSystemPromptByMode(session.mode) }, ...baseMessages];
   }
 
-  const roleplayStore = useRoleplayStore.getState();
   const character = roleplayStore.characters.find((char) => char.id === session.characterId);
   const prompt = buildRoleplayPrompt(session);
 
-  return {
-    id: uid(),
-    role: 'assistant',
-    content: `${character?.avatar || '🎭'} ${character?.name || '角色'}：${content}\n\n（保持${character?.speakingStyle || '角色'}语气，基于当前记忆继续互动）\n\n> Prompt 层已应用，共 ${prompt.split('\n\n').length} 层。`,
-    createdAt: now(),
-    status: 'streaming',
-  };
+  return [{ role: 'system' as const, content: prompt || `${character?.name || '角色'}设定` }, ...baseMessages];
 };
 
 interface ChatState {
@@ -104,7 +111,7 @@ interface ChatState {
   activeSessionId?: string;
   createSession: (mode: ChatMode, subtype?: string, model?: string, roleplayConfig?: { characterId?: string; worldId?: string }) => string;
   selectSession: (id: string) => void;
-  sendMessage: (content: string, targetSessionId?: string) => void;
+  sendMessage: (content: string, targetSessionId?: string) => Promise<void>;
   renameSession: (id: string, title: string) => void;
   updateSession: (id: string, patch: Partial<ChatSession>) => void;
   deleteSession: (id: string) => void;
@@ -133,7 +140,7 @@ export const useChatStore = create<ChatState>()(
         return session.id;
       },
       selectSession: (activeSessionId) => set({ activeSessionId }),
-      sendMessage: (content, targetSessionId) => {
+      sendMessage: async (content, targetSessionId) => {
         const { activeSessionId, sessions } = get();
         const targetId = targetSessionId ?? activeSessionId ?? sessions[0]?.id;
         if (!targetId || !content.trim()) return;
@@ -142,7 +149,8 @@ export const useChatStore = create<ChatState>()(
         if (!session) return;
 
         const user: ChatMessage = { id: uid(), role: 'user', content, createdAt: now(), status: 'done' };
-        const assistant = buildAssistantMessage(content, { ...session, messages: [...session.messages, user] });
+        const assistant = buildAssistantMessage();
+        const nextMessages = [...session.messages, user];
 
         set((state) => ({
           sessions: sortedSessions(
@@ -172,7 +180,12 @@ export const useChatStore = create<ChatState>()(
           ),
         }));
 
-        setTimeout(() => {
+        try {
+          const settings = useSettingsStore.getState().settings;
+          const model = session.model || getDefaultModelByMode(session.mode);
+          const requestMessages = buildRequestMessages(session, nextMessages);
+          const response = await requestOpenAICompatible({ settings, model, messages: requestMessages });
+
           set((state) => ({
             sessions: sortedSessions(
               state.sessions.map((item) =>
@@ -181,7 +194,7 @@ export const useChatStore = create<ChatState>()(
                       ...item,
                       messages: item.messages.map((message) =>
                         message.id === assistant.id
-                          ? { ...message, status: 'done', content: `${message.content}\n\n✅ 渲染完成。` }
+                          ? { ...message, status: 'done', content: response }
                           : message,
                       ),
                     }
@@ -189,7 +202,25 @@ export const useChatStore = create<ChatState>()(
               ),
             ),
           }));
-        }, 500);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '未知错误';
+          set((state) => ({
+            sessions: sortedSessions(
+              state.sessions.map((item) =>
+                item.id === targetId
+                  ? {
+                      ...item,
+                      messages: item.messages.map((msg) =>
+                        msg.id === assistant.id
+                          ? { ...msg, status: 'error', content: `请求失败：${message}` }
+                          : msg,
+                      ),
+                    }
+                  : item,
+              ),
+            ),
+          }));
+        }
       },
       renameSession: (id, title) => set((state) => ({ sessions: state.sessions.map((s) => (s.id === id ? { ...s, title: title.trim() || s.title } : s)) })),
       updateSession: (id, patch) =>
