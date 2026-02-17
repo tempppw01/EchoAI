@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { Brush, ChevronDown, Menu, Moon, Plus, RefreshCw, Settings, Sparkles, Sun, Swords, Trash2, Video, PenSquare } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchModelCatalog } from '@/lib/model-service';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatList } from '@/components/chat/chat-list';
@@ -73,6 +73,8 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const { recentCharacterId, activeCharacterId, activeWorldId } = useRoleplayStore();
   const { settings, setSettings } = useSettingsStore();
   const [loadingModels, setLoadingModels] = useState(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const messageScrollRef = useRef<HTMLDivElement>(null);
 
   const active = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
 
@@ -122,6 +124,24 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const modelOptions = settings.modelCatalog?.length
     ? settings.modelCatalog
     : [settings.defaultTextModel, settings.defaultImageModel, 'gpt-4o', 'gpt-4.1-mini'];
+
+
+  useEffect(() => {
+    setShouldAutoScroll(true);
+  }, [active?.id]);
+
+  useEffect(() => {
+    const container = messageScrollRef.current;
+    if (!container || !shouldAutoScroll) return;
+    container.scrollTop = container.scrollHeight;
+  }, [active?.messages, shouldAutoScroll]);
+
+  const onMessageScroll = () => {
+    const container = messageScrollRef.current;
+    if (!container) return;
+    const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShouldAutoScroll(distanceToBottom < 80);
+  };
 
   const refreshModels = async () => {
     setLoadingModels(true);
@@ -218,7 +238,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
           <AnimatePresence mode="wait">
             <motion.div key={section + (active?.id ?? '')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-3 md:p-6">
+              <div ref={messageScrollRef} onScroll={onMessageScroll} className="flex-1 overflow-y-auto p-3 md:p-6">
                 <div className="mx-auto w-full max-w-6xl">
                   {contentMode === 'proImage' || contentMode === 'image' ? <ProImagePanel /> : contentMode === 'roleplay' ? <RoleplayStudio session={active} /> : <MessageList session={active} />}
                 </div>
