@@ -60,3 +60,16 @@ npm run dev
 访问：
 - `http://localhost:3000/chat`
 - `http://localhost:3000/image`
+
+## Docker 部署（默认启动前端界面）
+
+```bash
+docker compose up --build -d
+```
+
+访问：
+- `http://localhost:3001/chat`
+
+> 说明：当前根镜像默认启动 Next.js 前端（不再返回 API 状态提示页）。
+> Railway 提示 502 时，请确认服务使用平台注入的 `$PORT` 启动（本仓库 Dockerfile 已按该方式配置）。
+
