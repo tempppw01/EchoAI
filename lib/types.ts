@@ -1,4 +1,4 @@
-export type ChatMode = 'chat' | 'image' | 'proImage';
+export type ChatMode = 'chat' | 'image' | 'proImage' | 'copywriting' | 'videoScript' | 'roleplay' | 'training';
 
 export interface ChatMessage {
   id: string;
@@ -13,6 +13,7 @@ export interface ChatSession {
   id: string;
   title: string;
   mode: ChatMode;
+  subtype?: string;
   pinned: boolean;
   favorite: boolean;
   updatedAt: string;

@@ -4,7 +4,7 @@ interface UIState {
   sidebarOpen: boolean;
   settingsOpen: boolean;
   quickCreateOpen: boolean;
-  modeDraft: 'chat' | 'image' | 'proImage';
+  modeDraft: 'chat' | 'image' | 'proImage' | 'copywriting' | 'videoScript' | 'roleplay' | 'training';
   setSidebarOpen: (open: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
   setQuickCreateOpen: (open: boolean) => void;

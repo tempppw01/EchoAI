@@ -5,12 +5,15 @@ import { ChatMessage, ChatMode, ChatSession } from '@/lib/types';
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 9);
 
-const getDefaultModelByMode = (mode: ChatMode) => (mode === 'chat' ? 'gpt-4o-mini' : 'gpt-image-1');
+const getDefaultModelByMode = (mode: ChatMode) => (mode === 'image' || mode === 'proImage' ? 'gpt-image-1' : 'gpt-4o-mini');
 
 const getDefaultTitleByMode = (mode: ChatMode) => {
-  if (mode === 'chat') return '新建文本对话';
-  if (mode === 'image') return '新建绘图对话';
-  return '新建专业绘图';
+  if (mode === 'chat') return '新建工作台对话';
+  if (mode === 'image' || mode === 'proImage') return '新建绘图项目';
+  if (mode === 'copywriting') return '新建文案任务';
+  if (mode === 'videoScript') return '新建视频脚本';
+  if (mode === 'roleplay') return '新建角色扮演';
+  return '新建技能训练';
 };
 
 const newSession = (mode: ChatMode): ChatSession => ({
@@ -30,7 +33,7 @@ const getActiveSessionId = (activeSessionId: string | undefined, sessions: ChatS
 const buildAssistantMessage = (content: string): ChatMessage => ({
   id: uid(),
   role: 'assistant',
-  content: `已收到：${content}\n\n这是一条用于演示统一会话系统与流式状态的回复。`,
+  content: `已收到：${content}\n\n这是一条用于演示 AI 内容创作工作台的回复。`,
   createdAt: now(),
   status: 'streaming',
 });
@@ -38,7 +41,7 @@ const buildAssistantMessage = (content: string): ChatMessage => ({
 interface ChatState {
   sessions: ChatSession[];
   activeSessionId?: string;
-  createSession: (mode: ChatMode) => string;
+  createSession: (mode: ChatMode, subtype?: string) => string;
   selectSession: (id: string) => void;
   sendMessage: (content: string) => void;
   updateSession: (id: string, patch: Partial<ChatSession>) => void;
@@ -50,8 +53,8 @@ export const useChatStore = create<ChatState>()(
     (set, get) => ({
       sessions: [newSession('chat')],
       activeSessionId: undefined,
-      createSession: (mode) => {
-        const session = newSession(mode);
+      createSession: (mode, subtype) => {
+        const session = { ...newSession(mode), subtype };
         set((state) => ({ sessions: [session, ...state.sessions], activeSessionId: session.id }));
         return session.id;
       },
@@ -64,7 +67,6 @@ export const useChatStore = create<ChatState>()(
         const user: ChatMessage = { id: uid(), role: 'user', content, createdAt: now(), status: 'done' };
         const assistant = buildAssistantMessage(content);
 
-        // 首次发言时自动用消息内容作为会话标题，提高会话列表可读性。
         set((state) => ({
           sessions: state.sessions.map((session) => {
             if (session.id !== targetId) return session;
@@ -79,7 +81,6 @@ export const useChatStore = create<ChatState>()(
           }),
         }));
 
-        // 模拟流式返回结束，单独更新 assistant 消息状态。
         setTimeout(() => {
           set((state) => ({
             sessions: state.sessions.map((session) =>
@@ -95,7 +96,7 @@ export const useChatStore = create<ChatState>()(
                 : session,
             ),
           }));
-        }, 1200);
+        }, 800);
       },
       updateSession: (id, patch) =>
         set((state) => ({ sessions: state.sessions.map((session) => (session.id === id ? { ...session, ...patch } : session)) })),
