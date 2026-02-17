@@ -7,7 +7,18 @@ import { defaultSettings, useSettingsStore } from '@/stores/settings-store';
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-const getDefaultModelByMode = (mode: ChatMode) => (mode === 'image' || mode === 'proImage' ? defaultSettings.defaultImageModel : defaultSettings.defaultTextModel);
+const getDefaultModelByMode = (mode: ChatMode) => {
+  const settings = useSettingsStore.getState().settings;
+  const isImageMode = mode === 'image' || mode === 'proImage';
+  const configuredModel = isImageMode ? settings.defaultImageModel : settings.defaultTextModel;
+  const fallbackModel = settings.modelCatalog[0] || (isImageMode ? defaultSettings.defaultImageModel : defaultSettings.defaultTextModel);
+
+  if (settings.modelCatalog.length === 0) {
+    return configuredModel || fallbackModel;
+  }
+
+  return settings.modelCatalog.includes(configuredModel) ? configuredModel : fallbackModel;
+};
 
 const getDefaultTitleByMode = (mode: ChatMode) => {
   if (mode === 'chat') return '新建工作台对话';

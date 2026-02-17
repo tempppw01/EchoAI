@@ -15,7 +15,14 @@ export const defaultSettings: AppSettings = {
   webdavUsername: '',
   autoSyncMinutes: 30,
   showTokenUsage: false,
-  modelCatalog: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-image-1'],
+  modelCatalog: [],
+};
+
+const LEGACY_PRESET_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-image-1'];
+
+const isLegacyPresetModels = (models?: string[]) => {
+  if (!Array.isArray(models) || models.length !== LEGACY_PRESET_MODELS.length) return false;
+  return LEGACY_PRESET_MODELS.every((model, index) => model === models[index]);
 };
 
 export const useSettingsStore = create<{
@@ -40,14 +47,23 @@ export const useSettingsStore = create<{
       name: 'echoai-settings',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ settings: state.settings }),
-      merge: (persistedState, currentState) => ({
-        ...currentState,
-        ...(persistedState as object),
-        settings: {
+      merge: (persistedState, currentState) => {
+        const persistedSettings = ((persistedState as { settings?: Partial<AppSettings> } | undefined)?.settings ?? {}) as Partial<AppSettings>;
+        const mergedSettings: AppSettings = {
           ...defaultSettings,
-          ...((persistedState as { settings?: Partial<AppSettings> } | undefined)?.settings ?? {}),
-        },
-      }),
+          ...persistedSettings,
+        };
+
+        if (isLegacyPresetModels(mergedSettings.modelCatalog)) {
+          mergedSettings.modelCatalog = [];
+        }
+
+        return {
+          ...currentState,
+          ...(persistedState as object),
+          settings: mergedSettings,
+        };
+      },
     },
   ),
 );
