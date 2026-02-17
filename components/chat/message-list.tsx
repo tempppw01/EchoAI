@@ -26,6 +26,7 @@ const stabilizeMarkdownForStreaming = (content: string) => {
 export function MessageList({ session }: { session?: ChatSession }) {
   const { retryMessage, regenerateLastAssistant, sendMessage, deleteMessage, editUserMessage } = useChatStore();
   const apiKey = useSettingsStore((state) => state.settings.apiKey);
+  const normalizedApiKey = (apiKey ?? '').trim();
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
   const [editingId, setEditingId] = useState<string>();
   const [editingText, setEditingText] = useState('');
@@ -45,7 +46,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
 
   return (
     <div className="space-y-4">
-      {!apiKey.trim() && (
+      {!normalizedApiKey && (
         <div className="rounded-xl border border-amber-300/80 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
           <p>尚未配置 API Key，发送消息前请先完成设置。</p>
           <button onClick={() => setSettingsOpen(true)} className="mt-2 inline-flex items-center rounded-md border border-amber-400/70 px-2 py-1 text-xs font-medium">
