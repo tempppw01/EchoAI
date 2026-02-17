@@ -3,8 +3,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { AppSettings } from '@/lib/types';
 
 export const defaultSettings: AppSettings = {
-  defaultTextModel: 'gpt-4o-mini',
-  defaultImageModel: 'gpt-image-1',
+  defaultTextModel: '',
+  defaultImageModel: '',
   temperature: 0.7,
   maxTokens: 2048,
   stream: true,
@@ -15,7 +15,7 @@ export const defaultSettings: AppSettings = {
   webdavUsername: '',
   autoSyncMinutes: 30,
   showTokenUsage: false,
-  modelCatalog: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-image-1'],
+  modelCatalog: [],
 };
 
 export const useSettingsStore = create<{
