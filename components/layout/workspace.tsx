@@ -8,11 +8,13 @@ import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatList } from '@/components/chat/chat-list';
 import { MessageList } from '@/components/chat/message-list';
 import { ProImagePanel } from '@/components/image/pro-image-panel';
+import { RoleplayStudio } from '@/components/chat/roleplay-studio';
 import { SettingsCenter } from '@/components/settings/settings-center';
 import { Button } from '@/components/ui/button';
 import { ChatMode } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useUIStore } from '@/stores/ui-store';
+import { useRoleplayStore } from '@/stores/roleplay-store';
 
 type SectionKey = 'chat' | 'copywriting' | 'videoScript' | 'roleplay' | 'training' | 'image';
 
@@ -62,6 +64,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
   const { settingsOpen, setSettingsOpen, sidebarOpen, setSidebarOpen } = useUIStore();
   const { sessions, activeSessionId, createSession, selectSession } = useChatStore();
+  const { recentCharacterId, activeCharacterId, activeWorldId } = useRoleplayStore();
 
   const active = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
 
@@ -87,6 +90,10 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     setSection(target);
     const targetMode = sections.find((item) => item.key === target)?.mode;
     if (!targetMode) return;
+    if (targetMode === 'roleplay') {
+      createSession('roleplay', undefined, undefined, { characterId: recentCharacterId ?? activeCharacterId, worldId: activeWorldId });
+      return;
+    }
     createSession(targetMode);
   };
 
@@ -142,10 +149,10 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             <motion.div key={section + (active?.id ?? '')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto p-3 md:p-6">
                 <div className="mx-auto w-full max-w-6xl">
-                  {contentMode === 'proImage' || contentMode === 'image' ? <ProImagePanel /> : <MessageList session={active} />}
+                  {contentMode === 'proImage' || contentMode === 'image' ? <ProImagePanel /> : contentMode === 'roleplay' ? <RoleplayStudio session={active} /> : <MessageList session={active} />}
                 </div>
               </div>
-              <ChatComposer mode={contentMode} />
+              {contentMode !== 'roleplay' && <ChatComposer mode={contentMode} />}
             </motion.div>
           </AnimatePresence>
         </main>
