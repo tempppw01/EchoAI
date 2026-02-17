@@ -143,35 +143,7 @@ const normalizeTrainingQuestion = (raw: string): TrainingQuestion | undefined =>
   }
 };
 
-const fallbackQuestion = (topic: string): TrainingQuestion => {
-  const pool = [
-    {
-      stem: `关于「${topic}」，哪一项最符合核心概念？`,
-      options: [
-        { id: 'A', text: '先明确定义，再通过例子验证理解。' },
-        { id: 'B', text: '只记结论，不需要理解过程。' },
-        { id: 'C', text: '跳过基础直接做高阶题。' },
-        { id: 'D', text: '只看答案，不做复盘。' },
-      ],
-      correctOptionId: 'A',
-      explanation: '先把定义与应用建立连接，才能稳定迁移到新题型。',
-    },
-    {
-      stem: `学习「${topic}」时，哪种方法更能提高长期记忆？`,
-      options: [
-        { id: 'A', text: '集中突击一次后不再复习。' },
-        { id: 'B', text: '间隔复习 + 主动回忆。' },
-        { id: 'C', text: '只看视频不做题。' },
-        { id: 'D', text: '遇到错题直接跳过。' },
-      ],
-      correctOptionId: 'B',
-      explanation: '间隔复习和主动回忆是强化记忆的经典组合。',
-    },
-  ];
-  return pool[Math.floor(Math.random() * pool.length)];
-};
-
-const buildTrainingQuestion = async (session: ChatSession) => {
+const buildTrainingQuestion = async (session: ChatSession): Promise<TrainingQuestion | undefined> => {
   const settings = useSettingsStore.getState().settings;
   const topic = session.trainingTopic || '综合基础';
   const avoid = session.trainingLastCorrectOption || '无';
@@ -194,9 +166,9 @@ JSON schema:
       model: session.model || settings.defaultTextModel,
       messages: [{ role: 'system', content: '你是严谨的出题引擎，只能输出合法 JSON。' }, { role: 'user', content: prompt }],
     });
-    return normalizeTrainingQuestion(reply) || fallbackQuestion(topic);
+    return normalizeTrainingQuestion(reply);
   } catch {
-    return fallbackQuestion(topic);
+    return undefined;
   }
 };
 
@@ -335,6 +307,29 @@ export const useChatStore = create<ChatState>()(
         }));
 
         const nextQuestion = await buildTrainingQuestion({ ...targetSession, trainingTopic: trimmedTopic });
+        if (!nextQuestion) {
+          set((state) => ({
+            generatingSessionIds: state.generatingSessionIds.filter((id) => id !== sessionId),
+            sessions: state.sessions.map((item) =>
+              item.id === sessionId
+                ? {
+                    ...item,
+                    messages: [
+                      ...item.messages,
+                      {
+                        id: uid(),
+                        role: 'assistant',
+                        createdAt: now(),
+                        status: 'error',
+                        content: '⚠️ 当前未能生成题目，请检查模型配置后重试。',
+                      },
+                    ],
+                  }
+                : item,
+            ),
+          }));
+          return;
+        }
 
         set((state) => ({
           generatingSessionIds: state.generatingSessionIds.filter((id) => id !== sessionId),
@@ -395,6 +390,29 @@ export const useChatStore = create<ChatState>()(
         const updated = get().sessions.find((item) => item.id === sessionId);
         if (!updated) return;
         const nextQuestion = await buildTrainingQuestion(updated);
+        if (!nextQuestion) {
+          set((state) => ({
+            generatingSessionIds: state.generatingSessionIds.filter((id) => id !== sessionId),
+            sessions: state.sessions.map((item) =>
+              item.id === sessionId
+                ? {
+                    ...item,
+                    messages: [
+                      ...item.messages,
+                      {
+                        id: uid(),
+                        role: 'assistant',
+                        createdAt: now(),
+                        status: 'error',
+                        content: '⚠️ 当前未能生成下一题，请检查模型配置后重试。',
+                      },
+                    ],
+                  }
+                : item,
+            ),
+          }));
+          return;
+        }
 
         set((state) => ({
           generatingSessionIds: state.generatingSessionIds.filter((id) => id !== sessionId),
