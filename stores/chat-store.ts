@@ -16,6 +16,18 @@ const getDefaultTitleByMode = (mode: ChatMode) => {
   return '新建技能训练';
 };
 
+const createInitialSession = (): ChatSession => ({
+  id: 'default-chat-session',
+  mode: 'chat',
+  title: getDefaultTitleByMode('chat'),
+  updatedAt: '',
+  summary: '开始你的第一条消息',
+  pinned: false,
+  favorite: false,
+  model: getDefaultModelByMode('chat'),
+  messages: [],
+});
+
 const newSession = (mode: ChatMode): ChatSession => ({
   id: uid(),
   mode,
@@ -51,7 +63,7 @@ interface ChatState {
 export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
-      sessions: [newSession('chat')],
+      sessions: [createInitialSession()],
       activeSessionId: undefined,
       createSession: (mode, subtype) => {
         const session = { ...newSession(mode), subtype };
@@ -104,7 +116,7 @@ export const useChatStore = create<ChatState>()(
         set((state) => {
           const sessions = state.sessions.filter((session) => session.id !== id);
           return {
-            sessions: sessions.length ? sessions : [newSession('chat')],
+            sessions: sessions.length ? sessions : [createInitialSession()],
             activeSessionId: sessions[0]?.id,
           };
         }),

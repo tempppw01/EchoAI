@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Brush, ChevronDown, Menu, Moon, Plus, Settings, Sparkles, Sun, Swords, Video, PenSquare } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatList } from '@/components/chat/chat-list';
 import { MessageList } from '@/components/chat/message-list';
@@ -54,6 +54,11 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     training: true,
     image: true,
   });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { settingsOpen, setSettingsOpen, sidebarOpen, setSidebarOpen } = useUIStore();
   const { sessions, activeSessionId, createSession, selectSession } = useChatStore();
@@ -87,6 +92,10 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
   const contentMode = active?.mode ?? mode;
 
+  if (!mounted) {
+    return <div className="h-screen bg-muted/30" />;
+  }
+
   return (
     <div className="h-screen overflow-hidden bg-muted/30">
       <header className="flex h-14 items-center justify-between border-b bg-card px-4">
@@ -96,7 +105,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
         </div>
         <div className="flex items-center gap-2">
           <Button className="bg-transparent text-foreground" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            {mounted && theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </Button>
           <Button className="bg-transparent text-foreground" onClick={() => setSettingsOpen(true)}><Settings size={16} /></Button>
         </div>
