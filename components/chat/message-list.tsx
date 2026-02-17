@@ -1,41 +1,26 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Copy, Download, Pencil, RefreshCcw, RotateCw, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import { Bot, Copy, Download, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
+import { Bot, Copy, Download, Pencil, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
 import { ChatMode, ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useUIStore } from '@/stores/ui-store';
 
 const modeStarterMap: Record<Exclude<ChatMode, 'image' | 'proImage'>, { title: string; hint: string; prompts: string[] }> = {
-  chat: {
-    title: '通用对话工作台',
-    hint: '从任意问题开始，系统会保留上下文并支持导出。',
-    prompts: ['请帮我总结今天的工作重点，并按优先级排序。', '用 5 条建议优化一个个人知识管理系统。', '把下面内容改写成更专业、简洁的表达。'],
-  },
-  copywriting: {
-    title: '文案生成中心',
-    hint: '支持广告文案、社媒口播、活动标题等快速生成。',
-    prompts: ['写 3 条电商产品卖点文案，语气年轻，包含行动号召。', '为“效率工具”写一条小红书风格开场文案。', '根据“周年庆 7 折”主题，给我 10 个宣传标题。'],
-  },
-  videoScript: {
-    title: '视频脚本工坊',
-    hint: '可快速生成分镜、旁白和短视频节奏脚本。',
-    prompts: ['写一个 60 秒短视频脚本，主题是“早起提升效率”。', '按“开场钩子-痛点-方案-CTA”结构生成口播脚本。', '把这个产品介绍改成 3 段式视频解说词。'],
-  },
-  roleplay: {
-    title: '角色扮演模式',
-    hint: '让 AI 扮演特定身份进行陪练、问答或模拟对话。',
-    prompts: ['你现在扮演产品面试官，连续问我 5 个问题并点评。', '扮演英语口语教练，和我进行一轮情景对话。', '扮演严谨的代码 reviewer，帮我检查一个 PR 描述。'],
-  },
-  training: {
-    title: '技能训练台',
-    hint: '可进行结构化训练：计划、打卡、复盘与纠偏。',
-    prompts: ['帮我制定一个 14 天的 Prompt 工程训练计划。', '给我一个“每日写作训练”模板，包含评分标准。', '根据“沟通表达”目标，设计 7 天练习任务。'],
-  },
+  chat: { title: '通用对话工作台', hint: '从任意问题开始，系统会保留上下文。', prompts: ['总结今天的工作重点。', '优化一个个人知识管理系统。'] },
+  copywriting: { title: '文案生成中心', hint: '支持广告文案、社媒口播等。', prompts: ['写 3 条电商卖点文案。', '给“周年庆 7 折”生成标题。'] },
+  videoScript: { title: '视频脚本工坊', hint: '可快速生成分镜和口播结构。', prompts: ['写一个 60 秒短视频脚本。', '按“钩子-痛点-方案-CTA”输出口播。'] },
+  roleplay: { title: '角色扮演模式', hint: '让 AI 扮演特定身份进行陪练。', prompts: ['你扮演产品面试官，连续问我 5 个问题。', '你扮演英语口语教练。'] },
+  training: { title: '技能训练台', hint: '支持计划、打卡与复盘。', prompts: ['制定 14 天 Prompt 工程计划。', '按沟通表达目标设计 7 天训练。'] },
+};
+
+const stabilizeMarkdownForStreaming = (content: string) => {
+  let stabilized = content;
+  const fenceCount = (stabilized.match(/```/g) || []).length;
+  if (fenceCount % 2 === 1) stabilized += '\n```';
+  return stabilized;
 };
 
 export function MessageList({ session }: { session?: ChatSession }) {
@@ -44,11 +29,8 @@ export function MessageList({ session }: { session?: ChatSession }) {
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
   const [editingId, setEditingId] = useState<string>();
   const [editingText, setEditingText] = useState('');
-  const [menu, setMenu] = useState<{ x: number; y: number; id: string }>();
 
   if (!session) return null;
-
-  const menuMessage = session.messages.find((item) => item.id === menu?.id);
 
   const exportContent = () => {
     const text = session.messages.map((m) => `[${m.role}]\n${m.content}`).join('\n\n');
@@ -62,239 +44,108 @@ export function MessageList({ session }: { session?: ChatSession }) {
   };
 
   return (
-    <div className="space-y-4" onClick={() => setMenu(undefined)}>
+    <div className="space-y-4">
       {!apiKey.trim() && (
         <div className="rounded-xl border border-amber-300/80 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
           <p>尚未配置 API Key，发送消息前请先完成设置。</p>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="mt-2 inline-flex items-center rounded-md border border-amber-400/70 px-2 py-1 text-xs font-medium transition hover:bg-amber-100 dark:border-amber-400/60 dark:hover:bg-amber-500/20"
-          >
+          <button onClick={() => setSettingsOpen(true)} className="mt-2 inline-flex items-center rounded-md border border-amber-400/70 px-2 py-1 text-xs font-medium">
             立即前往设置
           </button>
         </div>
       )}
+
       <div className="flex justify-end gap-2">
-        <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={() => regenerateLastAssistant(session.id)}><RotateCw size={13} />重新生成</button>
-        <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={exportContent}><Download size={13} />导出内容</button>
+        <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={() => regenerateLastAssistant(session.id)}>
+          <RotateCw size={13} />重新生成
+        </button>
+        <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={exportContent}>
+          <Download size={13} />导出内容
+        </button>
       </div>
+
       {session.messages.length === 0 && session.mode !== 'image' && session.mode !== 'proImage' && (
         <div className="chat-panel p-5">
           <h3 className="text-base font-semibold">{modeStarterMap[session.mode].title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{modeStarterMap[session.mode].hint}</p>
           <div className="mt-3 grid gap-2 md:grid-cols-2">
             {modeStarterMap[session.mode].prompts.map((prompt) => (
-              <button
-                key={prompt}
-                onClick={() => sendMessage(prompt, session.id)}
-                className="rounded-xl border bg-muted/30 px-3 py-2 text-left text-sm transition hover:border-primary/50 hover:bg-primary/5"
-              >
+              <button key={prompt} onClick={() => sendMessage(prompt, session.id)} className="rounded-xl border bg-muted/30 px-3 py-2 text-left text-sm">
                 {prompt}
               </button>
             ))}
           </div>
         </div>
       )}
-      {session.messages.map((msg) => (
-        <MessageItem
-          key={msg.id}
-          msg={msg}
-          onRetry={() => retryMessage(session.id, msg.id)}
-          onDelete={() => updateSession(session.id, { messages: session.messages.filter((m) => m.id !== msg.id) })}
-        />
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} key={msg.id} className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} p-4`}>
-          <div className={`mb-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${msg.role === 'user' ? 'bg-primary/20 text-primary' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'}`}>
-            {msg.role === 'user' ? '你的提示' : 'AI 回答'}
-          </div>
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          key={msg.id}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            setMenu({ x: event.clientX, y: event.clientY, id: msg.id });
-          }}
-          className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} p-4`}
-        >
-          {editingId === msg.id ? (
-            <div className="space-y-2">
-              <textarea
-                className="w-full rounded border bg-background p-2 text-sm"
-                rows={4}
-                value={editingText}
-                onChange={(e) => setEditingText(e.target.value)}
-              />
-              <div className="flex gap-2 text-xs">
-                <button className="rounded border px-2 py-1" onClick={() => { editUserMessage(session.id, msg.id, editingText); setEditingId(undefined); }}>保存</button>
-                <button className="rounded border px-2 py-1" onClick={() => setEditingId(undefined)}>取消</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <ReactMarkdown
-                  components={{
-                    code(props) {
-                      const { children, className } = props;
-                      const value = String(children).replace(/\n$/, '');
-                      const isBlock = className?.includes('language-');
-                      if (!isBlock) return <code className="rounded bg-muted px-1 py-0.5">{children}</code>;
-                      return (
-                        <div className="relative">
-                          <pre className="overflow-x-auto rounded bg-muted p-2"><code>{value}</code></pre>
-                          <button className="absolute right-2 top-2 rounded border bg-background px-1 py-0.5 text-xs" onClick={() => navigator.clipboard.writeText(value)}>复制代码</button>
-                        </div>
-                      );
-                    },
-                  }}
-                >
-                  {msg.content}
-                </ReactMarkdown>
-              </div>
-              {msg.originalContent && msg.originalContent !== msg.content && (
-                <div className="mt-2 rounded border border-dashed p-2 text-xs text-muted-foreground">
-                  原始问题：{msg.originalContent}
-                </div>
-              )}
-            </>
-          )}
-          <div className="mt-2 flex gap-2 text-xs opacity-70">
-            <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
-            {msg.role === 'user' && <button onClick={() => retryMessage(session.id, msg.id)}><RefreshCcw size={14} /></button>}
-            {msg.role === 'user' && <button onClick={() => { setEditingId(msg.id); setEditingText(msg.content); }}><Pencil size={14} /></button>}
-            <button onClick={() => deleteMessage(session.id, msg.id)}><Trash2 size={14} /></button>
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} key={msg.id} className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} overflow-hidden p-4`}>
-          <div className="prose prose-sm max-w-none break-words [overflow-wrap:anywhere] [unicode-bidi:plaintext] dark:prose-invert" dir="auto">
+
       {session.messages.map((msg) => {
-        const isUser = msg.role === 'user';
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            key={msg.id}
-            className={`flex items-start gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
-          >
-            {!isUser && (
-              <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-background text-muted-foreground">
-                <Bot size={15} />
-              </div>
-            )}
-            <div className={`${isUser ? 'chat-bubble-user ml-auto max-w-[88%] md:max-w-[72%]' : 'chat-bubble-assistant mr-auto max-w-[92%] md:max-w-[78%]'} p-4`}>
-              <p className="mb-2 text-xs font-medium text-muted-foreground">{isUser ? '你' : 'EchoAI 助手'}</p>
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-            <ReactMarkdown
-              components={{
-                code(props) {
-                  const { children, className } = props;
-                  const value = String(children).replace(/\n$/, '');
-                  const isBlock = className?.includes('language-');
-                  if (!isBlock) return <code className="rounded bg-muted px-1 py-0.5">{children}</code>;
-                  return (
-                    <div className="relative">
-                      <pre className="overflow-x-auto rounded bg-muted p-2"><code>{value}</code></pre>
-                      <button className="absolute right-2 top-2 rounded border bg-background px-1 py-0.5 text-xs" onClick={() => navigator.clipboard.writeText(value)}>复制代码</button>
-                    </div>
-                  );
-                },
-              }}
-            >
-              {msg.content}
-            </ReactMarkdown>
-          </div>
-          <div className="mt-2 flex gap-2 text-xs opacity-70">
-            <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
-            {msg.role === 'user' && <button onClick={() => retryMessage(session.id, msg.id)}><RefreshCcw size={14} /></button>}
-            {msg.role === 'assistant' && msg.status === 'error' && <button onClick={() => regenerateLastAssistant(session.id)} title="重试"><RefreshCcw size={14} /></button>}
-            <button onClick={() => updateSession(session.id, { messages: session.messages.filter((m) => m.id !== msg.id) })}><Trash2 size={14} /></button>
-            {msg.status === 'streaming' && <span className="animate-pulse">streaming...</span>}
-          </div>
-        </motion.div>
-      ))}
-      {menu && menuMessage && (
-        <div className="fixed z-50 w-36 rounded-lg border bg-popover p-1 text-sm shadow-xl" style={{ left: menu.x, top: menu.y }}>
-          {menuMessage.role === 'user' && <button className="flex w-full items-center gap-2 rounded px-2 py-1 hover:bg-muted" onClick={() => { setEditingId(menuMessage.id); setEditingText(menuMessage.content); setMenu(undefined); }}><Pencil size={14} />编辑</button>}
-          {menuMessage.role === 'user' && <button className="flex w-full items-center gap-2 rounded px-2 py-1 hover:bg-muted" onClick={() => { retryMessage(session.id, menuMessage.id); setMenu(undefined); }}><RefreshCcw size={14} />重发</button>}
-          <button className="flex w-full items-center gap-2 rounded px-2 py-1 hover:bg-muted" onClick={() => { navigator.clipboard.writeText(menuMessage.content); setMenu(undefined); }}><Copy size={14} />复制</button>
-          <button className="flex w-full items-center gap-2 rounded px-2 py-1 text-red-500 hover:bg-muted" onClick={() => { deleteMessage(session.id, menuMessage.id); setMenu(undefined); }}><Trash2 size={14} />删除</button>
-        </div>
-      )}
-              </div>
-              <div className="mt-2 flex gap-2 text-xs opacity-70">
-                <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
-                {msg.role === 'user' && <button onClick={() => retryMessage(session.id, msg.id)}><RefreshCcw size={14} /></button>}
-                <button onClick={() => updateSession(session.id, { messages: session.messages.filter((m) => m.id !== msg.id) })}><Trash2 size={14} /></button>
-                {msg.status === 'streaming' && <span className="animate-pulse">streaming...</span>}
+        if (editingId === msg.id && msg.role === 'user') {
+          return (
+            <div key={msg.id} className="chat-bubble-user ml-auto max-w-[90%] p-4">
+              <textarea className="w-full rounded border bg-background p-2 text-sm" rows={4} value={editingText} onChange={(e) => setEditingText(e.target.value)} />
+              <div className="mt-2 flex justify-end gap-2 text-xs">
+                <button onClick={() => setEditingId(undefined)} className="rounded border px-2 py-1">取消</button>
+                <button
+                  onClick={() => {
+                    editUserMessage(session.id, msg.id, editingText);
+                    setEditingId(undefined);
+                  }}
+                  className="rounded border px-2 py-1"
+                >
+                  保存
+                </button>
               </div>
             </div>
-            {isUser && (
-              <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary">
-                <UserRound size={15} />
-              </div>
-            )}
-          </motion.div>
+          );
+        }
+
+        return (
+          <MessageItem
+            key={msg.id}
+            msg={msg}
+            onEdit={() => {
+              setEditingId(msg.id);
+              setEditingText(msg.content);
+            }}
+            onRetry={() => retryMessage(session.id, msg.id)}
+            onDelete={() => deleteMessage(session.id, msg.id)}
+          />
         );
       })}
     </div>
   );
 }
 
-const stabilizeMarkdownForStreaming = (content: string) => {
-  let stabilized = content;
-  const fenceCount = (stabilized.match(/```/g) || []).length;
-  if (fenceCount % 2 === 1) stabilized += '\n```';
-
-  const dollarCount = (stabilized.match(/\$\$/g) || []).length;
-  if (dollarCount % 2 === 1) stabilized += '\n$$';
-
-  const inlineTickCount = (stabilized.match(/`/g) || []).length - fenceCount * 3;
-  if (inlineTickCount % 2 === 1) stabilized += '`';
-
-  return stabilized;
-};
-
 const MessageItem = memo(function MessageItem({
   msg,
+  onEdit,
   onRetry,
   onDelete,
 }: {
   msg: ChatSession['messages'][number];
+  onEdit: () => void;
   onRetry: () => void;
   onDelete: () => void;
 }) {
-  const renderedMarkdown = useMemo(
-    () => (msg.status === 'streaming' ? stabilizeMarkdownForStreaming(msg.content) : msg.content),
-    [msg.content, msg.status],
-  );
+  const isUser = msg.role === 'user';
+  const renderedMarkdown = useMemo(() => (msg.status === 'streaming' ? stabilizeMarkdownForStreaming(msg.content) : msg.content), [msg.content, msg.status]);
 
   return (
-    <div className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} p-4`}>
-      <div className="prose prose-sm max-w-none dark:prose-invert">
-        <ReactMarkdown
-          components={{
-            code(props) {
-              const { children, className } = props;
-              const value = String(children).replace(/\n$/, '');
-              const isBlock = className?.includes('language-');
-              if (!isBlock) return <code className="rounded bg-muted px-1 py-0.5">{children}</code>;
-              return (
-                <div className="relative">
-                  <pre className="overflow-x-auto rounded bg-muted p-2"><code>{value}</code></pre>
-                  <button className="absolute right-2 top-2 rounded border bg-background px-1 py-0.5 text-xs" onClick={() => navigator.clipboard.writeText(value)}>复制代码</button>
-                </div>
-              );
-            },
-          }}
-        >
-          {renderedMarkdown}
-        </ReactMarkdown>
+    <div className={`flex items-start gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+      {!isUser && <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border"><Bot size={15} /></div>}
+      <div className={`${isUser ? 'chat-bubble-user ml-auto max-w-[88%]' : 'chat-bubble-assistant mr-auto max-w-[92%]'} p-4`}>
+        <p className="mb-2 text-xs font-medium text-muted-foreground">{isUser ? '你' : 'EchoAI 助手'}</p>
+        <div className="prose prose-sm max-w-none dark:prose-invert">
+          <ReactMarkdown>{renderedMarkdown}</ReactMarkdown>
+        </div>
+        <div className="mt-2 flex gap-2 text-xs opacity-70">
+          <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
+          {isUser && <button onClick={onEdit}><Pencil size={14} /></button>}
+          {isUser && <button onClick={onRetry}><RefreshCcw size={14} /></button>}
+          <button onClick={onDelete}><Trash2 size={14} /></button>
+          {msg.status === 'streaming' && <span className="animate-pulse">streaming...</span>}
+        </div>
       </div>
-      <div className="mt-2 flex gap-2 text-xs opacity-70">
-        <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
-        {msg.role === 'user' && <button onClick={onRetry}><RefreshCcw size={14} /></button>}
-        <button onClick={onDelete}><Trash2 size={14} /></button>
-        {msg.status === 'streaming' && <span className="animate-pulse">streaming...</span>}
-      </div>
+      {isUser && <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary"><UserRound size={15} /></div>}
     </div>
   );
 });
