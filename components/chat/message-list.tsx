@@ -2,7 +2,9 @@
 
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import { Copy, Download, RefreshCcw, RotateCw, Trash2 } from 'lucide-react';
+import { Copy, Download, Pencil, RefreshCcw, RotateCw, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Bot, Copy, Download, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
 import { ChatMode, ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -37,13 +39,17 @@ const modeStarterMap: Record<Exclude<ChatMode, 'image' | 'proImage'>, { title: s
 };
 
 export function MessageList({ session }: { session?: ChatSession }) {
-  const { updateSession, retryMessage, regenerateLastAssistant, sendMessage } = useChatStore();
+  const { retryMessage, regenerateLastAssistant, sendMessage, deleteMessage, editUserMessage } = useChatStore();
   const apiKey = useSettingsStore((state) => state.settings.apiKey);
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
+  const [editingId, setEditingId] = useState<string>();
+  const [editingText, setEditingText] = useState('');
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string }>();
 
   if (!session) return null;
 
-  // 导出当前会话为纯文本，便于用户做二次整理。
+  const menuMessage = session.messages.find((item) => item.id === menu?.id);
+
   const exportContent = () => {
     const text = session.messages.map((m) => `[${m.role}]\n${m.content}`).join('\n\n');
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
@@ -56,7 +62,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onClick={() => setMenu(undefined)}>
       {!apiKey.trim() && (
         <div className="rounded-xl border border-amber-300/80 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
           <p>尚未配置 API Key，发送消息前请先完成设置。</p>
@@ -95,6 +101,82 @@ export function MessageList({ session }: { session?: ChatSession }) {
             {msg.role === 'user' ? '你的提示' : 'AI 回答'}
           </div>
           <div className="prose prose-sm max-w-none dark:prose-invert">
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          key={msg.id}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            setMenu({ x: event.clientX, y: event.clientY, id: msg.id });
+          }}
+          className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} p-4`}
+        >
+          {editingId === msg.id ? (
+            <div className="space-y-2">
+              <textarea
+                className="w-full rounded border bg-background p-2 text-sm"
+                rows={4}
+                value={editingText}
+                onChange={(e) => setEditingText(e.target.value)}
+              />
+              <div className="flex gap-2 text-xs">
+                <button className="rounded border px-2 py-1" onClick={() => { editUserMessage(session.id, msg.id, editingText); setEditingId(undefined); }}>保存</button>
+                <button className="rounded border px-2 py-1" onClick={() => setEditingId(undefined)}>取消</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown
+                  components={{
+                    code(props) {
+                      const { children, className } = props;
+                      const value = String(children).replace(/\n$/, '');
+                      const isBlock = className?.includes('language-');
+                      if (!isBlock) return <code className="rounded bg-muted px-1 py-0.5">{children}</code>;
+                      return (
+                        <div className="relative">
+                          <pre className="overflow-x-auto rounded bg-muted p-2"><code>{value}</code></pre>
+                          <button className="absolute right-2 top-2 rounded border bg-background px-1 py-0.5 text-xs" onClick={() => navigator.clipboard.writeText(value)}>复制代码</button>
+                        </div>
+                      );
+                    },
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              </div>
+              {msg.originalContent && msg.originalContent !== msg.content && (
+                <div className="mt-2 rounded border border-dashed p-2 text-xs text-muted-foreground">
+                  原始问题：{msg.originalContent}
+                </div>
+              )}
+            </>
+          )}
+          <div className="mt-2 flex gap-2 text-xs opacity-70">
+            <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
+            {msg.role === 'user' && <button onClick={() => retryMessage(session.id, msg.id)}><RefreshCcw size={14} /></button>}
+            {msg.role === 'user' && <button onClick={() => { setEditingId(msg.id); setEditingText(msg.content); }}><Pencil size={14} /></button>}
+            <button onClick={() => deleteMessage(session.id, msg.id)}><Trash2 size={14} /></button>
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} key={msg.id} className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} overflow-hidden p-4`}>
+          <div className="prose prose-sm max-w-none break-words [overflow-wrap:anywhere] [unicode-bidi:plaintext] dark:prose-invert" dir="auto">
+      {session.messages.map((msg) => {
+        const isUser = msg.role === 'user';
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            key={msg.id}
+            className={`flex items-start gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
+          >
+            {!isUser && (
+              <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-background text-muted-foreground">
+                <Bot size={15} />
+              </div>
+            )}
+            <div className={`${isUser ? 'chat-bubble-user ml-auto max-w-[88%] md:max-w-[72%]' : 'chat-bubble-assistant mr-auto max-w-[92%] md:max-w-[78%]'} p-4`}>
+              <p className="mb-2 text-xs font-medium text-muted-foreground">{isUser ? '你' : 'EchoAI 助手'}</p>
+              <div className="prose prose-sm max-w-none dark:prose-invert">
             <ReactMarkdown
               components={{
                 code(props) {
@@ -117,11 +199,36 @@ export function MessageList({ session }: { session?: ChatSession }) {
           <div className="mt-2 flex gap-2 text-xs opacity-70">
             <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
             {msg.role === 'user' && <button onClick={() => retryMessage(session.id, msg.id)}><RefreshCcw size={14} /></button>}
+            {msg.role === 'assistant' && msg.status === 'error' && <button onClick={() => regenerateLastAssistant(session.id)} title="重试"><RefreshCcw size={14} /></button>}
             <button onClick={() => updateSession(session.id, { messages: session.messages.filter((m) => m.id !== msg.id) })}><Trash2 size={14} /></button>
             {msg.status === 'streaming' && <span className="animate-pulse">streaming...</span>}
           </div>
         </motion.div>
       ))}
+      {menu && menuMessage && (
+        <div className="fixed z-50 w-36 rounded-lg border bg-popover p-1 text-sm shadow-xl" style={{ left: menu.x, top: menu.y }}>
+          {menuMessage.role === 'user' && <button className="flex w-full items-center gap-2 rounded px-2 py-1 hover:bg-muted" onClick={() => { setEditingId(menuMessage.id); setEditingText(menuMessage.content); setMenu(undefined); }}><Pencil size={14} />编辑</button>}
+          {menuMessage.role === 'user' && <button className="flex w-full items-center gap-2 rounded px-2 py-1 hover:bg-muted" onClick={() => { retryMessage(session.id, menuMessage.id); setMenu(undefined); }}><RefreshCcw size={14} />重发</button>}
+          <button className="flex w-full items-center gap-2 rounded px-2 py-1 hover:bg-muted" onClick={() => { navigator.clipboard.writeText(menuMessage.content); setMenu(undefined); }}><Copy size={14} />复制</button>
+          <button className="flex w-full items-center gap-2 rounded px-2 py-1 text-red-500 hover:bg-muted" onClick={() => { deleteMessage(session.id, menuMessage.id); setMenu(undefined); }}><Trash2 size={14} />删除</button>
+        </div>
+      )}
+              </div>
+              <div className="mt-2 flex gap-2 text-xs opacity-70">
+                <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
+                {msg.role === 'user' && <button onClick={() => retryMessage(session.id, msg.id)}><RefreshCcw size={14} /></button>}
+                <button onClick={() => updateSession(session.id, { messages: session.messages.filter((m) => m.id !== msg.id) })}><Trash2 size={14} /></button>
+                {msg.status === 'streaming' && <span className="animate-pulse">streaming...</span>}
+              </div>
+            </div>
+            {isUser && (
+              <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary">
+                <UserRound size={15} />
+              </div>
+            )}
+          </motion.div>
+        );
+      })}
     </div>
   );
 }

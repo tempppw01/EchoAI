@@ -37,6 +37,7 @@ body { @apply bg-background text-foreground antialiased; }
 /* 用户消息：更明显的品牌色强调 */
 .chat-bubble-user {
   @apply rounded-2xl border border-primary/45 bg-primary/15;
+  @apply rounded-2xl border border-primary/30 bg-primary/10 shadow-sm;
 }
 
 /* AI 消息：更中性的阅读区块 */
@@ -47,4 +48,6 @@ body { @apply bg-background text-foreground antialiased; }
 
 .dark .chat-bubble-assistant {
   background: linear-gradient(180deg, hsl(var(--surface-soft) / 0.92), hsl(165 35% 18% / 0.9));
+  @apply rounded-2xl border shadow-sm;
+  background: hsl(var(--surface-soft) / 0.9);
 }
