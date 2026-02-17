@@ -11,7 +11,4 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-    # 推荐把你的真实密钥放到 server/.env（由你自己创建，来自 server/.env.example）
-    env_file:
-      - server/.env
     restart: unless-stopped
