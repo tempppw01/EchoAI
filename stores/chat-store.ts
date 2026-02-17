@@ -111,7 +111,23 @@ const buildMessagesForRequest = (session: ChatSession, content: string): Array<{
 
 const inflightRequests = new Map<string, AbortController>();
 
-const requestAssistantReply = async (session: ChatSession, content: string, signal?: AbortSignal) => {
+const parseStreamChunk = (line: string): string => {
+  const payload = line.replace(/^data:\s*/, '').trim();
+  if (!payload || payload === '[DONE]') return '';
+  try {
+    const parsed = JSON.parse(payload);
+    return parsed?.choices?.[0]?.delta?.content ?? '';
+  } catch {
+    return '';
+  }
+};
+
+const requestAssistantReply = async (
+  session: ChatSession,
+  content: string,
+  signal: AbortSignal | undefined,
+  onStream?: (chunk: string) => void,
+) => {
   const { settings } = useSettingsStore.getState();
   const endpoint = settings.baseUrl?.trim();
   const apiKey = settings.apiKey?.trim();
@@ -123,6 +139,8 @@ const requestAssistantReply = async (session: ChatSession, content: string, sign
     };
     throw new Error('未检测到可用的 API 配置，请先在设置中填写 Base URL 和 API Key。');
   }
+
+  const useStream = Boolean(settings.stream && onStream);
 
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -136,13 +154,37 @@ const requestAssistantReply = async (session: ChatSession, content: string, sign
       messages: buildMessagesForRequest(session, content),
       temperature: settings.temperature,
       max_tokens: settings.maxTokens,
-      stream: false,
+      stream: useStream,
     }),
   });
 
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(`LLM request failed (${response.status}): ${detail}`);
+  }
+
+  if (useStream) {
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('流式响应不可读');
+
+    const decoder = new TextDecoder();
+    let pending = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      pending += decoder.decode(value, { stream: true });
+      const lines = pending.split('\n');
+      pending = lines.pop() ?? '';
+      for (const line of lines) {
+        const chunk = parseStreamChunk(line.trim());
+        if (chunk) onStream?.(chunk);
+      }
+    }
+
+    const tail = parseStreamChunk(pending.trim());
+    if (tail) onStream?.(tail);
+    return { content: '', status: 'done' as const };
   }
 
   const data = await response.json();
@@ -237,7 +279,30 @@ export const useChatStore = create<ChatState>()(
         }));
 
         try {
-          const result = await requestAssistantReply({ ...session, messages: [...session.messages, user] }, content, controller.signal);
+          let streamedContent = '';
+          const result = await requestAssistantReply(
+            { ...session, messages: [...session.messages, user] },
+            content,
+            controller.signal,
+            (chunk) => {
+              streamedContent += chunk;
+              set((state) => ({
+                sessions: state.sessions.map((item) =>
+                  item.id === targetId
+                    ? {
+                        ...item,
+                        messages: item.messages.map((message) =>
+                          message.id === assistant.id
+                            ? { ...message, status: 'streaming', content: streamedContent || message.content }
+                            : message,
+                        ),
+                      }
+                    : item,
+                ),
+              }));
+            },
+          );
+
           set((state) => ({
             generatingSessionIds: state.generatingSessionIds.filter((id) => id !== targetId),
             sessions: sortedSessions(
@@ -247,7 +312,11 @@ export const useChatStore = create<ChatState>()(
                       ...item,
                       messages: item.messages.map((message) =>
                         message.id === assistant.id
-                          ? { ...message, status: result.status, content: result.content }
+                          ? {
+                              ...message,
+                              status: result.status,
+                              content: streamedContent || (result.content || '').trim() || message.content,
+                            }
                           : message,
                       ),
                     }
@@ -266,7 +335,7 @@ export const useChatStore = create<ChatState>()(
                       ...item,
                       messages: item.messages.map((message) =>
                         message.id === assistant.id
-                          ? { ...message, status: 'error', content: '已停止生成。' }
+                          ? { ...message, status: 'done', content: message.content }
                           : message,
                       ),
                     }

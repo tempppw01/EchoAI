@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { memo, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Copy, Download, RefreshCcw, RotateCw, Trash2 } from 'lucide-react';
 import { ChatMode, ChatSession } from '@/lib/types';
@@ -90,35 +90,73 @@ export function MessageList({ session }: { session?: ChatSession }) {
         </div>
       )}
       {session.messages.map((msg) => (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} key={msg.id} className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} p-4`}>
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-            <ReactMarkdown
-              components={{
-                code(props) {
-                  const { children, className } = props;
-                  const value = String(children).replace(/\n$/, '');
-                  const isBlock = className?.includes('language-');
-                  if (!isBlock) return <code className="rounded bg-muted px-1 py-0.5">{children}</code>;
-                  return (
-                    <div className="relative">
-                      <pre className="overflow-x-auto rounded bg-muted p-2"><code>{value}</code></pre>
-                      <button className="absolute right-2 top-2 rounded border bg-background px-1 py-0.5 text-xs" onClick={() => navigator.clipboard.writeText(value)}>复制代码</button>
-                    </div>
-                  );
-                },
-              }}
-            >
-              {msg.content}
-            </ReactMarkdown>
-          </div>
-          <div className="mt-2 flex gap-2 text-xs opacity-70">
-            <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
-            {msg.role === 'user' && <button onClick={() => retryMessage(session.id, msg.id)}><RefreshCcw size={14} /></button>}
-            <button onClick={() => updateSession(session.id, { messages: session.messages.filter((m) => m.id !== msg.id) })}><Trash2 size={14} /></button>
-            {msg.status === 'streaming' && <span className="animate-pulse">streaming...</span>}
-          </div>
-        </motion.div>
+        <MessageItem
+          key={msg.id}
+          msg={msg}
+          onRetry={() => retryMessage(session.id, msg.id)}
+          onDelete={() => updateSession(session.id, { messages: session.messages.filter((m) => m.id !== msg.id) })}
+        />
       ))}
     </div>
   );
 }
+
+const stabilizeMarkdownForStreaming = (content: string) => {
+  let stabilized = content;
+  const fenceCount = (stabilized.match(/```/g) || []).length;
+  if (fenceCount % 2 === 1) stabilized += '\n```';
+
+  const dollarCount = (stabilized.match(/\$\$/g) || []).length;
+  if (dollarCount % 2 === 1) stabilized += '\n$$';
+
+  const inlineTickCount = (stabilized.match(/`/g) || []).length - fenceCount * 3;
+  if (inlineTickCount % 2 === 1) stabilized += '`';
+
+  return stabilized;
+};
+
+const MessageItem = memo(function MessageItem({
+  msg,
+  onRetry,
+  onDelete,
+}: {
+  msg: ChatSession['messages'][number];
+  onRetry: () => void;
+  onDelete: () => void;
+}) {
+  const renderedMarkdown = useMemo(
+    () => (msg.status === 'streaming' ? stabilizeMarkdownForStreaming(msg.content) : msg.content),
+    [msg.content, msg.status],
+  );
+
+  return (
+    <div className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} p-4`}>
+      <div className="prose prose-sm max-w-none dark:prose-invert">
+        <ReactMarkdown
+          components={{
+            code(props) {
+              const { children, className } = props;
+              const value = String(children).replace(/\n$/, '');
+              const isBlock = className?.includes('language-');
+              if (!isBlock) return <code className="rounded bg-muted px-1 py-0.5">{children}</code>;
+              return (
+                <div className="relative">
+                  <pre className="overflow-x-auto rounded bg-muted p-2"><code>{value}</code></pre>
+                  <button className="absolute right-2 top-2 rounded border bg-background px-1 py-0.5 text-xs" onClick={() => navigator.clipboard.writeText(value)}>复制代码</button>
+                </div>
+              );
+            },
+          }}
+        >
+          {renderedMarkdown}
+        </ReactMarkdown>
+      </div>
+      <div className="mt-2 flex gap-2 text-xs opacity-70">
+        <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
+        {msg.role === 'user' && <button onClick={onRetry}><RefreshCcw size={14} /></button>}
+        <button onClick={onDelete}><Trash2 size={14} /></button>
+        {msg.status === 'streaming' && <span className="animate-pulse">streaming...</span>}
+      </div>
+    </div>
+  );
+});
