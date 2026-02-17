@@ -1,8 +1,7 @@
 import { AppSettings } from '@/lib/types';
+import { normalizeOpenAIBaseUrl } from '@/lib/openai-endpoint';
 
 type ModelFetchSettings = Partial<Pick<AppSettings, 'modelCatalog' | 'baseUrl' | 'apiKey'>>;
-
-const ensureBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, '');
 
 export async function fetchModelCatalog(settings: ModelFetchSettings): Promise<string[]> {
   const baseUrl = settings.baseUrl?.trim();
@@ -12,7 +11,7 @@ export async function fetchModelCatalog(settings: ModelFetchSettings): Promise<s
     return settings.modelCatalog || [];
   }
 
-  const response = await fetch(`${ensureBaseUrl(baseUrl)}/models`, {
+  const response = await fetch(`${normalizeOpenAIBaseUrl(baseUrl)}/models`, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
