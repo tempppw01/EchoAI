@@ -105,6 +105,37 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
           <p>已持久化模型：{modelCatalog.length}</p>
           <p className="mt-1 max-h-20 overflow-y-auto break-all">{modelCatalog.length ? modelCatalog.join('、') : '暂无，请点击“拉取模型列表”'}</p>
         </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            默认文本模型
+            <select
+              className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+              value={form.watch('defaultTextModel')}
+              onChange={(event) => {
+                form.setValue('defaultTextModel', event.target.value, { shouldDirty: true });
+                onPersistSettings({ defaultTextModel: event.target.value });
+              }}
+              disabled={modelCatalog.length === 0}
+            >
+              {modelCatalog.length === 0 ? <option value="">请先拉取模型列表</option> : modelCatalog.map((model) => <option key={`text-${model}`} value={model}>{model}</option>)}
+            </select>
+          </label>
+
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            默认绘图模型
+            <select
+              className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+              value={form.watch('defaultImageModel')}
+              onChange={(event) => {
+                form.setValue('defaultImageModel', event.target.value, { shouldDirty: true });
+                onPersistSettings({ defaultImageModel: event.target.value });
+              }}
+              disabled={modelCatalog.length === 0}
+            >
+              {modelCatalog.length === 0 ? <option value="">请先拉取模型列表</option> : modelCatalog.map((model) => <option key={`image-${model}`} value={model}>{model}</option>)}
+            </select>
+          </label>
+        </div>
         <datalist id="model-catalog">
           {modelCatalog.map((model) => (
             <option key={model} value={model} />
