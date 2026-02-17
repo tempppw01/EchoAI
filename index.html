@@ -21,24 +21,6 @@
 
     <!-- 侧边栏 -->
     <div class="sidebar">
-        <div class="sidebar-top-actions">
-            <button class="sidebar-feature-btn" onclick="startFeatureChat('copywriting')">
-                <span>✍️</span> 文案生成
-            </button>
-            <button class="sidebar-feature-btn" onclick="startFeatureChat('videoScript')">
-                <span>🎬</span> 视频脚本优化
-            </button>
-            <button class="sidebar-feature-btn" onclick="startFeatureChat('roleplay')">
-                <span>🎭</span> 角色扮演
-            </button>
-            <button class="sidebar-feature-btn" onclick="startFeatureChat('qaTest')">
-                <span>🧠</span> 技能训练
-            </button>
-            <button class="sidebar-feature-btn" onclick="openDrawingHub()">
-                <span>🎨</span> 绘图中心
-            </button>
-        </div>
-
         <div class="feature-sections" id="featureSections">
             <div class="feature-section" data-feature="copywriting">
                 <button class="feature-section-header" onclick="toggleFeatureSection('copywriting')">
@@ -74,10 +56,7 @@
         </button>
         <div class="version-tag">
             <strong style="font-size: 1.1em; display: block; margin-bottom: 5px;">EchoAI</strong>
-            v0.3<br>
-            <span style="font-size: 0.8em; opacity: 0.75; margin-top: 8px; display: block; line-height: 1.4;">
-                版权声明：本项目为 EchoAI，遵循 MIT License。
-            </span>
+            v0.3
         </div>
     </div>
 
@@ -95,6 +74,14 @@
                 <select id="headerModelSelect" class="header-model-select" title="选择模型" onchange="onHeaderModelChange(this.value)">
                     <option value="">加载中...</option>
                 </select>
+            </div>
+        </div>
+
+        <div id="skillTrainingDashboard" class="skill-training-dashboard" style="display:none;">
+            <div class="skill-dashboard-title" id="skillDashboardTitle">🧠 技能训练进行中</div>
+            <div class="skill-dashboard-meta" id="skillDashboardMeta">已答 0 题 · 掌握度 0 分</div>
+            <div class="skill-dashboard-track">
+                <div id="skillDashboardBar" class="skill-dashboard-bar"></div>
             </div>
         </div>
         
@@ -224,7 +211,7 @@
                 <label for="skillTrainingInput">你想学习的技能</label>
                 <input type="text" id="skillTrainingInput" placeholder="例如：Python 数据分析、英语语法、产品运营">
             </div>
-            <p class="skill-training-tip">确认后，模型会自动出 5 道题（选择题 / 填空题），并在结束后给出 100 分制掌握度。</p>
+            <p class="skill-training-tip">确认后会进入无限题训练模式（选择题 / 填空题），并动态更新掌握度分数与进度。</p>
             <button class="save-btn" onclick="confirmSkillTraining()">开始训练</button>
         </div>
     </div>
@@ -806,8 +793,10 @@
                         mode: 'skillTraining',
                         status: 'setup',
                         skill: '',
-                        totalQuestions: 5,
                         answeredCount: 0,
+                        score: 0,
+                        recentQuestions: [],
+                        reinforcementQueue: [],
                         history: [],
                         currentQuestion: null
                     };
@@ -844,8 +833,10 @@
                     mode: 'skillTraining',
                     status: 'setup',
                     skill: '',
-                    totalQuestions: 5,
                     answeredCount: 0,
+                    score: 0,
+                    recentQuestions: [],
+                    reinforcementQueue: [],
                     history: [],
                     currentQuestion: null
                 } : null
@@ -929,6 +920,7 @@
             // 更新 UI 高亮
             renderHistoryList();
             updateHeaderInfo();
+            renderSkillTrainingDashboard(sessions[sessionId].quizState);
             refreshHeaderModelSelect();
 
             if (render) {
@@ -1024,6 +1016,7 @@
                 document.getElementById('contextInfo').textContent = '📝 上下文: 0 条';
                 document.getElementById('tokenInfo').textContent = '🔤 预估: ~0 tokens';
                 hintEl.textContent = '✨ 点击设置助手角色';
+                renderSkillTrainingDashboard(null);
                 return;
             }
             
@@ -1051,6 +1044,8 @@
                 hintEl.textContent = '✨ 点击设置助手角色';
                 hintEl.title = '点击编辑系统提示词';
             }
+
+            renderSkillTrainingDashboard(session.quizState);
         }
 
         // ============ 内置角色卡 ============
@@ -1467,8 +1462,10 @@ ${presetText}`);
                 mode: 'skillTraining',
                 status: 'in_progress',
                 skill,
-                totalQuestions: 5,
                 answeredCount: 0,
+                score: 0,
+                recentQuestions: [],
+                reinforcementQueue: [],
                 history: [],
                 currentQuestion: null
             });
@@ -1479,7 +1476,8 @@ ${presetText}`);
 
             appendMessageToUI(`已为你开启 **${skill}** 技能训练。
 
-共 5 题，题型包含选择题和填空题。开始出题中...`, 'ai');
+题型包含选择题和填空题，训练将持续进行并动态更新掌握度。开始出题中...`, 'ai');
+            renderSkillTrainingDashboard(session.quizState);
             await requestNextSkillQuestion();
         }
 
@@ -1487,11 +1485,6 @@ ${presetText}`);
             const session = sessions[currentSessionId];
             if (!session || session.featureType !== 'qaTest' || !session.quizState) return;
             const quizState = session.quizState;
-
-            if (quizState.answeredCount >= quizState.totalQuestions) {
-                await finalizeSkillTraining();
-                return;
-            }
 
             const questionNo = quizState.answeredCount + 1;
             const questionData = await requestSkillTrainingQuestion(session, questionNo);
@@ -1502,12 +1495,12 @@ ${presetText}`);
 
             quizState.currentQuestion = questionData;
             saveSessionsToStorage();
-            renderSkillQuestion(questionData, questionNo, quizState.totalQuestions);
+            renderSkillQuestion(questionData, questionNo);
         }
 
-        function renderSkillQuestion(questionData, questionNo, total) {
+        function renderSkillQuestion(questionData, questionNo) {
             const questionType = questionData.type === 'blank' ? '填空题' : '选择题';
-            let questionText = `第 ${questionNo}/${total} 题（${questionType}）
+            let questionText = `第 ${questionNo} 题（${questionType}）
 
 ${questionData.question}`;
             if (questionData.type === 'blank') {
@@ -1518,11 +1511,11 @@ ${questionData.question}`;
             appendMessageToUI(questionText, 'ai');
 
             if (questionData.type === 'choice') {
-                showChoiceQuestionModal(questionData, questionNo, total);
+                showChoiceQuestionModal(questionData, questionNo);
             }
         }
 
-        function showChoiceQuestionModal(questionData, questionNo, total) {
+        function showChoiceQuestionModal(questionData, questionNo) {
             let modal = document.getElementById('choiceQuestionModal');
             if (!modal) {
                 modal = document.createElement('div');
@@ -1539,7 +1532,7 @@ ${questionData.question}`;
                 document.body.appendChild(modal);
             }
 
-            modal.querySelector('#choiceQuestionProgress').textContent = `第 ${questionNo}/${total} 题`;
+            modal.querySelector('#choiceQuestionProgress').textContent = `第 ${questionNo} 题`;
             modal.querySelector('#choiceQuestionTitle').textContent = questionData.question;
             const optionsEl = modal.querySelector('#choiceQuestionOptions');
             optionsEl.innerHTML = '';
@@ -1583,23 +1576,91 @@ ${questionData.question}`;
                 isCorrect: !!evaluation.isCorrect,
                 feedback: evaluation.feedback || ''
             });
+            updateSkillScore(quizState, !!evaluation.isCorrect);
             quizState.answeredCount += 1;
             quizState.currentQuestion = null;
 
+            if (!evaluation.isCorrect) {
+                quizState.reinforcementQueue.push({
+                    question: currentQuestion.question,
+                    correctAnswer: currentQuestion.correctAnswer,
+                    explanation: currentQuestion.explanation || ''
+                });
+            }
+
             appendMessageToUI(`第 ${quizState.answeredCount} 题完成：${evaluation.feedback || (evaluation.isCorrect ? '回答正确。' : '回答不正确。')}`, 'ai');
+            await maybeSendReinforcement(session);
+            renderSkillTrainingDashboard(quizState);
             saveSessionsToStorage();
 
             await requestNextSkillQuestion();
         }
 
         async function requestSkillTrainingQuestion(session, questionNo) {
-            const systemPrompt = `你是一名严谨的出题老师。围绕技能「${session.quizState.skill}」出一道题。必须在选择题(choice)和填空题(blank)之间交替，且只输出 JSON，不要 Markdown。`;
+            const recentQuestions = (session.quizState.recentQuestions || []).slice(-8);
+            const systemPrompt = `你是一名严谨的出题老师。围绕技能「${session.quizState.skill}」出一道题。必须在选择题(choice)和填空题(blank)之间交替，且只输出 JSON，不要 Markdown。避免和历史题目重复。`;
             const messages = [{
                 role: 'user',
-                content: `请输出第${questionNo}题，返回 JSON 格式：{"type":"choice|blank","question":"...","options":["..."],"correctAnswer":"...","explanation":"..."}。当 type 为 blank 时 options 传空数组。`
+                content: `请输出第${questionNo}题，返回 JSON 格式：{"type":"choice|blank","question":"...","options":["..."],"correctAnswer":"...","explanation":"..."}。当 type 为 blank 时 options 传空数组。
+最近题干（禁止重复）：${JSON.stringify(recentQuestions)}`
             }];
-            const text = await requestPlainAiResponse(systemPrompt, messages);
-            return safeParseJson(text);
+
+            for (let attempt = 0; attempt < 3; attempt++) {
+                const text = await requestPlainAiResponse(systemPrompt, messages);
+                const parsed = safeParseJson(text);
+                if (!parsed?.question) continue;
+                const normalized = normalizeQuestionText(parsed.question);
+                if (!recentQuestions.some(q => normalizeQuestionText(q) === normalized)) {
+                    session.quizState.recentQuestions.push(parsed.question);
+                    session.quizState.recentQuestions = session.quizState.recentQuestions.slice(-20);
+                    return parsed;
+                }
+            }
+
+            return {
+                type: questionNo % 2 === 0 ? 'blank' : 'choice',
+                question: `请用一句话解释「${session.quizState.skill}」中的核心概念，并举一个实际应用场景。`,
+                options: [],
+                correctAnswer: '能准确解释概念并给出合理场景',
+                explanation: '该题用于开放性巩固，重点在理解与应用。'
+            };
+        }
+
+        function normalizeQuestionText(text) {
+            return String(text || '').replace(/\s+/g, '').toLowerCase();
+        }
+
+        function updateSkillScore(quizState, isCorrect) {
+            const delta = isCorrect ? 6 : -4;
+            quizState.score = Math.max(0, Math.min(100, (quizState.score || 0) + delta));
+        }
+
+        async function maybeSendReinforcement(session) {
+            const quizState = session.quizState;
+            if (!quizState || quizState.answeredCount < 3 || quizState.answeredCount % 3 !== 0) return;
+            if (!quizState.reinforcementQueue || quizState.reinforcementQueue.length === 0) return;
+
+            const wrong = quizState.reinforcementQueue.shift();
+            appendMessageToUI(`📌 错题巩固：
+「${wrong.question}」
+参考答案：${wrong.correctAnswer || '（暂无）'}
+${wrong.explanation ? `解析：${wrong.explanation}` : '解析：这题考察的是基础概念辨析，请关注关键词定义。'}`, 'ai');
+        }
+
+        function renderSkillTrainingDashboard(quizState) {
+            const dashboard = document.getElementById('skillTrainingDashboard');
+            if (!dashboard) return;
+
+            if (!quizState || quizState.status !== 'in_progress') {
+                dashboard.style.display = 'none';
+                return;
+            }
+
+            const score = Math.max(0, Math.min(100, Number(quizState.score) || 0));
+            document.getElementById('skillDashboardTitle').textContent = `🧠 ${quizState.skill} 技能训练`;
+            document.getElementById('skillDashboardMeta').textContent = `已答 ${quizState.answeredCount} 题 · 动态掌握度 ${score} 分`;
+            document.getElementById('skillDashboardBar').style.width = `${score}%`;
+            dashboard.style.display = 'block';
         }
 
         async function evaluateSkillAnswer(session, question, answerPayload) {
@@ -1637,10 +1698,11 @@ ${questionData.question}`;
             }];
             const text = await requestPlainAiResponse(systemPrompt, messages);
             const result = safeParseJson(text) || {};
-            const score = Math.max(0, Math.min(100, Number(result.score) || Math.round((quizState.history.filter(h => h.isCorrect).length / quizState.totalQuestions) * 100)));
+            const total = Math.max(1, quizState.history.length);
+            const score = Math.max(0, Math.min(100, Number(result.score) || Math.round((quizState.history.filter(h => h.isCorrect).length / total) * 100)));
             const summary = result.summary || '训练完成，继续巩固可进一步提升。';
 
-            quizState.status = 'completed';
+            quizState.status = 'in_progress';
             session.title = `${quizState.skill} 掌握度：${score}/100`;
             saveSessionsToStorage();
             updateHeaderInfo();
