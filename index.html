@@ -21,17 +21,56 @@
 
     <!-- 侧边栏 -->
     <div class="sidebar">
-        <button class="new-chat-btn" onclick="startNewChat()">
-            <span>+</span> 新建对话
-        </button>
-        <button class="image-gen-btn" onclick="startImageChat()">
-            <span>🎨</span> 绘图对话
-        </button>
-        <button class="image-gen-btn" onclick="openImageGenerator()" style="margin-top: 5px; background-color: #6c757d;">
-            <span>🖼️</span> 专业绘图
-        </button>
-        <div class="history-list" id="historyList">
-            <!-- 历史记录动态生成 -->
+        <div class="sidebar-top-actions">
+            <button class="sidebar-feature-btn" onclick="startFeatureChat('copywriting')">
+                <span>✍️</span> 文案生成
+            </button>
+            <button class="sidebar-feature-btn" onclick="startFeatureChat('videoScript')">
+                <span>🎬</span> 视频脚本优化
+            </button>
+            <button class="sidebar-feature-btn" onclick="startFeatureChat('roleplay')">
+                <span>🎭</span> 角色扮演
+            </button>
+            <button class="sidebar-feature-btn" onclick="startFeatureChat('qaTest')">
+                <span>🧠</span> 问答测试
+            </button>
+            <button class="sidebar-feature-btn" onclick="startImageChat()">
+                <span>🎨</span> 绘图对话
+            </button>
+            <button class="sidebar-feature-btn sidebar-feature-btn-secondary" onclick="openImageGenerator()">
+                <span>🖼️</span> 专业绘图
+            </button>
+        </div>
+
+        <div class="feature-sections" id="featureSections">
+            <div class="feature-section" data-feature="copywriting">
+                <button class="feature-section-header" onclick="toggleFeatureSection('copywriting')">
+                    <span>✍️ 文案生成</span>
+                    <span class="feature-section-arrow">▾</span>
+                </button>
+                <div class="history-list feature-history-list" id="historyList-copywriting"></div>
+            </div>
+            <div class="feature-section" data-feature="videoScript">
+                <button class="feature-section-header" onclick="toggleFeatureSection('videoScript')">
+                    <span>🎬 视频脚本优化</span>
+                    <span class="feature-section-arrow">▾</span>
+                </button>
+                <div class="history-list feature-history-list" id="historyList-videoScript"></div>
+            </div>
+            <div class="feature-section" data-feature="roleplay">
+                <button class="feature-section-header" onclick="toggleFeatureSection('roleplay')">
+                    <span>🎭 角色扮演</span>
+                    <span class="feature-section-arrow">▾</span>
+                </button>
+                <div class="history-list feature-history-list" id="historyList-roleplay"></div>
+            </div>
+            <div class="feature-section" data-feature="qaTest">
+                <button class="feature-section-header" onclick="toggleFeatureSection('qaTest')">
+                    <span>🧠 问答测试</span>
+                    <span class="feature-section-arrow">▾</span>
+                </button>
+                <div class="history-list feature-history-list" id="historyList-qaTest"></div>
+            </div>
         </div>
         <button class="sidebar-settings-btn" onclick="openSettings()">
             ⚙️ 设置
@@ -39,13 +78,9 @@
         <div class="version-tag">
             <strong style="font-size: 1.1em; display: block; margin-bottom: 5px;">EchoAI</strong>
             v0.3<br>
-            <span style="font-size: 0.85em; opacity: 0.8; margin-top: 5px; display: block;">WeChat: Ethan_BravoEcho</span>
             <span style="font-size: 0.8em; opacity: 0.75; margin-top: 8px; display: block; line-height: 1.4;">
                 版权声明：本项目为 EchoAI，遵循 MIT License。
             </span>
-            <a href="https://github.com/tempppw01/EchoAI" target="_blank" rel="noopener noreferrer" style="font-size: 0.8em; opacity: 0.85; margin-top: 4px; display: block; color: #9aa0a6; text-decoration: none;">
-                项目地址：github.com/tempppw01/EchoAI
-            </a>
         </div>
     </div>
 
@@ -532,7 +567,18 @@
         let selectedImageBase64 = null;
         const settingsModal = document.getElementById('settingsModal');
         const announcementModal = document.getElementById('announcementModal');
-        const historyListEl = document.getElementById('historyList');
+        const featureHistoryEls = {
+            copywriting: document.getElementById('historyList-copywriting'),
+            videoScript: document.getElementById('historyList-videoScript'),
+            roleplay: document.getElementById('historyList-roleplay'),
+            qaTest: document.getElementById('historyList-qaTest')
+        };
+        const FEATURE_META = {
+            copywriting: { label: '文案生成', icon: '✍️', systemPrompt: '你是一名资深文案策划，请根据用户需求输出吸引人的文案，并给出可选版本。' },
+            videoScript: { label: '视频脚本优化', icon: '🎬', systemPrompt: '你是一名短视频编导，请优化用户脚本，提升节奏、镜头感和转化效果。' },
+            roleplay: { label: '角色扮演', icon: '🎭', systemPrompt: '你现在进入角色扮演模式，根据用户指定角色进行自然对话，并保持角色一致性。' },
+            qaTest: { label: '问答测试', icon: '🧠', systemPrompt: '你是一名出题与评测助手，请围绕用户主题生成问答测试并给出评分标准。' }
+        };
         
         const apiKeyInput = document.getElementById('apiKey');
         const modelNameInput = document.getElementById('modelName');
@@ -623,6 +669,7 @@
 
             // 3. 加载历史会话
             loadSessions();
+            restoreFeatureSectionState();
 
             // 4. 如果没有历史会话，新建一个；否则默认不加载任何具体会话（或者加载最新的）
             if (Object.keys(sessions).length === 0) {
@@ -692,6 +739,13 @@
         function loadSessions() {
             const stored = localStorage.getItem('chatSessions');
             sessions = stored ? JSON.parse(stored) : {};
+
+            Object.values(sessions).forEach(session => {
+                if (!session.featureType || !FEATURE_META[session.featureType]) {
+                    session.featureType = 'copywriting';
+                }
+            });
+
             renderHistoryList();
         }
 
@@ -705,11 +759,18 @@
         }
 
         function startNewChat() {
+            startFeatureChat('copywriting');
+        }
+
+        function startFeatureChat(featureType) {
+            const feature = FEATURE_META[featureType] || FEATURE_META.copywriting;
             currentSessionId = generateId();
             sessions[currentSessionId] = {
                 id: currentSessionId,
-                title: "新对话",
+                title: `新${feature.label}`,
                 timestamp: Date.now(),
+                featureType,
+                systemPrompt: feature.systemPrompt,
                 messages: []
             };
             
@@ -717,7 +778,7 @@
             chatMessages.innerHTML = `
                 <div class="message-container ai">
                     <div class="avatar ai">AI</div>
-                    <div class="message-content">你好！今天有什么我可以帮你的吗？</div>
+                    <div class="message-content">已进入${feature.icon} ${feature.label}，请告诉我你的具体需求。</div>
                 </div>
             `;
             
@@ -732,6 +793,7 @@
                 id: currentSessionId,
                 title: "🎨 绘图模式",
                 timestamp: Date.now(),
+                featureType: 'copywriting',
                 messages: [],
                 systemPrompt: "你是一个专业的 AI 绘图助手。当用户描述画面时，请调用绘图能力生成图片。如果用户上传了图片，请根据用户的要求进行以图生图或图片分析。"
             };
@@ -816,24 +878,49 @@
         }
 
         function renderHistoryList() {
-            historyListEl.innerHTML = '';
+            Object.values(featureHistoryEls).forEach(el => {
+                if (el) el.innerHTML = '';
+            });
+
             // 按时间倒序
             const sortedIds = Object.keys(sessions).sort((a, b) => sessions[b].timestamp - sessions[a].timestamp);
             
             sortedIds.forEach(id => {
                 const session = sessions[id];
+                const featureType = session.featureType && FEATURE_META[session.featureType] ? session.featureType : 'copywriting';
+                const targetList = featureHistoryEls[featureType];
+                if (!targetList) return;
+
                 const div = document.createElement('div');
                 div.className = `history-item ${id === currentSessionId ? 'active' : ''}`;
                 div.onclick = () => switchChat(id);
+                const icon = FEATURE_META[featureType].icon;
                 
                 div.innerHTML = `
-                    <span style="overflow: hidden; text-overflow: ellipsis; flex: 1;">💬 ${session.title}</span>
+                    <span style="overflow: hidden; text-overflow: ellipsis; flex: 1;">${icon} ${session.title}</span>
                     <div class="actions">
                         <button class="action-btn" onclick="regenerateTitle(event, '${id}')" title="AI 重新生成标题">✎</button>
                         <button class="action-btn" onclick="deleteChat(event, '${id}')" title="删除对话">×</button>
                     </div>
                 `;
-                historyListEl.appendChild(div);
+                targetList.appendChild(div);
+            });
+        }
+
+        function toggleFeatureSection(featureType) {
+            const section = document.querySelector(`.feature-section[data-feature="${featureType}"]`);
+            if (!section) return;
+
+            const isCollapsed = section.classList.toggle('collapsed');
+            localStorage.setItem(`featureSectionCollapsed_${featureType}`, isCollapsed ? '1' : '0');
+        }
+
+        function restoreFeatureSectionState() {
+            Object.keys(FEATURE_META).forEach(featureType => {
+                const section = document.querySelector(`.feature-section[data-feature="${featureType}"]`);
+                if (!section) return;
+                const isCollapsed = localStorage.getItem(`featureSectionCollapsed_${featureType}`) === '1';
+                section.classList.toggle('collapsed', isCollapsed);
             });
         }
 
