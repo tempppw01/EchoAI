@@ -705,6 +705,27 @@ input:checked + .slider-toggle:before {
     transform: translateX(18px);
 }
 
+
+.secondary-btn {
+    background: #eef2ff;
+    color: #3b4cca;
+    border: 1px solid #d8dfff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85em;
+    cursor: pointer;
+}
+
+.secondary-btn:hover {
+    background: #e3e8ff;
+}
+
+.secondary-btn.danger {
+    background: #fff1f2;
+    border-color: #ffd2d7;
+    color: #c53030;
+}
+
 .save-btn {
     background: var(--primary-gradient);
     padding: 12px;
@@ -720,7 +741,7 @@ input:checked + .slider-toggle:before {
 
 /* Settings Modal Tabs */
 .settings-modal-content {
-    width: 500px;
+    width: 560px;
 }
 
 .settings-tabs {

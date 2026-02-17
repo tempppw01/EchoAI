@@ -278,21 +278,26 @@
             
             <!-- 设置标签页 -->
             <div class="settings-tabs">
-                <button class="settings-tab active" onclick="switchSettingsTab('channel')">🔌 模型渠道</button>
-                <button class="settings-tab" onclick="switchSettingsTab('model')">🤖 默认模型</button>
-                <button class="settings-tab" onclick="switchSettingsTab('mcp')">🔧 MCP设置</button>
-                <button class="settings-tab" onclick="switchSettingsTab('webdav')">☁️ WebDAV 同步</button>
+                <button class="settings-tab active" onclick="switchSettingsTab('model', this)">🤖 模型配置</button>
+                <button class="settings-tab" onclick="switchSettingsTab('session', this)">🧭 会话策略</button>
+                <button class="settings-tab" onclick="switchSettingsTab('sync', this)">☁️ 数据同步</button>
+                <button class="settings-tab" onclick="switchSettingsTab('extension', this)">🔧 扩展</button>
             </div>
             
-            <!-- 模型渠道设置 -->
-            <div id="settingsPanel-channel" class="settings-panel active">
+            <!-- 模型配置 -->
+            <div id="settingsPanel-model" class="settings-panel active">
                 <div class="form-group">
                     <label>API 渠道</label>
                     <div class="api-channel-display">SH API</div>
+                    <p style="font-size: 0.8em; color: #888; margin-top: 5px;">用于连接模型服务。填写 API Key 后可先测试连接，再保存配置。</p>
                 </div>
                 <div class="form-group">
                     <label>API 密钥 (API Key)</label>
                     <input type="password" id="apiKey" placeholder="sk-...">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                        <button type="button" class="secondary-btn" onclick="testApiConnection(this)">测试连接</button>
+                        <span id="apiConnectionStatus" style="font-size: 0.82em; color: #777;">未测试</span>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>模型名称 (Model)</label>
@@ -303,11 +308,32 @@
                     <select id="modelSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; display: none;" onchange="document.getElementById('modelName').value = this.value">
                         <option value="" disabled selected>请选择模型...</option>
                     </select>
+                    <p style="font-size: 0.8em; color: #888; margin-top: 5px;">支持从渠道读取模型列表，也可手动输入。</p>
                 </div>
-            </div>
-            
-            <!-- 默认模型设置 -->
-            <div id="settingsPanel-model" class="settings-panel">
+                <div class="form-group">
+                    <label>场景预设</label>
+                    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+                        <button type="button" class="secondary-btn" onclick="applyModelPreset('creative')">✍️ 创意写作偏好</button>
+                        <button type="button" class="secondary-btn" onclick="applyModelPreset('rigorous')">📊 严谨分析偏好</button>
+                    </div>
+                    <p style="font-size: 0.8em; color: #888; margin-top: 5px;">快速套用常见参数组合（可继续微调）。</p>
+                </div>
+
+                <div class="form-group">
+                    <label>模型组合方案</label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <input type="text" id="profileNameInput" placeholder="例如：写作方案" style="flex: 1;">
+                        <button type="button" class="secondary-btn" onclick="saveModelProfile()">保存方案</button>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="profileSelect" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">暂无已保存方案</option>
+                        </select>
+                        <button type="button" class="secondary-btn" onclick="loadModelProfile()">加载</button>
+                        <button type="button" class="secondary-btn danger" onclick="deleteModelProfile()">删除</button>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                         <label style="margin: 0;">模型温度 (Temperature)</label>
@@ -324,6 +350,14 @@
                     </div>
                     <input type="range" id="contextRange" min="0" max="20" step="1" value="10" style="width: 100%" oninput="document.getElementById('contextValue').textContent = this.value">
                     <p style="font-size: 0.8em; color: #888; margin-top: 5px;">发送给模型的历史消息数量</p>
+                </div>
+            </div>
+
+            <!-- 会话策略 -->
+            <div id="settingsPanel-session" class="settings-panel">
+                <div class="form-group">
+                    <h4 style="margin: 0 0 6px 0; font-size: 0.95em; color: #555;">会话行为</h4>
+                    <p style="font-size: 0.8em; color: #888; margin: 0;">控制标题生成、消息保留策略和回复方式。</p>
                 </div>
 
                 <div class="form-group">
@@ -372,18 +406,12 @@
                 </div>
             </div>
             
-            <!-- MCP设置 -->
-            <div id="settingsPanel-mcp" class="settings-panel">
-                <div style="text-align: center; padding: 40px 20px; color: #888;">
-                    <div style="font-size: 3em; margin-bottom: 15px;">🚧</div>
-                    <h3 style="margin: 0 0 10px 0; color: #666;">MCP 设置</h3>
-                    <p style="margin: 0; font-size: 0.9em;">Model Context Protocol 功能开发中...</p>
-                    <p style="margin: 10px 0 0 0; font-size: 0.85em;">敬请期待！</p>
+            <!-- 数据同步与备份 -->
+            <div id="settingsPanel-sync" class="settings-panel">
+                <div class="form-group">
+                    <h4 style="margin: 0 0 6px 0; font-size: 0.95em; color: #555;">WebDAV 多端同步</h4>
+                    <p style="font-size: 0.8em; color: #888; margin: 0;">适用于在不同设备同步聊天记录和生成历史。</p>
                 </div>
-            </div>
-
-            <!-- WebDAV 同步设置 -->
-            <div id="settingsPanel-webdav" class="settings-panel">
                 <div class="form-group">
                     <label>WebDAV 地址</label>
                     <input type="text" id="webdavUrl" placeholder="https://example.com/remote.php/webdav">
@@ -400,12 +428,45 @@
                     <label>目录路径 (可选)</label>
                     <input type="text" id="webdavPath" placeholder="EchoAI/backup">
                 </div>
+                <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <label style="margin: 0">自动同步</label>
+                        <p style="font-size: 0.8em; color: #888; margin: 3px 0 0 0;">保存设置后按间隔自动执行 WebDAV 同步</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="webdavAutoSyncToggle">
+                        <span class="slider-toggle"></span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>自动同步间隔（分钟）</label>
+                    <input type="number" id="webdavAutoSyncInterval" min="5" step="5" value="30" placeholder="30">
+                </div>
                 <div class="webdav-actions">
                     <button type="button" class="save-btn webdav-sync-btn" onclick="syncWebdavNow()">立即同步</button>
                     <div class="webdav-status" id="webdavStatus">未同步</div>
                 </div>
                 <div class="webdav-help">
                     将同步聊天记录 (chatSessions) 与绘图历史 (imageGenHistory) 到 WebDAV。
+                </div>
+                <div class="form-group" style="margin-top: 16px;">
+                    <h4 style="margin: 0 0 8px 0; font-size: 0.95em; color: #555;">本地导入 / 导出</h4>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="secondary-btn" onclick="exportLocalBackup()">导出备份文件</button>
+                        <button type="button" class="secondary-btn" onclick="document.getElementById('localBackupFile').click()">导入备份文件</button>
+                        <input type="file" id="localBackupFile" accept="application/json" style="display:none" onchange="importLocalBackup(event)">
+                    </div>
+                    <p style="font-size: 0.8em; color: #888; margin-top: 6px;">不使用 WebDAV 时，也可手动备份或恢复本地数据。</p>
+                </div>
+            </div>
+
+            <!-- 扩展 -->
+            <div id="settingsPanel-extension" class="settings-panel">
+                <div style="text-align: center; padding: 40px 20px; color: #888;">
+                    <div style="font-size: 3em; margin-bottom: 15px;">🧩</div>
+                    <h3 style="margin: 0 0 10px 0; color: #666;">扩展能力</h3>
+                    <p style="margin: 0; font-size: 0.9em;">MCP（Model Context Protocol）能力开发中...</p>
+                    <p style="margin: 10px 0 0 0; font-size: 0.85em;">后续会提供外部工具与知识源接入。</p>
                 </div>
             </div>
 
@@ -611,6 +672,11 @@
         const webdavPasswordInput = document.getElementById('webdavPassword');
         const webdavPathInput = document.getElementById('webdavPath');
         const webdavStatus = document.getElementById('webdavStatus');
+        const webdavAutoSyncToggle = document.getElementById('webdavAutoSyncToggle');
+        const webdavAutoSyncIntervalInput = document.getElementById('webdavAutoSyncInterval');
+        const apiConnectionStatus = document.getElementById('apiConnectionStatus');
+        const profileNameInput = document.getElementById('profileNameInput');
+        const profileSelect = document.getElementById('profileSelect');
 
         // 默认配置（不包含敏感信息）
         const DEFAULT_CONFIG = {
@@ -630,6 +696,12 @@
         let sessions = {};
         let isRequestInFlight = false;
         let skillTrainingAwaiting = false;
+        let webdavAutoSyncTimer = null;
+
+        const MODEL_PRESETS = {
+            creative: { temperature: 1.1, contextLimit: 14, titleRegenInterval: 4, stream: true },
+            rigorous: { temperature: 0.2, contextLimit: 8, titleRegenInterval: 6, stream: true }
+        };
 
         // 初始化
         window.onload = function() {
@@ -665,11 +737,16 @@
             webdavUsernameInput.value = webdavConfig.username || '';
             webdavPasswordInput.value = webdavConfig.password || '';
             webdavPathInput.value = webdavConfig.path || '';
+            webdavAutoSyncToggle.checked = !!webdavConfig.autoSync;
+            webdavAutoSyncIntervalInput.value = webdavConfig.autoSyncInterval || 30;
             if (webdavConfig.lastSync) {
                 setWebdavStatus(`已同步：${webdavConfig.lastSync}`, 'success');
             } else {
                 setWebdavStatus('未同步', 'info');
             }
+
+            renderModelProfiles();
+            scheduleWebdavAutoSync();
 
             // 恢复侧边栏状态
             const isMobile = window.innerWidth <= 768;
@@ -711,7 +788,9 @@
                 username: stored.username || '',
                 password: stored.password || '',
                 path: stored.path || '',
-                lastSync: stored.lastSync || ''
+                lastSync: stored.lastSync || '',
+                autoSync: stored.autoSync || false,
+                autoSyncInterval: stored.autoSyncInterval || 30
             };
         }
 
@@ -2199,12 +2278,14 @@ ${summary}`, 'ai');
             settingsModal.style.display = 'none';
         }
 
-        function switchSettingsTab(tabName) {
+        function switchSettingsTab(tabName, tabButton) {
             // 更新标签页按钮状态
             document.querySelectorAll('.settings-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
-            event.target.classList.add('active');
+            if (tabButton) {
+                tabButton.classList.add('active');
+            }
             
             // 更新面板显示
             document.querySelectorAll('.settings-panel').forEach(panel => {
@@ -2248,8 +2329,205 @@ ${summary}`, 'ai');
             };
             
             localStorage.setItem('chatConfig', JSON.stringify(config));
+
+            const webdavConfig = getWebdavConfig();
+            saveWebdavConfig({
+                ...webdavConfig,
+                url: webdavUrlInput.value.trim(),
+                username: webdavUsernameInput.value.trim(),
+                password: webdavPasswordInput.value,
+                path: webdavPathInput.value.trim(),
+                autoSync: webdavAutoSyncToggle.checked,
+                autoSyncInterval: parseInt(webdavAutoSyncIntervalInput.value) || 30
+            });
+            scheduleWebdavAutoSync();
+
             closeSettings();
             alert('配置已保存！');
+        }
+
+
+        function applyModelPreset(presetName) {
+            const preset = MODEL_PRESETS[presetName];
+            if (!preset) return;
+
+            tempRange.value = preset.temperature;
+            document.getElementById('tempValue').textContent = preset.temperature;
+            contextRange.value = preset.contextLimit;
+            document.getElementById('contextValue').textContent = preset.contextLimit;
+            document.getElementById('titleRegenRange').value = preset.titleRegenInterval;
+            document.getElementById('titleRegenValue').textContent = preset.titleRegenInterval;
+            streamToggle.checked = preset.stream;
+            alert('已应用预设，可继续调整后保存。');
+        }
+
+        function getModelProfiles() {
+            return JSON.parse(localStorage.getItem('modelProfiles') || '[]');
+        }
+
+        function renderModelProfiles() {
+            const profiles = getModelProfiles();
+            profileSelect.innerHTML = '';
+            if (profiles.length === 0) {
+                profileSelect.innerHTML = '<option value="">暂无已保存方案</option>';
+                return;
+            }
+
+            profileSelect.innerHTML = '<option value="">请选择方案</option>';
+            profiles.forEach(profile => {
+                const option = document.createElement('option');
+                option.value = profile.name;
+                option.textContent = profile.name;
+                profileSelect.appendChild(option);
+            });
+        }
+
+        function saveModelProfile() {
+            const name = profileNameInput.value.trim();
+            if (!name) {
+                alert('请先输入方案名称');
+                return;
+            }
+
+            const profiles = getModelProfiles().filter(item => item.name !== name);
+            profiles.push({
+                name,
+                model: modelNameInput.value.trim(),
+                temperature: parseFloat(tempRange.value),
+                contextLimit: parseInt(contextRange.value),
+                titleRegenInterval: parseInt(document.getElementById('titleRegenRange').value),
+                stream: streamToggle.checked,
+                enableMaxTokens: maxTokensToggle.checked,
+                maxTokens: parseInt(maxTokensInput.value) || DEFAULT_CONFIG.maxTokens
+            });
+            localStorage.setItem('modelProfiles', JSON.stringify(profiles));
+            renderModelProfiles();
+            profileSelect.value = name;
+            alert('模型方案已保存');
+        }
+
+        function loadModelProfile() {
+            const selectedName = profileSelect.value;
+            if (!selectedName) {
+                alert('请先选择方案');
+                return;
+            }
+
+            const profile = getModelProfiles().find(item => item.name === selectedName);
+            if (!profile) return;
+
+            modelNameInput.value = profile.model || DEFAULT_CONFIG.model;
+            tempRange.value = profile.temperature ?? DEFAULT_CONFIG.temperature;
+            document.getElementById('tempValue').textContent = tempRange.value;
+            contextRange.value = profile.contextLimit ?? DEFAULT_CONFIG.contextLimit;
+            document.getElementById('contextValue').textContent = contextRange.value;
+            document.getElementById('titleRegenRange').value = profile.titleRegenInterval ?? 5;
+            document.getElementById('titleRegenValue').textContent = document.getElementById('titleRegenRange').value;
+            streamToggle.checked = profile.stream ?? DEFAULT_CONFIG.stream;
+            maxTokensToggle.checked = profile.enableMaxTokens ?? DEFAULT_CONFIG.enableMaxTokens;
+            maxTokensInput.value = profile.maxTokens ?? DEFAULT_CONFIG.maxTokens;
+            maxTokensInput.style.display = maxTokensToggle.checked ? 'block' : 'none';
+            alert('已加载模型方案');
+        }
+
+        function deleteModelProfile() {
+            const selectedName = profileSelect.value;
+            if (!selectedName) {
+                alert('请先选择方案');
+                return;
+            }
+            const profiles = getModelProfiles().filter(item => item.name !== selectedName);
+            localStorage.setItem('modelProfiles', JSON.stringify(profiles));
+            renderModelProfiles();
+            alert('已删除方案');
+        }
+
+        async function testApiConnection(btn) {
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) {
+                alert('请先输入 API 密钥');
+                return;
+            }
+
+            apiConnectionStatus.textContent = '连接测试中...';
+            apiConnectionStatus.style.color = '#055160';
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = '测试中...';
+
+            try {
+                await fetchModelsWithKey(apiKey);
+                apiConnectionStatus.textContent = '连接成功';
+                apiConnectionStatus.style.color = '#0f5132';
+            } catch (error) {
+                apiConnectionStatus.textContent = `连接失败：${error.message}`;
+                apiConnectionStatus.style.color = '#842029';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        function scheduleWebdavAutoSync() {
+            if (webdavAutoSyncTimer) {
+                clearInterval(webdavAutoSyncTimer);
+                webdavAutoSyncTimer = null;
+            }
+
+            const cfg = getWebdavConfig();
+            if (!cfg.autoSync) return;
+
+            const intervalMinutes = Math.max(5, parseInt(cfg.autoSyncInterval) || 30);
+            webdavAutoSyncTimer = setInterval(() => {
+                syncWebdavNow();
+            }, intervalMinutes * 60 * 1000);
+        }
+
+        function exportLocalBackup() {
+            const payload = {
+                exportedAt: new Date().toISOString(),
+                chatSessions: JSON.parse(localStorage.getItem('chatSessions') || '{}'),
+                imageGenHistory: JSON.parse(localStorage.getItem('imageGenHistory') || '[]'),
+                chatConfig: getSettings()
+            };
+
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const ts = new Date().toISOString().replace(/[:.]/g, '-');
+            a.href = url;
+            a.download = `echoai-backup-${ts}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importLocalBackup(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const data = JSON.parse(reader.result);
+                    if (data.chatSessions) {
+                        localStorage.setItem('chatSessions', JSON.stringify(data.chatSessions));
+                    }
+                    if (Array.isArray(data.imageGenHistory)) {
+                        localStorage.setItem('imageGenHistory', JSON.stringify(data.imageGenHistory));
+                    }
+                    if (data.chatConfig) {
+                        localStorage.setItem('chatConfig', JSON.stringify({ ...data.chatConfig, apiUrl: DEFAULT_CONFIG.apiUrl }));
+                    }
+                    alert('导入成功，页面将刷新以应用数据。');
+                    location.reload();
+                } catch (error) {
+                    alert('导入失败：备份文件格式不正确');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
         }
 
         function getBasicAuthHeader(username, password) {
@@ -2356,7 +2634,9 @@ ${summary}`, 'ai');
                 username: usernameValue,
                 password: passwordValue,
                 path: pathValue,
-                lastSync: existingWebdav.lastSync || ''
+                lastSync: existingWebdav.lastSync || '',
+                autoSync: webdavAutoSyncToggle.checked,
+                autoSyncInterval: parseInt(webdavAutoSyncIntervalInput.value) || 30
             };
             const isWebdavChanged = updatedWebdavConfig.url !== existingWebdav.url
                 || updatedWebdavConfig.username !== existingWebdav.username
@@ -2410,18 +2690,30 @@ ${summary}`, 'ai');
             }
         }
 
-        async function fetchModels() {
+        async function fetchModelsWithKey(apiKey) {
             const apiUrl = DEFAULT_CONFIG.apiUrl;
+            let modelsUrl = apiUrl.replace(/\/chat\/completions\/?$/, '/models');
+            if (modelsUrl === apiUrl) {
+                 modelsUrl = apiUrl.replace(/\/v1\/chat\/completions\/?$/, '/v1/models');
+            }
+            const response = await fetch(modelsUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        }
+
+        async function fetchModels() {
             const apiKey = apiKeyInput.value.trim();
 
             if (!apiKey) {
                 alert('请先输入 API 密钥 (API Key)');
                 return;
-            }
-
-            let modelsUrl = apiUrl.replace(/\/chat\/completions\/?$/, '/models');
-            if (modelsUrl === apiUrl) {
-                 modelsUrl = apiUrl.replace(/\/v1\/chat\/completions\/?$/, '/v1/models');
             }
 
             const btn = event.target;
@@ -2430,18 +2722,7 @@ ${summary}`, 'ai');
             btn.disabled = true;
 
             try {
-                const response = await fetch(modelsUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
+                const data = await fetchModelsWithKey(apiKey);
                 const modelSelect = document.getElementById('modelSelect');
                 modelSelect.innerHTML = '<option value="" disabled selected>请选择模型...</option>';
 
