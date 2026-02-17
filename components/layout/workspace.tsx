@@ -46,6 +46,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const [moduleCollapsed, setModuleCollapsed] = useState(false);
   const [trainingTopicDialog, setTrainingTopicDialog] = useState<{ open: boolean; sessionId?: string }>({ open: false });
   const [trainingTopicInput, setTrainingTopicInput] = useState('');
+  const [workspaceCollapsed, setWorkspaceCollapsed] = useState(false);
 
   const { settingsOpen, setSettingsOpen, sidebarOpen, setSidebarOpen } = useUIStore();
   const { sessions, activeSessionId, createSession, selectSession, startTraining } = useChatStore();
@@ -99,6 +100,13 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           <span className="text-sm font-medium">EchoAI 工作区</span>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            className="hidden bg-transparent text-foreground md:inline-flex"
+            onClick={() => setWorkspaceCollapsed((prev) => !prev)}
+            aria-label={workspaceCollapsed ? '展开工作区侧栏' : '折叠工作区侧栏'}
+          >
+            {workspaceCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </Button>
           <ThemeIconButton active={theme === 'light'} onClick={() => setTheme('light')} icon={<Sun size={16} />} />
           <ThemeIconButton active={theme === 'dark'} onClick={() => setTheme('dark')} icon={<Moon size={16} />} />
           <Button className="bg-transparent text-foreground" onClick={() => setSettingsOpen(true)}><Settings size={16} /></Button>
@@ -106,7 +114,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
       </header>
 
       <div className="flex h-[calc(100vh-56px)]">
-        <aside className="hidden w-80 border-r p-3 md:flex md:flex-col">
+        <aside className={`hidden border-r p-3 md:flex md:flex-col ${workspaceCollapsed ? 'md:hidden' : 'md:w-80'}`}>
           <SidebarNav
             section={section}
             sessions={sessions}
@@ -124,6 +132,13 @@ export function Workspace({ mode }: { mode: ChatMode }) {
         </aside>
 
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {workspaceCollapsed && (
+            <div className="px-3 pt-3 md:px-6">
+              <Button className="h-8 bg-transparent text-foreground" onClick={() => setWorkspaceCollapsed(false)}>
+                <PanelLeftOpen size={14} className="mr-1" />展开工作区
+              </Button>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             <motion.div key={section + (active?.id ?? '')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto p-3 md:p-6">
@@ -207,6 +222,8 @@ function ThemeIconButton({ active, onClick, icon }: { active: boolean; onClick: 
 }
 
 function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModule, onToggle, onSelect, onSelectSession, onCreate }: { section: SectionKey; sessions: ReturnType<typeof useChatStore.getState>['sessions']; expanded: Record<SectionKey, boolean>; moduleCollapsed: boolean; onToggleModule: () => void; onToggle: (key: SectionKey) => void; onSelect: (key: SectionKey) => void; onSelectSession: (id: string) => void; onCreate: (key: SectionKey) => void }) {
+  const { deleteSession } = useChatStore();
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between px-2">
@@ -238,6 +255,12 @@ function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModu
                       <button
                         key={sessionItem.id}
                         onClick={() => onSelectSession(sessionItem.id)}
+                        onContextMenu={(event) => {
+                          event.preventDefault();
+                          if (confirm(`删除「${sessionItem.title}」会话？`)) {
+                            deleteSession(sessionItem.id);
+                          }
+                        }}
                         className="max-w-full rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground"
                         title={sessionItem.title}
                       >
