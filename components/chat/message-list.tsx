@@ -5,6 +5,8 @@ import ReactMarkdown from 'react-markdown';
 import { Copy, Download, RefreshCcw, RotateCw, Trash2 } from 'lucide-react';
 import { ChatMode, ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
+import { useSettingsStore } from '@/stores/settings-store';
+import { useUIStore } from '@/stores/ui-store';
 
 const modeStarterMap: Record<Exclude<ChatMode, 'image' | 'proImage'>, { title: string; hint: string; prompts: string[] }> = {
   chat: {
@@ -36,6 +38,9 @@ const modeStarterMap: Record<Exclude<ChatMode, 'image' | 'proImage'>, { title: s
 
 export function MessageList({ session }: { session?: ChatSession }) {
   const { updateSession, retryMessage, regenerateLastAssistant, sendMessage } = useChatStore();
+  const apiKey = useSettingsStore((state) => state.settings.apiKey);
+  const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
+
   if (!session) return null;
 
   // 导出当前会话为纯文本，便于用户做二次整理。
@@ -52,6 +57,17 @@ export function MessageList({ session }: { session?: ChatSession }) {
 
   return (
     <div className="space-y-4">
+      {!apiKey.trim() && (
+        <div className="rounded-xl border border-amber-300/80 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+          <p>尚未配置 API Key，发送消息前请先完成设置。</p>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="mt-2 inline-flex items-center rounded-md border border-amber-400/70 px-2 py-1 text-xs font-medium transition hover:bg-amber-100 dark:border-amber-400/60 dark:hover:bg-amber-500/20"
+          >
+            立即前往设置
+          </button>
+        </div>
+      )}
       <div className="flex justify-end gap-2">
         <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={() => regenerateLastAssistant(session.id)}><RotateCw size={13} />重新生成</button>
         <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={exportContent}><Download size={13} />导出内容</button>

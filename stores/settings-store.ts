@@ -10,7 +10,7 @@ export const defaultSettings: AppSettings = {
   stream: true,
   provider: 'OpenAI',
   apiKey: '',
-  baseUrl: '',
+  baseUrl: 'https://ai.shuaihong.fun/v1',
   webdavUrl: '',
   webdavUsername: '',
   autoSyncMinutes: 30,
