@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useChatStore } from '@/stores/chat-store';
 
 export function ChatList({ search, setSearch, closeMobile }: { search: string; setSearch: (v: string) => void; closeMobile?: () => void }) {
+  // 会话列表只负责“展示 + 轻交互”，实际数据更新交给 zustand store。
   const { sessions, activeSessionId, selectSession, renameSession, deleteSession, togglePinSession } = useChatStore();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
@@ -14,11 +15,11 @@ export function ChatList({ search, setSearch, closeMobile }: { search: string; s
   const filtered = sessions.filter((s) => `${s.title} ${s.summary}`.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-center gap-2"><Search size={15} /><Input placeholder="搜索会话..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+    <div className="chat-panel flex h-full min-h-0 flex-col gap-3 p-3">
+      <div className="flex items-center gap-2"><Search size={15} className="text-muted-foreground" /><Input placeholder="搜索会话..." value={search} onChange={(e) => setSearch(e.target.value)} className="rounded-xl" /></div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
         {filtered.length === 0 ? <p className="rounded border border-dashed p-3 text-xs text-muted-foreground">没有匹配的会话。</p> : filtered.map((item) => (
-          <motion.button layout key={item.id} className={`group w-full rounded-lg border p-2 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${item.id === (activeSessionId ?? sessions[0]?.id) ? 'border-primary bg-primary/10' : ''}`} onClick={() => {selectSession(item.id); closeMobile?.();}}>
+          <motion.button layout key={item.id} className={`group w-full rounded-xl border p-3 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${item.id === (activeSessionId ?? sessions[0]?.id) ? 'border-primary bg-primary/10 shadow-sm' : 'bg-background/70'}`} onClick={() => {selectSession(item.id); closeMobile?.();}}>
             <div className="flex items-center justify-between gap-2 text-sm font-medium">
               {editingId === item.id ? (
                 <Input
