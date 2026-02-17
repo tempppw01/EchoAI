@@ -32,7 +32,7 @@
                 <span>🎭</span> 角色扮演
             </button>
             <button class="sidebar-feature-btn" onclick="startFeatureChat('qaTest')">
-                <span>🧠</span> 问答测试
+                <span>🧠</span> 技能训练
             </button>
             <button class="sidebar-feature-btn" onclick="startImageChat()">
                 <span>🎨</span> 绘图对话
@@ -66,7 +66,7 @@
             </div>
             <div class="feature-section" data-feature="qaTest">
                 <button class="feature-section-header" onclick="toggleFeatureSection('qaTest')">
-                    <span>🧠 问答测试</span>
+                    <span>🧠 技能训练</span>
                     <span class="feature-section-arrow">▾</span>
                 </button>
                 <div class="history-list feature-history-list" id="historyList-qaTest"></div>
@@ -209,6 +209,21 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 技能训练设置模态框 -->
+    <div id="skillTrainingModal" class="modal">
+        <div class="modal-content skill-training-modal-content">
+            <div class="modal-header">
+                <span>🧠 技能训练设置</span>
+            </div>
+            <div class="form-group">
+                <label for="skillTrainingInput">你想学习的技能</label>
+                <input type="text" id="skillTrainingInput" placeholder="例如：Python 数据分析、英语语法、产品运营">
+            </div>
+            <p class="skill-training-tip">确认后，模型会自动出 5 道题（选择题 / 填空题），并在结束后给出 100 分制掌握度。</p>
+            <button class="save-btn" onclick="confirmSkillTraining()">开始训练</button>
         </div>
     </div>
 
@@ -567,6 +582,8 @@
         let selectedImageBase64 = null;
         const settingsModal = document.getElementById('settingsModal');
         const announcementModal = document.getElementById('announcementModal');
+        const skillTrainingModal = document.getElementById('skillTrainingModal');
+        const skillTrainingInput = document.getElementById('skillTrainingInput');
         const featureHistoryEls = {
             copywriting: document.getElementById('historyList-copywriting'),
             videoScript: document.getElementById('historyList-videoScript'),
@@ -577,7 +594,7 @@
             copywriting: { label: '文案生成', icon: '✍️', systemPrompt: '你是一名资深文案策划，请根据用户需求输出吸引人的文案，并给出可选版本。' },
             videoScript: { label: '视频脚本优化', icon: '🎬', systemPrompt: '你是一名短视频编导，请优化用户脚本，提升节奏、镜头感和转化效果。' },
             roleplay: { label: '角色扮演', icon: '🎭', systemPrompt: '你现在进入角色扮演模式，根据用户指定角色进行自然对话，并保持角色一致性。' },
-            qaTest: { label: '问答测试', icon: '🧠', systemPrompt: '你是一名出题与评测助手，请围绕用户主题生成问答测试并给出评分标准。' }
+            qaTest: { label: '技能训练', icon: '🧠', systemPrompt: '你是一名技能训练教练，请围绕用户指定技能，交替生成选择题和填空题，并按表现评估掌握度。' }
         };
         
         const apiKeyInput = document.getElementById('apiKey');
@@ -612,6 +629,7 @@
         let currentSessionId = null;
         let sessions = {};
         let isRequestInFlight = false;
+        let skillTrainingAwaiting = false;
 
         // 初始化
         window.onload = function() {
@@ -744,6 +762,17 @@
                 if (!session.featureType || !FEATURE_META[session.featureType]) {
                     session.featureType = 'copywriting';
                 }
+                if (session.featureType === 'qaTest' && !session.quizState) {
+                    session.quizState = {
+                        mode: 'skillTraining',
+                        status: 'setup',
+                        skill: '',
+                        totalQuestions: 5,
+                        answeredCount: 0,
+                        history: [],
+                        currentQuestion: null
+                    };
+                }
             });
 
             renderHistoryList();
@@ -771,19 +800,32 @@
                 timestamp: Date.now(),
                 featureType,
                 systemPrompt: feature.systemPrompt,
-                messages: []
+                messages: [],
+                quizState: featureType === 'qaTest' ? {
+                    mode: 'skillTraining',
+                    status: 'setup',
+                    skill: '',
+                    totalQuestions: 5,
+                    answeredCount: 0,
+                    history: [],
+                    currentQuestion: null
+                } : null
             };
             
             // 清空界面
             chatMessages.innerHTML = `
                 <div class="message-container ai">
                     <div class="avatar ai">AI</div>
-                    <div class="message-content">已进入${feature.icon} ${feature.label}，请告诉我你的具体需求。</div>
+                    <div class="message-content">${featureType === 'qaTest' ? '已进入🧠 技能训练，请先设置你想学习的技能。' : `已进入${feature.icon} ${feature.label}，请告诉我你的具体需求。`}</div>
                 </div>
             `;
             
             saveSessionsToStorage();
-            switchChat(currentSessionId, false); 
+            switchChat(currentSessionId, false);
+
+            if (featureType === 'qaTest') {
+                openSkillTrainingModal();
+            }
         }
 
         function startImageChat() {
@@ -1163,6 +1205,260 @@
             selectedRoleId = null;
         }
 
+        function openSkillTrainingModal() {
+            if (!skillTrainingModal) return;
+            skillTrainingModal.style.display = 'flex';
+            if (skillTrainingInput) {
+                skillTrainingInput.value = '';
+                setTimeout(() => skillTrainingInput.focus(), 80);
+            }
+        }
+
+        function closeSkillTrainingModal() {
+            if (skillTrainingModal) {
+                skillTrainingModal.style.display = 'none';
+            }
+        }
+
+        async function confirmSkillTraining() {
+            const session = sessions[currentSessionId];
+            if (!session || session.featureType !== 'qaTest') return;
+
+            const skill = (skillTrainingInput?.value || '').trim();
+            if (!skill) {
+                alert('请先输入要学习的技能');
+                return;
+            }
+
+            session.quizState = session.quizState || {};
+            Object.assign(session.quizState, {
+                mode: 'skillTraining',
+                status: 'in_progress',
+                skill,
+                totalQuestions: 5,
+                answeredCount: 0,
+                history: [],
+                currentQuestion: null
+            });
+            session.title = `技能训练：${skill}`;
+            saveSessionsToStorage();
+            updateHeaderInfo();
+            closeSkillTrainingModal();
+
+            appendMessageToUI(`已为你开启 **${skill}** 技能训练。
+
+共 5 题，题型包含选择题和填空题。开始出题中...`, 'ai');
+            await requestNextSkillQuestion();
+        }
+
+        async function requestNextSkillQuestion() {
+            const session = sessions[currentSessionId];
+            if (!session || session.featureType !== 'qaTest' || !session.quizState) return;
+            const quizState = session.quizState;
+
+            if (quizState.answeredCount >= quizState.totalQuestions) {
+                await finalizeSkillTraining();
+                return;
+            }
+
+            const questionNo = quizState.answeredCount + 1;
+            const questionData = await requestSkillTrainingQuestion(session, questionNo);
+            if (!questionData) {
+                appendMessageToUI('出题失败，请稍后重试。', 'ai');
+                return;
+            }
+
+            quizState.currentQuestion = questionData;
+            saveSessionsToStorage();
+            renderSkillQuestion(questionData, questionNo, quizState.totalQuestions);
+        }
+
+        function renderSkillQuestion(questionData, questionNo, total) {
+            const questionType = questionData.type === 'blank' ? '填空题' : '选择题';
+            let questionText = `第 ${questionNo}/${total} 题（${questionType}）
+
+${questionData.question}`;
+            if (questionData.type === 'blank') {
+                questionText += `
+
+请在输入框作答后发送。`;
+            }
+            appendMessageToUI(questionText, 'ai');
+
+            if (questionData.type === 'choice') {
+                showChoiceQuestionModal(questionData, questionNo, total);
+            }
+        }
+
+        function showChoiceQuestionModal(questionData, questionNo, total) {
+            let modal = document.getElementById('choiceQuestionModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'choiceQuestionModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content choice-question-modal-content">
+                        <div class="modal-header">📝 选择题作答</div>
+                        <p id="choiceQuestionProgress" class="choice-question-progress"></p>
+                        <p id="choiceQuestionTitle" class="choice-question-title"></p>
+                        <div id="choiceQuestionOptions" class="choice-question-options"></div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            modal.querySelector('#choiceQuestionProgress').textContent = `第 ${questionNo}/${total} 题`;
+            modal.querySelector('#choiceQuestionTitle').textContent = questionData.question;
+            const optionsEl = modal.querySelector('#choiceQuestionOptions');
+            optionsEl.innerHTML = '';
+
+            (questionData.options || []).forEach((option, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-option-btn';
+                btn.textContent = `${String.fromCharCode(65 + idx)}. ${option}`;
+                btn.onclick = async () => {
+                    modal.style.display = 'none';
+                    await submitSkillTrainingAnswer({
+                        answer: option,
+                        answerIndex: idx,
+                        answerLabel: String.fromCharCode(65 + idx)
+                    });
+                };
+                optionsEl.appendChild(btn);
+            });
+
+            modal.style.display = 'flex';
+        }
+
+        async function submitSkillTrainingAnswer(answerPayload) {
+            const session = sessions[currentSessionId];
+            if (!session || !session.quizState || !session.quizState.currentQuestion) return;
+
+            const quizState = session.quizState;
+            const currentQuestion = quizState.currentQuestion;
+            const userAnswerText = typeof answerPayload === 'string' ? answerPayload : answerPayload.answer;
+
+            updateSession(userAnswerText, 'user');
+            appendMessageToUI(userAnswerText, 'user');
+
+            const evaluation = await evaluateSkillAnswer(session, currentQuestion, answerPayload);
+            quizState.history.push({
+                question: currentQuestion.question,
+                type: currentQuestion.type,
+                options: currentQuestion.options || [],
+                correctAnswer: currentQuestion.correctAnswer,
+                userAnswer: userAnswerText,
+                isCorrect: !!evaluation.isCorrect,
+                feedback: evaluation.feedback || ''
+            });
+            quizState.answeredCount += 1;
+            quizState.currentQuestion = null;
+
+            appendMessageToUI(`第 ${quizState.answeredCount} 题完成：${evaluation.feedback || (evaluation.isCorrect ? '回答正确。' : '回答不正确。')}`, 'ai');
+            saveSessionsToStorage();
+
+            await requestNextSkillQuestion();
+        }
+
+        async function requestSkillTrainingQuestion(session, questionNo) {
+            const systemPrompt = `你是一名严谨的出题老师。围绕技能「${session.quizState.skill}」出一道题。必须在选择题(choice)和填空题(blank)之间交替，且只输出 JSON，不要 Markdown。`;
+            const messages = [{
+                role: 'user',
+                content: `请输出第${questionNo}题，返回 JSON 格式：{"type":"choice|blank","question":"...","options":["..."],"correctAnswer":"...","explanation":"..."}。当 type 为 blank 时 options 传空数组。`
+            }];
+            const text = await requestPlainAiResponse(systemPrompt, messages);
+            return safeParseJson(text);
+        }
+
+        async function evaluateSkillAnswer(session, question, answerPayload) {
+            const userAnswer = typeof answerPayload === 'string' ? answerPayload : answerPayload.answer;
+            const systemPrompt = '你是一名阅卷老师，只返回 JSON。';
+            const messages = [{
+                role: 'user',
+                content: `题目：${question.question}
+标准答案：${question.correctAnswer}
+用户答案：${userAnswer}
+请判断是否正确，返回 {"isCorrect":true/false,"feedback":"不超过30字"}`
+            }];
+
+            const text = await requestPlainAiResponse(systemPrompt, messages);
+            const parsed = safeParseJson(text);
+            if (parsed && typeof parsed.isCorrect === 'boolean') return parsed;
+
+            const normalizedCorrect = String(question.correctAnswer || '').trim().toLowerCase();
+            const normalizedUser = String(userAnswer || '').trim().toLowerCase();
+            const isCorrect = normalizedCorrect && normalizedCorrect === normalizedUser;
+            return { isCorrect, feedback: isCorrect ? '回答正确。' : `参考答案：${question.correctAnswer || '无'}` };
+        }
+
+        async function finalizeSkillTraining() {
+            const session = sessions[currentSessionId];
+            if (!session || !session.quizState) return;
+            const quizState = session.quizState;
+
+            const systemPrompt = '你是一名学习评估专家。根据答题记录，给出0-100分掌握度。只返回JSON。';
+            const messages = [{
+                role: 'user',
+                content: `技能：${quizState.skill}
+答题记录：${JSON.stringify(quizState.history)}
+返回 {"score":数字,"summary":"不超过60字"}`
+            }];
+            const text = await requestPlainAiResponse(systemPrompt, messages);
+            const result = safeParseJson(text) || {};
+            const score = Math.max(0, Math.min(100, Number(result.score) || Math.round((quizState.history.filter(h => h.isCorrect).length / quizState.totalQuestions) * 100)));
+            const summary = result.summary || '训练完成，继续巩固可进一步提升。';
+
+            quizState.status = 'completed';
+            session.title = `${quizState.skill} 掌握度：${score}/100`;
+            saveSessionsToStorage();
+            updateHeaderInfo();
+
+            appendMessageToUI(`✅ 技能训练完成！
+
+当前「${quizState.skill}」掌握度：**${score}/100**
+${summary}`, 'ai');
+        }
+
+        async function requestPlainAiResponse(systemPrompt, messages) {
+            const config = getSettings();
+            const payload = {
+                model: config.model,
+                temperature: 0.4,
+                stream: false,
+                messages: [{ role: 'system', content: systemPrompt }, ...messages]
+            };
+
+            const response = await fetch(config.apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${config.apiKey}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`出题请求失败: ${response.status}`);
+            }
+            const data = await response.json();
+            return data?.choices?.[0]?.message?.content || '';
+        }
+
+        function safeParseJson(text) {
+            if (!text) return null;
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                const match = text.match(/\{[\s\S]*\}/);
+                if (!match) return null;
+                try {
+                    return JSON.parse(match[0]);
+                } catch (error) {
+                    return null;
+                }
+            }
+        }
+
         function updateSession(content, role) {
             if (!currentSessionId || !sessions[currentSessionId]) {
                 startNewChat(); // 防御性编程
@@ -1173,7 +1469,7 @@
             session.timestamp = Date.now(); // 更新时间戳以便排序
 
             // 简单预设标题 (如果是第一条用户消息)，后续会通过 AI 优化
-            if (session.messages.length === 1 && role === 'user') {
+            if (session.messages.length === 1 && role === 'user' && session.featureType !== 'qaTest') {
                 session.title = content.substring(0, 20) + (content.length > 20 ? '...' : '');
             }
 
@@ -1268,6 +1564,29 @@
         async function sendMessage() {
             const rawText = userInput.value;
             const hasImage = selectedImageBase64 !== null;
+
+            const currentSession = sessions[currentSessionId];
+            if (currentSession?.featureType === 'qaTest') {
+                const quizState = currentSession.quizState;
+                if (quizState?.status === 'setup') {
+                    openSkillTrainingModal();
+                    return;
+                }
+                if (quizState?.status === 'in_progress' && quizState?.currentQuestion?.type === 'choice') {
+                    alert('请先在弹出的卡片中选择答案');
+                    return;
+                }
+                if (quizState?.status === 'in_progress' && quizState?.currentQuestion?.type === 'blank') {
+                    const answer = rawText.trim();
+                    if (!answer) {
+                        alert('请先输入填空题答案');
+                        return;
+                    }
+                    userInput.value = '';
+                    await submitSkillTrainingAnswer(answer);
+                    return;
+                }
+            }
 
             if (isRequestInFlight) {
                 alert('正在等待 AI 回复，请稍后再发送');
@@ -2234,6 +2553,23 @@
                 closeAnnouncement();
             }
         });
+
+        if (skillTrainingModal) {
+            skillTrainingModal.addEventListener('click', function(e) {
+                if (e.target === skillTrainingModal) {
+                    closeSkillTrainingModal();
+                }
+            });
+        }
+
+        if (skillTrainingInput) {
+            skillTrainingInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmSkillTraining();
+                }
+            });
+        }
 
         // ============ 图片生成功能 (专业模式) ============
         const imageGenModal = document.getElementById('imageGenModal');
