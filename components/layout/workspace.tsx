@@ -55,6 +55,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const active = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
 
   const openSection = (target: SectionKey) => {
+    setSearch('');
     setSection(target);
     const targetMode = sections.find((item) => item.key === target)?.mode;
     if (!targetMode) return;
@@ -75,6 +76,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   };
 
   const createInSection = (target: SectionKey) => {
+    setSearch('');
     setSection(target);
     const targetMode = sections.find((item) => item.key === target)?.mode;
     if (!targetMode) return;
