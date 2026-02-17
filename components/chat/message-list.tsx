@@ -38,6 +38,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
   const { updateSession, retryMessage, regenerateLastAssistant, sendMessage } = useChatStore();
   if (!session) return null;
 
+  // 导出当前会话为纯文本，便于用户做二次整理。
   const exportContent = () => {
     const text = session.messages.map((m) => `[${m.role}]\n${m.content}`).join('\n\n');
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
@@ -50,13 +51,13 @@ export function MessageList({ session }: { session?: ChatSession }) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex justify-end gap-2">
         <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={() => regenerateLastAssistant(session.id)}><RotateCw size={13} />重新生成</button>
         <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={exportContent}><Download size={13} />导出内容</button>
       </div>
       {session.messages.length === 0 && session.mode !== 'image' && session.mode !== 'proImage' && (
-        <div className="rounded-xl border bg-card p-4">
+        <div className="chat-panel p-5">
           <h3 className="text-base font-semibold">{modeStarterMap[session.mode].title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{modeStarterMap[session.mode].hint}</p>
           <div className="mt-3 grid gap-2 md:grid-cols-2">
@@ -64,7 +65,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
               <button
                 key={prompt}
                 onClick={() => sendMessage(prompt, session.id)}
-                className="rounded-lg border bg-muted/30 px-3 py-2 text-left text-sm transition hover:border-primary/50 hover:bg-primary/5"
+                className="rounded-xl border bg-muted/30 px-3 py-2 text-left text-sm transition hover:border-primary/50 hover:bg-primary/5"
               >
                 {prompt}
               </button>
@@ -73,7 +74,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
         </div>
       )}
       {session.messages.map((msg) => (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key={msg.id} className={`rounded-xl border p-3 ${msg.role === 'user' ? 'ml-8 bg-primary/10' : 'mr-8 bg-card'}`}>
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} key={msg.id} className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} p-4`}>
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <ReactMarkdown
               components={{

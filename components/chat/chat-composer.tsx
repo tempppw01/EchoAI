@@ -17,6 +17,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
   const model = activeSession?.model ?? (mode === 'image' || mode === 'proImage' ? settings.defaultImageModel : settings.defaultTextModel);
 
+  // 发送逻辑：没有活动会话时自动创建，保证“随手就能聊”。
   const onSend = () => {
     if (!value.trim()) return;
     let sid = activeSession?.id;
@@ -26,11 +27,11 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   };
 
   return (
-    <div className="border-t bg-card/95 p-3 backdrop-blur">
+    <div className="border-t bg-card/95 p-3 backdrop-blur md:p-4">
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded bg-muted px-2 py-1">当前模块 /{mode}</span>
+        <span className="rounded-full bg-muted px-2 py-1">当前模块 /{mode}</span>
         <select
-          className="rounded border bg-background px-2 py-1"
+          className="rounded-full border bg-background px-3 py-1"
           value={model}
           onChange={(e) => activeSession && updateSession(activeSession.id, { model: e.target.value })}
         >
@@ -49,18 +50,18 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           </Tooltip.Root>
         </Tooltip.Provider>
       </div>
-      <div className="flex items-end gap-2">
-        <Button className="bg-transparent text-foreground"><Upload size={16} /></Button>
+      <div className="chat-panel flex items-end gap-2 p-2">
+        <Button className="rounded-xl bg-transparent text-foreground"><Upload size={16} /></Button>
         <Textarea
           value={value}
           onChange={(e) => setValue(e.target.value)}
           rows={3}
-          className="max-h-40 min-h-16 resize-y"
+          className="max-h-40 min-h-16 resize-y rounded-xl border-0 bg-transparent shadow-none focus-visible:ring-0"
           placeholder="支持 Markdown。Enter 换行，Ctrl/⌘ + Enter 发送"
           onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && value.trim()) onSend(); }}
         />
-        <Button className="bg-transparent text-foreground" onClick={() => setSettings({ stream: !settings.stream })}><SlidersHorizontal size={16} /></Button>
-        <Button disabled={!value.trim()} onClick={onSend}><SendHorizontal size={16} /></Button>
+        <Button className="rounded-xl bg-transparent text-foreground" onClick={() => setSettings({ stream: !settings.stream })}><SlidersHorizontal size={16} /></Button>
+        <Button className="rounded-xl" disabled={!value.trim()} onClick={onSend}><SendHorizontal size={16} /></Button>
       </div>
     </div>
   );
