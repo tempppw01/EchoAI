@@ -90,8 +90,8 @@ export function MessageList({ session }: { session?: ChatSession }) {
         </div>
       )}
       {session.messages.map((msg) => (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} key={msg.id} className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} p-4`}>
-          <div className="prose prose-sm max-w-none dark:prose-invert">
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} key={msg.id} className={`${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[90%] md:max-w-[78%]' : 'chat-bubble-assistant mr-auto max-w-[95%] md:max-w-[82%]'} overflow-hidden p-4`}>
+          <div className="prose prose-sm max-w-none break-words [overflow-wrap:anywhere] [unicode-bidi:plaintext] dark:prose-invert" dir="auto">
             <ReactMarkdown
               components={{
                 code(props) {
@@ -114,6 +114,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
           <div className="mt-2 flex gap-2 text-xs opacity-70">
             <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
             {msg.role === 'user' && <button onClick={() => retryMessage(session.id, msg.id)}><RefreshCcw size={14} /></button>}
+            {msg.role === 'assistant' && msg.status === 'error' && <button onClick={() => regenerateLastAssistant(session.id)} title="重试"><RefreshCcw size={14} /></button>}
             <button onClick={() => updateSession(session.id, { messages: session.messages.filter((m) => m.id !== msg.id) })}><Trash2 size={14} /></button>
             {msg.status === 'streaming' && <span className="animate-pulse">streaming...</span>}
           </div>

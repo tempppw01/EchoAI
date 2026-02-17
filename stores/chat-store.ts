@@ -4,7 +4,6 @@ import { AppSnapshot, ChatMessage, ChatMode, ChatSession } from '@/lib/types';
 import { defaultSettings } from '@/stores/settings-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 import { useSettingsStore } from '@/stores/settings-store';
-import { requestOpenAICompatible } from '@/lib/openai-compatible';
 
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -111,6 +110,59 @@ const buildMessagesForRequest = (session: ChatSession, content: string): Array<{
 
 const inflightRequests = new Map<string, AbortController>();
 
+type RequestBlockReason = 'permission' | 'quota' | 'region';
+
+class LLMRequestError extends Error {
+  status?: number;
+  code?: string;
+  reason?: RequestBlockReason;
+
+  constructor(message: string, options?: { status?: number; code?: string; reason?: RequestBlockReason }) {
+    super(message);
+    this.name = 'LLMRequestError';
+    this.status = options?.status;
+    this.code = options?.code;
+    this.reason = options?.reason;
+  }
+}
+
+const retryableStatusCodes = new Set([429, 500, 502, 503, 504]);
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const detectBlockReason = (value: string): RequestBlockReason | undefined => {
+  const text = value.toLowerCase();
+  if (text.includes('quota') || text.includes('insufficient_quota') || text.includes('billing')) return 'quota';
+  if (text.includes('region') || text.includes('country') || text.includes('unsupported_country') || text.includes('geo')) return 'region';
+  if (text.includes('permission') || text.includes('forbidden') || text.includes('unauthorized') || text.includes('access_denied')) return 'permission';
+  return undefined;
+};
+
+const getFriendlyErrorMessage = (error: unknown) => {
+  if (!(error instanceof LLMRequestError)) {
+    return '请求失败，请稍后重试或检查网络连接。';
+  }
+
+  if (error.reason === 'permission') {
+    return '当前账号没有访问该模型的权限，请切换模型或联系管理员开通权限。';
+  }
+
+  if (error.reason === 'quota') {
+    return '当前账号额度已用尽，请充值或更换可用的 API Key 后重试。';
+  }
+
+  if (error.reason === 'region') {
+    return '当前地区暂不支持该服务，请切换到受支持地区或更换服务提供方。';
+  }
+
+  if (error.status === 429) return '请求过于频繁，已自动重试失败，请稍后再试。';
+  if (error.status && retryableStatusCodes.has(error.status)) return `服务暂时不可用（${error.status}），请点击重试。`;
+  if (error.code === 'timeout') return '请求超时，请检查网络后重试。';
+  if (error.status === 401) return 'API Key 无效或已过期，请更新后重试。';
+
+  return error.message || '请求失败，请稍后重试。';
+};
+
 const requestAssistantReply = async (session: ChatSession, content: string, signal?: AbortSignal) => {
   const { settings } = useSettingsStore.getState();
   const endpoint = settings.baseUrl?.trim();
@@ -124,28 +176,70 @@ const requestAssistantReply = async (session: ChatSession, content: string, sign
     throw new Error('未检测到可用的 API 配置，请先在设置中填写 Base URL 和 API Key。');
   }
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    signal,
-    body: JSON.stringify({
-      model: session.model || settings.defaultTextModel,
-      messages: buildMessagesForRequest(session, content),
-      temperature: settings.temperature,
-      max_tokens: settings.maxTokens,
-      stream: false,
-    }),
-  });
+  let attempt = 0;
+  let response: Response | undefined;
+  const maxAttempts = 3;
 
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`LLM request failed (${response.status}): ${detail}`);
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort('timeout'), 15_000);
+    const requestSignal = AbortSignal.any([signal, timeoutController.signal].filter(Boolean) as AbortSignal[]);
+
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: requestSignal,
+        body: JSON.stringify({
+          model: session.model || settings.defaultTextModel,
+          messages: buildMessagesForRequest(session, content),
+          temperature: settings.temperature,
+          max_tokens: settings.maxTokens,
+          stream: false,
+        }),
+      });
+    } catch (error) {
+      clearTimeout(timeoutId);
+      const abortedByUser = signal?.aborted;
+      if (abortedByUser) throw new DOMException('Aborted', 'AbortError');
+
+      const timeoutOrNetwork = error instanceof Error ? error.message : String(error);
+      const isTimeout = timeoutController.signal.aborted || timeoutOrNetwork.toLowerCase().includes('timeout');
+      if (attempt < maxAttempts) {
+        await wait(400 * attempt);
+        continue;
+      }
+      throw new LLMRequestError(isTimeout ? '请求超时。' : '网络请求失败。', { code: isTimeout ? 'timeout' : 'network' });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+      const detail = await response.text();
+      const reason = detectBlockReason(detail) || detectBlockReason(String(response.status));
+      const statusDeniedReason = response.status === 403 ? 'permission' : response.status === 429 ? 'quota' : undefined;
+      const blockReason = reason || statusDeniedReason;
+
+      if (blockReason && ['permission', 'quota', 'region'].includes(blockReason)) {
+        throw new LLMRequestError(detail || `请求失败（${response.status}）`, { status: response.status, reason: blockReason });
+      }
+
+      if (retryableStatusCodes.has(response.status) && attempt < maxAttempts) {
+        await wait(500 * attempt);
+        continue;
+      }
+
+      throw new LLMRequestError(detail || `请求失败（${response.status}）`, { status: response.status });
+    }
+
+    break;
   }
 
-  const data = await response.json();
+  const data = await response?.json();
   const message = data?.choices?.[0]?.message?.content;
   if (!message || typeof message !== 'string') {
     throw new Error('LLM response missing choices[0].message.content');
@@ -276,69 +370,29 @@ export const useChatStore = create<ChatState>()(
             return;
           }
 
-          const detail = error instanceof Error ? error.message : 'unknown error';
+          const detail = getFriendlyErrorMessage(error);
 
-          try {
-            const settings = useSettingsStore.getState().settings;
-            const model = session.model || getDefaultModelByMode(session.mode);
-            const response = await requestOpenAICompatible({
-              settings,
-              model,
-              messages: buildMessagesForRequest(session, content),
-            });
-
-            set((state) => ({
-              generatingSessionIds: state.generatingSessionIds.filter((id) => id !== targetId),
-              sessions: sortedSessions(
-                state.sessions.map((item) =>
-                  item.id === targetId
-                    ? {
-                        ...item,
-                        messages: item.messages.map((message) =>
-                          message.id === assistant.id
-                            ? {
-                                ...message,
-                                status: 'done',
-                                content: `请求模型失败：${detail}
-
-已切换到兼容模型回复：
-
-${response}`,
-                              }
-                            : message,
-                        ),
-                      }
-                    : item,
-                ),
+          set((state) => ({
+            generatingSessionIds: state.generatingSessionIds.filter((id) => id !== targetId),
+            sessions: sortedSessions(
+              state.sessions.map((item) =>
+                item.id === targetId
+                  ? {
+                      ...item,
+                      messages: item.messages.map((msg) =>
+                        msg.id === assistant.id
+                          ? {
+                              ...msg,
+                              status: 'error',
+                              content: `⚠️ ${detail}`,
+                            }
+                          : msg,
+                      ),
+                    }
+                  : item,
               ),
-            }));
-          } catch (fallbackError) {
-            const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : '未知错误';
-
-            set((state) => ({
-              generatingSessionIds: state.generatingSessionIds.filter((id) => id !== targetId),
-              sessions: sortedSessions(
-                state.sessions.map((item) =>
-                  item.id === targetId
-                    ? {
-                        ...item,
-                        messages: item.messages.map((msg) =>
-                          msg.id === assistant.id
-                            ? {
-                                ...msg,
-                                status: 'error',
-                                content: `请求失败：${detail}
-
-兼容模型也不可用：${fallbackMessage}`,
-                              }
-                            : msg,
-                        ),
-                      }
-                    : item,
-                ),
-              ),
-            }));
-          }
+            ),
+          }));
         } finally {
           inflightRequests.delete(targetId);
         }
