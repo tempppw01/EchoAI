@@ -9,6 +9,8 @@
   --border: 220 13% 91%;
   --card: 0 0% 100%;
   --primary: 250 84% 60%;
+  --surface: 0 0% 100%;
+  --surface-soft: 220 33% 98%;
 }
 
 .dark {
@@ -18,7 +20,27 @@
   --border: 217 33% 20%;
   --card: 222 44% 10%;
   --primary: 258 90% 66%;
+  --surface: 222 40% 11%;
+  --surface-soft: 223 31% 14%;
 }
 
 body { @apply bg-background text-foreground antialiased; }
 * { @apply border-border; }
+
+/* 统一的现代聊天容器风格，参考 Open WebUI 的“柔和卡片 + 轻玻璃质感” */
+.chat-panel {
+  @apply rounded-2xl border shadow-sm;
+  background: hsl(var(--surface) / 0.9);
+  backdrop-filter: blur(10px);
+}
+
+/* 用户消息：更明显的品牌色强调 */
+.chat-bubble-user {
+  @apply rounded-2xl border border-primary/30 bg-primary/10;
+}
+
+/* AI 消息：更中性的阅读区块 */
+.chat-bubble-assistant {
+  @apply rounded-2xl border;
+  background: hsl(var(--surface-soft) / 0.9);
+}

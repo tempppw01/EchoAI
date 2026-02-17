@@ -10,6 +10,7 @@ import { useChatStore } from '@/stores/chat-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 
 export function RoleplayStudio({ session }: { session?: ChatSession }) {
+  // 角色工作台：左侧挑角色，中间改设定，右侧直接对话验证效果。
   const {
     characters,
     worlds,
@@ -73,7 +74,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
   return (
     <div className="grid min-h-[70vh] grid-cols-1 gap-3 lg:grid-cols-[260px_1fr_1.4fr]">
-      <section className="rounded-xl border bg-card p-3">
+      <section className="chat-panel p-3">
         <div className="mb-2 flex items-center gap-2">
           <Input placeholder="搜索角色" value={search} onChange={(e) => setSearch(e.target.value)} />
           <Button onClick={() => createCharacter()}><Plus size={14} /></Button>
@@ -88,7 +89,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         </div>
       </section>
 
-      <section className="rounded-xl border bg-card p-3">
+      <section className="chat-panel p-3">
         {!character ? <p className="text-sm text-muted-foreground">请先创建角色。</p> : (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -141,7 +142,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         )}
       </section>
 
-      <section className="flex min-h-0 flex-col rounded-xl border bg-card p-3">
+      <section className="chat-panel flex min-h-0 flex-col p-3">
         <div className="mb-2 rounded border p-2 text-xs text-muted-foreground">
           <p>固定记忆（Pin Memory）</p>
           <Textarea rows={3} value={session?.pinnedMemory || ''} onChange={(e) => session && updateSession(session.id, { pinnedMemory: e.target.value })} placeholder="手动输入长期记忆" />
@@ -150,7 +151,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         </div>
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
           {session?.messages.map((msg) => (
-            <div key={msg.id} className={`rounded border p-2 text-sm ${msg.role === 'user' ? 'ml-6 bg-primary/10' : 'mr-6'}`}>
+            <div key={msg.id} className={`p-3 text-sm ${msg.role === 'user' ? 'chat-bubble-user ml-auto max-w-[85%]' : 'chat-bubble-assistant mr-auto max-w-[92%]'}`}>
               <p className="text-xs text-muted-foreground">{msg.role}</p>
               <p className="whitespace-pre-wrap">{msg.content}</p>
             </div>

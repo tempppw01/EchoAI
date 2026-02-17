@@ -77,6 +77,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     [sessions],
   );
 
+  // 切换模块时优先复用已有会话，避免用户上下文丢失。
   const openSection = (target: SectionKey) => {
     setSection(target);
     const targetMode = sections.find((item) => item.key === target)?.mode;
@@ -114,8 +115,8 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-muted/30">
-      <header className="flex h-14 items-center justify-between border-b bg-card px-4">
+    <div className="h-screen overflow-hidden bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.12),transparent_45%),hsl(var(--background))]">
+      <header className="flex h-14 items-center justify-between border-b bg-card/85 px-4 backdrop-blur">
         <div className="flex items-center gap-2">
           <Button className="bg-transparent text-foreground md:hidden" onClick={() => setSidebarOpen(true)}><Menu size={16} /></Button>
           <p className="text-sm font-semibold">EchoAI 创作空间</p>
@@ -129,7 +130,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
       </header>
 
       <div className="grid h-[calc(100vh-56px)] md:grid-cols-[300px_1fr]">
-        <aside className="hidden border-r bg-card px-3 py-2 md:flex md:flex-col">
+        <aside className="hidden border-r bg-card/70 px-3 py-2 backdrop-blur md:flex md:flex-col">
           <SidebarNav
             section={section}
             expanded={expanded}
@@ -145,7 +146,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
         </aside>
 
         <main className="flex min-h-0 flex-col">
-          <div className="border-b bg-card px-4 py-3">
+          <div className="border-b bg-card/70 px-4 py-3 backdrop-blur">
             <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">当前工作流</p>
