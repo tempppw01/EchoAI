@@ -71,3 +71,5 @@ docker compose up --build -d
 - `http://localhost:3001/chat`
 
 > 说明：当前根镜像默认启动 Next.js 前端（不再返回 API 状态提示页）。
+> Railway 提示 502 时，请确认服务使用平台注入的 `$PORT` 启动（本仓库 Dockerfile 已按该方式配置）。
+
