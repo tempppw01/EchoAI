@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { AppSettings } from '@/lib/types';
 
 export const defaultSettings: AppSettings = {
@@ -36,6 +36,18 @@ export const useSettingsStore = create<{
         }),
       replaceSettings: (settings) => set({ settings: { ...defaultSettings, ...settings } }),
     }),
-    { name: 'echoai-settings' },
+    {
+      name: 'echoai-settings',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ settings: state.settings }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as object),
+        settings: {
+          ...defaultSettings,
+          ...((persistedState as { settings?: Partial<AppSettings> } | undefined)?.settings ?? {}),
+        },
+      }),
+    },
   ),
 );

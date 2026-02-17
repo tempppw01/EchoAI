@@ -1,4 +1,4 @@
-const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
+const DEFAULT_OPENAI_BASE_URL = 'https://ai.shuaihong.fun/v1';
 
 const stripTrailingSlash = (value: string) => value.replace(/\/+$/, '');
 
