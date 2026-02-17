@@ -29,12 +29,22 @@ export interface ChatSession {
   trainingCurrentQuestion?: TrainingQuestion;
   trainingRound?: number;
   trainingLastCorrectOption?: string;
+  trainingRecentRecords?: TrainingRecord[];
 }
 
 export interface TrainingQuestion {
   stem: string;
   options: { id: string; text: string }[];
   correctOptionId: string;
+  explanation: string;
+}
+
+export interface TrainingRecord {
+  round: number;
+  stem: string;
+  pickedOptionId: string;
+  correctOptionId: string;
+  isCorrect: boolean;
   explanation: string;
 }
 
