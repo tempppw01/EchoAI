@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { Plus, RotateCcw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { useRoleplayStore } from '@/stores/roleplay-store';
 
 export function RoleplayStudio({ session }: { session?: ChatSession }) {
   const { characters, worlds, activeCharacterId, setActiveCharacter, createCharacter, updateCharacter, activeWorldId, setActiveWorld, updateWorld, markRecentCharacter } = useRoleplayStore();
-  const { createSession, selectSession, sendMessage, updateSession } = useChatStore();
+  const { createSession, selectSession, sendMessage, updateSession, clearContext } = useChatStore();
 
   const [search, setSearch] = useState('');
   const [composerValue, setComposerValue] = useState('');
@@ -84,6 +84,20 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
       </section>
 
       <section className="chat-panel flex min-h-0 flex-col p-3">
+        <div className="mb-2 flex items-center justify-end">
+          <Button
+            className="h-8 bg-transparent text-foreground"
+            disabled={!session || session.messages.length === 0}
+            onClick={() => {
+              if (!session) return;
+              if (confirm('确认清除当前角色扮演会话上下文？')) {
+                clearContext(session.id);
+              }
+            }}
+          >
+            <RotateCcw size={13} className="mr-1" />清除上下文
+          </Button>
+        </div>
         <div className="mb-2 rounded border p-2 text-xs text-muted-foreground">
           <p>固定记忆（Pin Memory）</p>
           <Textarea rows={3} value={session?.pinnedMemory || ''} onChange={(e) => session && updateSession(session.id, { pinnedMemory: e.target.value })} placeholder="手动输入长期记忆" />
