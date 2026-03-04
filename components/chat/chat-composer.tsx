@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ChatMode } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useShallow } from 'zustand/react/shallow';
 
 type PendingAttachment = {
   id: string;
@@ -38,7 +39,16 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const { sessions, activeSessionId, sendMessage, createSession, generatingSessionIds, stopMessage } = useChatStore();
+  const { sessions, activeSessionId, sendMessage, createSession, generatingSessionIds, stopMessage } = useChatStore(
+    useShallow((state) => ({
+      sessions: state.sessions,
+      activeSessionId: state.activeSessionId,
+      sendMessage: state.sendMessage,
+      createSession: state.createSession,
+      generatingSessionIds: state.generatingSessionIds,
+      stopMessage: state.stopMessage,
+    })),
+  );
   const { settings, setSettings } = useSettingsStore();
 
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
@@ -52,7 +62,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   }, [value]);
 
   const parseFiles = async (files: File[]) => {
-    const parsed = await Promise.all(
+    const parsedResults = await Promise.allSettled(
       files.map(async (file) => {
         const item: PendingAttachment = {
           id: uid(),
@@ -64,7 +74,19 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         return item;
       }),
     );
-    setAttachments((prev) => [...prev, ...parsed]);
+
+    const parsed = parsedResults
+      .filter((result): result is PromiseFulfilledResult<PendingAttachment> => result.status === 'fulfilled')
+      .map((result) => result.value);
+
+    if (parsed.length) {
+      setAttachments((prev) => [...prev, ...parsed]);
+    }
+
+    const failedCount = parsedResults.length - parsed.length;
+    if (failedCount > 0) {
+      setInputHint(`有 ${failedCount} 个附件读取失败，已跳过。`);
+    }
   };
 
   // 统一发送逻辑：复用已有会话，不存在时按当前 mode 创建新会话。
@@ -94,7 +116,10 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         type="file"
         multiple
         className="hidden"
-        onChange={(e: ChangeEvent<HTMLInputElement>) => parseFiles(Array.from(e.target.files || []))}
+        onChange={async (e: ChangeEvent<HTMLInputElement>) => {
+          await parseFiles(Array.from(e.target.files || []));
+          e.target.value = '';
+        }}
       />
 
       {attachments.length > 0 && (

@@ -2,17 +2,31 @@
 
 import { motion } from 'framer-motion';
 import { Check, Edit2, Pin, Search, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { useChatStore } from '@/stores/chat-store';
+import { useShallow } from 'zustand/react/shallow';
 
 export function ChatList({ search, setSearch, closeMobile }: { search: string; setSearch: (v: string) => void; closeMobile?: () => void }) {
   // 会话列表只负责“展示 + 轻交互”，实际数据更新交给 zustand store。
-  const { sessions, activeSessionId, selectSession, renameSession, deleteSession, togglePinSession } = useChatStore();
+  const { sessions, activeSessionId, selectSession, renameSession, deleteSession, togglePinSession } = useChatStore(
+    useShallow((state) => ({
+      sessions: state.sessions,
+      activeSessionId: state.activeSessionId,
+      selectSession: state.selectSession,
+      renameSession: state.renameSession,
+      deleteSession: state.deleteSession,
+      togglePinSession: state.togglePinSession,
+    })),
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
 
-  const filtered = sessions.filter((s) => `${s.title} ${s.summary}`.toLowerCase().includes(search.toLowerCase()));
+  const normalizedSearch = search.trim().toLowerCase();
+  const filtered = useMemo(
+    () => sessions.filter((s) => `${s.title} ${s.summary}`.toLowerCase().includes(normalizedSearch)),
+    [sessions, normalizedSearch],
+  );
 
   return (
     <div className="chat-panel flex h-full min-h-0 flex-col gap-3 p-3">
