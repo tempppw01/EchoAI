@@ -63,7 +63,7 @@ const sortedSessions = (sessions: ChatSession[]) =>
 
 const buildSystemPromptByMode = (session: ChatSession) => {
   if (session.mode === 'copywriting') return '你是一名资深中文营销文案专家。输出可直接投放的文案，并给出多版本。';
-  if (session.mode === 'videoScript') return '你是一名短视频脚本策划。输出结构化脚本，包含开场钩子、节奏、镜头建议与CTA。';
+  if (session.mode === 'videoScript') return '你是一名短视频脚本策划。输出结构化脚本，包含开场钩子、节奏、镜头建议与CTA。若用户消息中包含“视频脚本预设信息”，必须优先严格依据预设写作；对未提供的关键信息不要臆测，先明确列出缺失项并给出可选补充。';
   if (session.mode === 'training') {
     return `你是一位专注学习的智能助教，只做学习相关的事：出题、讲解、批改、记录进度、鼓励。
 界面风格清晰、简洁、结构化，不闲聊、不跑题。

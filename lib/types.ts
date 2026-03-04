@@ -10,6 +10,17 @@ export interface ChatMessage {
   status?: 'streaming' | 'error' | 'done';
 }
 
+export interface VideoScriptPreset {
+  productName?: string;
+  targetAudience?: string;
+  coreSellingPoints?: string;
+  toneStyle?: string;
+  platform?: string;
+  durationSec?: number;
+  mustInclude?: string;
+  avoid?: string;
+}
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -30,6 +41,7 @@ export interface ChatSession {
   trainingRound?: number;
   trainingLastCorrectOption?: string;
   trainingRecentRecords?: TrainingRecord[];
+  videoScriptPreset?: VideoScriptPreset;
 }
 
 export interface TrainingQuestion {
