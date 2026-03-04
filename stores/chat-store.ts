@@ -61,6 +61,22 @@ const sortedSessions = (sessions: ChatSession[]) =>
     return +new Date(b.updatedAt || 0) - +new Date(a.updatedAt || 0);
   });
 
+const resolveTextModel = (session: ChatSession, settings: ReturnType<typeof useSettingsStore.getState>['settings']) => {
+  const preferred = settings.defaultTextModel?.trim();
+  if (preferred) return preferred;
+  const sessionModel = session.model?.trim();
+  if (sessionModel) return sessionModel;
+  return settings.modelCatalog[0] || defaultSettings.defaultTextModel;
+};
+
+const resolveImageModel = (session: ChatSession, settings: ReturnType<typeof useSettingsStore.getState>['settings']) => {
+  const preferred = settings.defaultImageModel?.trim();
+  if (preferred) return preferred;
+  const sessionModel = session.model?.trim();
+  if (sessionModel) return sessionModel;
+  return settings.modelCatalog[0] || defaultSettings.defaultImageModel;
+};
+
 const buildSystemPromptByMode = (session: ChatSession) => {
   if (session.mode === 'copywriting') return '你是一名资深中文营销文案专家。输出可直接投放的文案，并给出多版本。';
   if (session.mode === 'videoScript') return '你是一名短视频脚本策划。输出结构化脚本，包含开场钩子、节奏、镜头建议与CTA。若用户消息中包含“视频脚本预设信息”，必须优先严格依据预设写作；对未提供的关键信息不要臆测，先明确列出缺失项并给出可选补充。';
@@ -168,7 +184,7 @@ const buildTrainingSummary = async (session: ChatSession): Promise<string> => {
     const settings = useSettingsStore.getState().settings;
     const reply = await requestOpenAICompatible({
       settings,
-      model: session.model || settings.defaultTextModel,
+      model: resolveTextModel(session, settings),
       messages: [
         { role: 'system', content: '你是学习复盘助手。请输出简洁中文文本，不要 Markdown 表格，不要输出 JSON。' },
         {
@@ -208,7 +224,7 @@ JSON schema:
   try {
     const reply = await requestOpenAICompatible({
       settings,
-      model: session.model || settings.defaultTextModel,
+      model: resolveTextModel(session, settings),
       messages: [{ role: 'system', content: '你是严谨的出题引擎，只能输出合法 JSON。' }, { role: 'user', content: prompt }],
     });
     return normalizeTrainingQuestion(reply);
@@ -278,7 +294,7 @@ export const useChatStore = create<ChatState>()(
 
           const reply = await requestOpenAICompatible({
             settings,
-            model: session.model || settings.defaultTextModel,
+            model: session.mode === 'image' || session.mode === 'proImage' ? resolveImageModel(session, settings) : resolveTextModel(session, settings),
             messages: requestMessages,
           });
 
