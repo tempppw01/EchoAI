@@ -69,7 +69,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [inputHint, setInputHint] = useState('');
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [showOptions, setShowOptions] = useState(false);
-  const [showVideoPreset, setShowVideoPreset] = useState(true);
+  const [showVideoPreset, setShowVideoPreset] = useState(false);
   const [videoPreset, setVideoPreset] = useState<VideoScriptPreset>(defaultVideoScriptPreset);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
