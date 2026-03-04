@@ -15,6 +15,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
   const [search, setSearch] = useState('');
   const [composerValue, setComposerValue] = useState('');
+  const [isComposing, setIsComposing] = useState(false);
 
   const character = characters.find((item) => item.id === (session?.characterId || activeCharacterId));
   const activeWorld = useMemo(() => worlds.find((item) => item.id === (session?.worldId || activeWorldId)), [worlds, session?.worldId, activeWorldId]);
@@ -113,7 +114,19 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           ))}
         </div>
         <div className="mt-2 flex items-end gap-2">
-          <Textarea value={composerValue} onChange={(e) => setComposerValue(e.target.value)} rows={3} placeholder="输入消息，Ctrl/Cmd+Enter 发送" onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') onSend(); }} />
+          <Textarea
+            value={composerValue}
+            onChange={(e) => setComposerValue(e.target.value)}
+            rows={3}
+            placeholder="输入消息，Enter 发送，Shift + Enter 换行"
+            onCompositionStart={() => setIsComposing(true)}
+            onCompositionEnd={() => setIsComposing(false)}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' || isComposing || e.shiftKey) return;
+              e.preventDefault();
+              onSend();
+            }}
+          />
           <Button onClick={onSend}>发送</Button>
         </div>
       </section>
