@@ -1,14 +1,29 @@
 version: "3.8"
 
 services:
-  echoai:
+  echoai-web:
     build:
       context: .
       dockerfile: Dockerfile
-    image: echoai:latest
+    image: echoai-web:latest
     ports:
-      - "3001:3001"
+      - "3001:3000"
     environment:
       NODE_ENV: production
-      PORT: 3001
+      PORT: 3000
     restart: unless-stopped
+
+  # Optional: start the Express proxy server
+  # echoai-server:
+  #   build:
+  #     context: ./server
+  #     dockerfile: Dockerfile
+  #   image: echoai-server:latest
+  #   ports:
+  #     - "3002:3001"
+  #   env_file:
+  #     - ./server/.env
+  #   environment:
+  #     NODE_ENV: production
+  #     PORT: 3001
+  #   restart: unless-stopped

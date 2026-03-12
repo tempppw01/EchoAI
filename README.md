@@ -68,7 +68,7 @@ lib/
 
 ---
 
-## 🚀 本地开发
+## 🚀 本地开发（前端）
 
 ```bash
 npm install
@@ -76,11 +76,60 @@ npm run dev
 ```
 
 默认访问：
-- `http://localhost:3000/`
+- http://localhost:3000/
 
 ---
 
-## 📦 生产构建
+## 🧩 可选：安全代理服务器（server/）
+
+仓库内包含一个 **可选的 Express 安全代理服务**（目录：`server/`），提供：
+
+- 用户认证（JWT）/“访客”模式
+- IP/用户级别的速率限制、防刷与黑名单
+- Token 消耗监控与预警
+- 统一转发 OpenAI 兼容接口（例如 `/api/chat`、`/api/models`）
+
+### 什么时候需要它？
+
+- 你不希望把 **上游 API Key 暴露在浏览器本地存储**里
+- 你想做多用户限流/审计/预警
+- 你需要一个后端来统一做 provider 转发
+
+> 如果你只做单机本地使用：也可以直接用前端设置里的 Base URL + API Key（API Key 仅在本地存储）。
+
+### 启动 server
+
+```bash
+cd server
+npm install
+npm run start
+```
+
+默认端口：`3001`（可通过环境变量 `PORT` 修改）。
+
+### server 环境变量
+
+建议使用 `.env`（示例见 `.env.example`）：
+
+- `PORT`：服务端口（默认 3001）
+- `JWT_SECRET`：JWT 签名密钥（不填会随机生成，重启会导致旧 token 失效）
+- `API_URL`：上游 OpenAI 兼容接口（默认：`https://ai.shuaihong.fun/v1/chat/completions`）
+- `API_KEY`：上游 API Key（当客户端未传 `X-Custom-Api-Key` 时使用）
+- `ALLOWED_ORIGINS`：CORS 允许的来源（逗号分隔）
+- `ADMIN_KEY`：访问管理接口（alerts/blacklist/stats）的管理密钥
+
+### 与前端如何配合？
+
+当使用 server 作为转发层时：
+
+- 前端 `Base URL` 填：`http://localhost:3001`（或你的 server 域名）
+- 前端 API Key 建议不直接填上游 key，而是使用 server 的认证方式（或在 server 端配置 `API_KEY`）
+
+> 注：当前前端默认按 OpenAI 兼容 `/v1/...` 组织请求；如果要完全切换到 server 的 `/api/...` 路由，建议在前端增加一个“Proxy Mode”开关或适配器（后续可做）。
+
+---
+
+## 📦 生产构建（前端）
 
 ```bash
 npm run build
@@ -91,27 +140,14 @@ npm run start
 
 ---
 
-## 🐳 Docker 部署
+## 🐳 Docker 部署（前端）
 
 ```bash
 docker compose up --build -d
 ```
 
 默认访问：
-- `http://localhost:3001/`
-
----
-
-## ⚙️ 配置说明（首次必做）
-
-进入设置中心后请至少配置：
-
-1. **Base URL**（OpenAI 兼容地址）
-2. **API Key**
-3. 点击“拉取模型列表”
-4. 设置默认文本模型 / 默认绘图模型
-
-未配置密钥时，界面会给出明确提示。
+- http://localhost:3001/
 
 ---
 
@@ -119,6 +155,7 @@ docker compose up --build -d
 
 ### 1) 页面可打开但模型请求失败
 请优先检查：
+
 - Base URL 是否包含正确的 `/v1` 路径（系统会自动规范化）
 - API Key 是否有效
 - 所选模型是否在服务端可用
@@ -128,6 +165,7 @@ docker compose up --build -d
 
 ### 3) 构建失败
 建议顺序：
+
 ```bash
 npm install
 npm run build
