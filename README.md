@@ -71,8 +71,17 @@ lib/
 ## 🚀 本地开发（前端）
 
 ```bash
+# install deps
 npm install
 npm run dev
+```
+
+## ✅ 单元测试
+
+```bash
+npm test
+# or
+npm run test:watch
 ```
 
 默认访问：
