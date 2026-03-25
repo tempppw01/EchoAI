@@ -49,6 +49,16 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
         ? '平台策略：按视频号风格输出，强调可信、稳重、节奏适中、信息完整和更自然的转化表达。'
         : '平台策略：若未明确平台，请输出兼顾传播效率与可信度的通用短视频脚本。';
 
+  const duration = preset.durationSec || 60;
+  const durationStrategy =
+    duration <= 15
+      ? '时长策略：按15秒短视频输出，结构要极简，优先一个钩子、一个核心观点、一个直接收口。'
+      : duration <= 30
+        ? '时长策略：按30秒短视频输出，控制信息密度，突出钩子、核心卖点和快速转化。'
+        : duration <= 60
+          ? '时长策略：按60秒短视频输出，结构要完整，包含开头钩子、观点展开、卖点说明和结尾CTA。'
+          : '时长策略：按90秒短视频输出，允许更完整的背景铺垫、对比论证、案例补充和更自然的收尾转化。';
+
   const lines = [
     `主题/选题：${preset.topic || '未填写'}`,
     `产品/服务：${preset.productName || '未填写'}`,
@@ -56,10 +66,11 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
     `核心卖点：${preset.coreSellingPoints || '未填写'}`,
     `语气风格：${preset.toneStyle || '未填写'}`,
     `发布平台：${preset.platform || '未填写'}`,
-    `时长（秒）：${preset.durationSec || 60}`,
+    `时长（秒）：${duration}`,
     `必须包含：${preset.mustInclude || '无'}`,
     `避免内容：${preset.avoid || '无'}`,
     platformStrategy,
+    durationStrategy,
   ];
 
   return [
@@ -238,13 +249,16 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
               </label>
               <label className="grid gap-1">
                 <span className="text-muted-foreground">时长（秒）</span>
-                <Input
-                  type="number"
-                  min={10}
-                  max={300}
-                  value={videoPreset.durationSec || 60}
+                <select
+                  className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
+                  value={String(videoPreset.durationSec || 60)}
                   onChange={(e) => setVideoPreset((prev) => ({ ...prev, durationSec: Number(e.target.value) || 60 }))}
-                />
+                >
+                  <option value="15">15 秒</option>
+                  <option value="30">30 秒</option>
+                  <option value="60">60 秒</option>
+                  <option value="90">90 秒</option>
+                </select>
               </label>
               <label className="grid gap-1 md:col-span-2">
                 <span className="text-muted-foreground">必须包含</span>
