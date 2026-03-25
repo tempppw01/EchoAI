@@ -78,6 +78,27 @@ const parseVideoScriptSections = (content: string) => {
   }).filter((item) => item.body);
 };
 
+const parseVideoScriptVersions = (content: string) => {
+  const normalized = content.replace(/\r\n/g, '\n').trim();
+  const versionRegex = /(?:^|\n)(?:#{1,3}\s*)?(?:版本\s*[：:]?\s*(\d+)|版本\s*(\d+)|v(?:ersion)?\s*(\d+))\s*\n/gi;
+  const matches = [...normalized.matchAll(versionRegex)].map((match) => ({
+    index: match.index ?? 0,
+    label: `版本 ${match[1] || match[2] || match[3]}`,
+    matchText: match[0],
+  }));
+
+  if (matches.length < 2) return null;
+
+  return matches.map((item, idx) => {
+    const start = item.index + item.matchText.length;
+    const end = idx + 1 < matches.length ? matches[idx + 1].index : normalized.length;
+    const body = normalized.slice(start, end).trim();
+    const formatted = formatStructuredVideoScript(body);
+    const sections = parseVideoScriptSections(formatted);
+    return { key: `${item.label}-${idx}`, label: item.label, body: formatted, sections };
+  }).filter((item) => item.body);
+};
+
 export function MessageList({ session }: { session?: ChatSession }) {
   const { retryMessage, regenerateLastAssistant, deleteMessage, editUserMessage, answerTrainingQuestion } = useChatStore();
   const apiKey = useSettingsStore((state) => state.settings.apiKey);
@@ -221,13 +242,38 @@ const MessageItem = memo(function MessageItem({
     return !isUser ? formatStructuredVideoScript(content) : content;
   }, [isUser, msg.content, msg.status]);
   const structuredSections = useMemo(() => (!isUser ? parseVideoScriptSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
+  const versionCards = useMemo(() => (!isUser ? parseVideoScriptVersions(msg.content) : null), [isUser, msg.content]);
 
   return (
     <div className={`flex items-start gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border"><Bot size={15} /></div>}
       <div className={`${isUser ? 'chat-bubble-user ml-auto max-w-[88%]' : 'chat-bubble-assistant mr-auto max-w-[92%]'} p-4`}>
         <p className="mb-2 text-xs font-medium text-muted-foreground">{isUser ? '你' : 'EchoAI 助手'}</p>
-        {structuredSections && structuredSections.length > 0 ? (
+        {versionCards && versionCards.length > 0 ? (
+          <div className="space-y-4">
+            {versionCards.map((version) => (
+              <div key={version.key} className="rounded-2xl border border-primary/20 bg-white/[0.03] p-4">
+                <p className="mb-3 text-sm font-semibold text-primary">{version.label}</p>
+                {version.sections && version.sections.length > 0 ? (
+                  <div className="space-y-3">
+                    {version.sections.map((section) => (
+                      <div key={`${version.key}-${section.key}`} className="rounded-xl border border-white/10 bg-background/40 p-3">
+                        <p className="mb-2 text-sm font-semibold">{section.label}</p>
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown>{section.body}</ReactMarkdown>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <ReactMarkdown>{version.body}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : structuredSections && structuredSections.length > 0 ? (
           <div className="space-y-3">
             {structuredSections.map((section) => (
               <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
