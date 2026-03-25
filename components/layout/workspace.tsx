@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Brush, ChevronDown, Menu, Moon, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sparkles, Sun, Swords, Video, PenSquare } from 'lucide-react';
+import { Brush, ChevronDown, ChevronUp, Menu, Moon, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sparkles, Sun, Swords, Video, PenSquare } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { ReactNode, useMemo, useState } from 'react';
 import { ChatComposer } from '@/components/chat/chat-composer';
@@ -235,7 +235,7 @@ function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModu
       <div className="flex items-center justify-between px-2">
         <p className="text-sm">工作区模块</p>
         <button onClick={onToggleModule} className="rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label={moduleCollapsed ? '展开工作区模块' : '折叠工作区模块'}>
-          {moduleCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+          {moduleCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
         </button>
       </div>
       {moduleCollapsed && <p className="px-2 text-xs text-muted-foreground">模块列表已折叠</p>}
