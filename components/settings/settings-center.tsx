@@ -54,15 +54,15 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
       const text = await file.text();
       const snapshot = JSON.parse(text) as AppSnapshot;
       if (!snapshot.sessions || !snapshot.settings) {
-        alert('导入失败：文件格式不正确');
+        showNotice('导入失败：文件格式不正确');
         return;
       }
       importSnapshot(snapshot);
       replaceSettings(snapshot.settings);
-      alert('导入成功 ✅');
+      showNotice('导入成功');
       onOpenChange(false);
     } catch {
-      alert('导入失败：无法解析 JSON');
+      showNotice('导入失败：无法解析 JSON');
     }
   };
 
@@ -77,7 +77,7 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
             <form
               onSubmit={form.handleSubmit((data) => {
                 setSettings(data);
-                alert('保存成功 ✅');
+                showNotice('保存成功');
                 onOpenChange(false);
               })}
             >

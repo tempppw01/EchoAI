@@ -107,11 +107,11 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
           <p>已持久化模型：{modelCatalog.length}</p>
           <p className="mt-1 max-h-20 overflow-y-auto break-all">{modelCatalog.length ? modelCatalog.join('、') : '暂无，请点击“拉取模型列表”'}</p>
         </div>
-        <div className="grid gap-2 md:grid-cols-3">
-          <label className="grid gap-1 text-xs text-muted-foreground">
+        <div className="grid gap-2 md:grid-cols-1 xl:grid-cols-3">
+          <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
             默认文本模型
             <select
-              className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+              className="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm text-foreground"
               value={form.watch('defaultTextModel')}
               onChange={(event) => {
                 form.setValue('defaultTextModel', event.target.value, { shouldDirty: true });
@@ -123,10 +123,10 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
             </select>
           </label>
 
-          <label className="grid gap-1 text-xs text-muted-foreground">
+          <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
             默认绘图模型
             <select
-              className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+              className="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm text-foreground"
               value={form.watch('defaultImageModel')}
               onChange={(event) => {
                 form.setValue('defaultImageModel', event.target.value, { shouldDirty: true });
@@ -138,10 +138,10 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
             </select>
           </label>
 
-          <label className="grid gap-1 text-xs text-muted-foreground">
+          <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
             默认嵌入模型
             <select
-              className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+              className="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm text-foreground"
               value={form.watch('defaultEmbeddingModel') || ''}
               onChange={(event) => {
                 form.setValue('defaultEmbeddingModel', event.target.value, { shouldDirty: true });
