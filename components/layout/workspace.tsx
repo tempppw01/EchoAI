@@ -11,7 +11,7 @@ import { RoleplayStudio } from '@/components/chat/roleplay-studio';
 import { ProImagePanel } from '@/components/image/pro-image-panel';
 import { SettingsCenter } from '@/components/settings/settings-center';
 import { Button } from '@/components/ui/button';
-import { ChatMode } from '@/lib/types';
+import { ChatMode, ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 import { useUIStore } from '@/stores/ui-store';
@@ -229,57 +229,101 @@ function ThemeIconButton({ active, onClick, icon }: { active: boolean; onClick: 
 
 function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModule, onToggle, onSelect, onSelectSession, onCreate }: { section: SectionKey; sessions: ReturnType<typeof useChatStore.getState>['sessions']; expanded: Record<SectionKey, boolean>; moduleCollapsed: boolean; onToggleModule: () => void; onToggle: (key: SectionKey) => void; onSelect: (key: SectionKey) => void; onSelectSession: (id: string) => void; onCreate: (key: SectionKey) => void }) {
   const { deleteSession } = useChatStore();
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; session: ChatSession } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between px-2">
-        <p className="text-sm">工作区模块</p>
-        <button onClick={onToggleModule} className="rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label={moduleCollapsed ? '展开工作区模块' : '折叠工作区模块'}>
-          {moduleCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-        </button>
+    <>
+      <div className="space-y-3" onClick={() => setContextMenu(null)}>
+        <div className="flex items-center justify-between px-2">
+          <p className="text-sm">工作区模块</p>
+          <button onClick={onToggleModule} className="rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label={moduleCollapsed ? '展开工作区模块' : '折叠工作区模块'}>
+            {moduleCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          </button>
+        </div>
+        {moduleCollapsed && <p className="px-2 text-xs text-muted-foreground">模块列表已折叠</p>}
+        {!moduleCollapsed && sections.map((item) => {
+          const recentSessions = sessions.filter((session) => modeToSection(session.mode) === item.key).slice(0, 3);
+          const Icon = item.icon;
+          const isOpen = expanded[item.key];
+          return (
+            <div key={item.key} className="rounded-xl border bg-card p-2">
+              <button onClick={() => onSelect(item.key)} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm ${item.accent} ${section === item.key ? 'ring-1 ring-primary/40' : ''}`}>
+                <Icon size={15} />
+                <span className="flex-1 text-left">{item.label}</span>
+                <span className="rounded p-1" onClick={(e) => { e.stopPropagation(); onToggle(item.key); }}>
+                  <ChevronDown size={14} className={`transition ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
+                </span>
+              </button>
+              {isOpen && (
+                <div className="mt-2 space-y-2 px-1">
+                  <Button className="h-8 w-full text-xs" onClick={() => onCreate(item.key)}><Plus size={12} className="mr-1" />新建</Button>
+                  {recentSessions.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {recentSessions.map((sessionItem) => (
+                        <button
+                          key={sessionItem.id}
+                          onClick={() => onSelectSession(sessionItem.id)}
+                          onContextMenu={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
+                          }}
+                          className="max-w-full rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground"
+                          title={sessionItem.title}
+                        >
+                          <span className="line-clamp-1">{sessionItem.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
-      {moduleCollapsed && <p className="px-2 text-xs text-muted-foreground">模块列表已折叠</p>}
-      {!moduleCollapsed && sections.map((item) => {
-        const recentSessions = sessions.filter((session) => modeToSection(session.mode) === item.key).slice(0, 3);
-        const Icon = item.icon;
-        const isOpen = expanded[item.key];
-        return (
-          <div key={item.key} className="rounded-xl border bg-card p-2">
-            <button onClick={() => onSelect(item.key)} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm ${item.accent} ${section === item.key ? 'ring-1 ring-primary/40' : ''}`}>
-              <Icon size={15} />
-              <span className="flex-1 text-left">{item.label}</span>
-              <span className="rounded p-1" onClick={(e) => { e.stopPropagation(); onToggle(item.key); }}>
-                <ChevronDown size={14} className={`transition ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
-              </span>
+
+      {contextMenu && (
+        <>
+          <button className="fixed inset-0 z-40 cursor-default bg-transparent" onClick={() => setContextMenu(null)} aria-label="关闭会话菜单" />
+          <div
+            className="fixed z-50 min-w-[160px] rounded-xl border bg-popover p-1 shadow-2xl"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <button
+              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-red-500 hover:bg-muted"
+              onClick={() => {
+                setDeleteTarget(contextMenu.session);
+                setContextMenu(null);
+              }}
+            >
+              删除会话
             </button>
-            {isOpen && (
-              <div className="mt-2 space-y-2 px-1">
-                <Button className="h-8 w-full text-xs" onClick={() => onCreate(item.key)}><Plus size={12} className="mr-1" />新建</Button>
-                {recentSessions.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {recentSessions.map((sessionItem) => (
-                      <button
-                        key={sessionItem.id}
-                        onClick={() => onSelectSession(sessionItem.id)}
-                        onContextMenu={(event) => {
-                          event.preventDefault();
-                          if (confirm(`删除「${sessionItem.title}」会话？`)) {
-                            deleteSession(sessionItem.id);
-                          }
-                        }}
-                        className="max-w-full rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground"
-                        title={sessionItem.title}
-                      >
-                        <span className="line-clamp-1">{sessionItem.title}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
-        );
-      })}
-    </div>
+        </>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-sm rounded-2xl border bg-background p-5 shadow-2xl">
+            <h3 className="text-base font-semibold">确认删除会话</h3>
+            <p className="mt-2 text-sm text-muted-foreground">确认删除「{deleteTarget.title}」吗？删除后将无法恢复。</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button className="bg-transparent text-foreground" onClick={() => setDeleteTarget(null)}>取消</Button>
+              <Button
+                className="bg-red-500 text-white hover:opacity-90"
+                onClick={() => {
+                  deleteSession(deleteTarget.id);
+                  setDeleteTarget(null);
+                }}
+              >
+                删除
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
