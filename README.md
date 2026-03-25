@@ -1,110 +1,140 @@
-# EchoAI Modern
+# EchoAI
 
-> 一个面向真实业务场景的多模式 AI 工作台（对话 / 文案 / 视频脚本 / 角色扮演 / 学习训练 / 绘图）
+> 一个面向真实业务场景的多模式 AI 工作台，覆盖对话、文案、视频脚本、角色扮演、学习训练与绘图等核心场景。
 
-EchoAI Modern 基于 **Next.js App Router** 构建，提供统一会话系统与设置中心，支持 OpenAI 兼容 API，强调「可用性 + 结构化工作流 + 本地可部署」。
-
----
-
-## ✨ 核心能力
-
-- **多模式会话工作区**
-  - 通用对话（Chat）
-  - 文案生成（Copywriting）
-  - 视频脚本（Video Script，支持预设注入）
-  - 角色扮演（Roleplay，角色卡 + 世界观）
-  - 学习型聊天（Training，自适应出题与评分）
-  - 专业绘图（Pro Image）
-
-- **完整会话管理**
-  - 新建 / 切换 / 搜索 / 置顶 / 重命名 / 删除
-  - 导出消息内容
-  - 重新生成与重试机制
-
-- **统一设置中心**
-  - OpenAI 兼容 `Base URL` / `API Key`
-  - 模型拉取与默认模型设置
-  - 参数配置（temperature / max tokens / stream）
-  - WebDAV 配置入口
-
-- **现代化交互体验**
-  - 响应式布局（桌面三栏、移动侧滑）
-  - 深色 / 浅色主题切换
-  - Markdown 消息渲染
+EchoAI 基于 **Next.js 14 App Router** 构建，提供统一会话系统、统一设置中心与结构化工作流能力，支持接入 OpenAI 兼容接口，适合本地部署、私有化使用与业务场景扩展。
 
 ---
 
-## 🧱 技术栈
+## 核心能力
 
-- **框架**：Next.js 14（App Router） + React 18 + TypeScript
-- **样式**：Tailwind CSS + Radix UI（shadcn/ui 风格）
-- **状态管理**：Zustand（含本地持久化）
+### 1. 多模式工作区
+
+- 通用对话：适合日常问答与任务协作
+- 文案生成：适合营销文案、口播文案、广告文案等场景
+- 视频脚本：支持视频脚本预设、结构化脚本生成、爆款文案分析
+- 角色扮演：支持角色卡与世界观设定
+- 学习训练：支持连续出题、答题反馈与分数跟踪
+- 专业绘图：支持图像生成相关工作流
+
+### 2. 统一会话管理
+
+- 新建、切换、搜索、删除会话
+- 导出会话内容
+- 重新生成与重试
+- 多模块统一组织，不同工作区可独立使用
+
+### 3. 统一设置中心
+
+- Base URL / API Key 配置
+- 默认模型与模型列表管理
+- temperature / max tokens / stream 等参数调整
+- WebDAV 配置入口
+
+### 4. 结构化交互体验
+
+- 深色 / 浅色主题切换
+- 响应式布局
+- Markdown 消息渲染
+- 视频脚本结果结构化展示
+- 工作区式布局，更适合持续任务处理
+
+---
+
+## 当前适合的使用场景
+
+EchoAI 目前更适合作为一个 **多场景 AI 工作台**，而不是单一聊天窗口。
+
+适合的典型场景包括：
+
+- 日常 AI 协作与问答
+- 中文文案生成与优化
+- 短视频脚本策划
+- 爆款文案拆解与结构提取
+- 学习训练与题目陪练
+- 角色扮演与设定式对话
+
+---
+
+## 技术栈
+
+- **框架**：Next.js 14 + React 18 + TypeScript
+- **样式**：Tailwind CSS
+- **状态管理**：Zustand
 - **表单与校验**：React Hook Form + Zod
 - **动效与图标**：Framer Motion + Lucide React
+- **消息渲染**：React Markdown
 
 ---
 
-## 📁 项目结构
+## 项目结构
 
 ```text
 app/
-  page.tsx                          # 主入口
+  page.tsx
 components/
-  layout/workspace.tsx              # 工作区布局（侧栏 + 主区）
-  chat/chat-list.tsx                # 会话列表
-  chat/message-list.tsx             # 消息流
-  chat/chat-composer.tsx            # 输入区（含视频脚本预设）
-  chat/roleplay-studio.tsx          # 角色扮演面板
-  image/pro-image-panel.tsx         # 绘图面板
-  settings/settings-center.tsx      # 设置中心
+  layout/workspace.tsx
+  chat/chat-list.tsx
+  chat/message-list.tsx
+  chat/chat-composer.tsx
+  chat/roleplay-studio.tsx
+  image/pro-image-panel.tsx
+  settings/settings-center.tsx
 stores/
-  chat-store.ts                     # 会话/消息/训练逻辑
-  settings-store.ts                 # 模型与连接配置
-  roleplay-store.ts                 # 角色卡与世界观
-  ui-store.ts                       # UI 状态
+  chat-store.ts
+  settings-store.ts
+  roleplay-store.ts
+  ui-store.ts
 lib/
   types.ts
+  openai-compatible.ts
+server/
+  index.js
 ```
 
 ---
 
-## 🚀 本地开发（前端）
+## 本地开发
 
 ```bash
-# install deps
 npm install
 npm run dev
 ```
 
-## ✅ 单元测试
-
-```bash
-npm test
-# or
-npm run test:watch
-```
-
 默认访问：
-- http://localhost:3000/
+
+- http://localhost:3000
 
 ---
 
-## 🧩 可选：安全代理服务器（server/）
+## 测试与构建
 
-仓库内包含一个 **可选的 Express 安全代理服务**（目录：`server/`），提供：
+### 单元测试
 
-- 用户认证（JWT）/“访客”模式
-- IP/用户级别的速率限制、防刷与黑名单
-- Token 消耗监控与预警
-- 统一转发 OpenAI 兼容接口（例如 `/api/chat`、`/api/models`）
+```bash
+npm test
+```
 
-### 什么时候需要它？
+### 生产构建
 
-- 你不希望把 **上游 API Key 暴露在浏览器本地存储**里
-- 你想做多用户限流/审计/预警
-- 你需要一个后端来统一做 provider 转发
+```bash
+npm run build
+npm run start
+```
 
-> 如果你只做单机本地使用：也可以直接用前端设置里的 Base URL + API Key（API Key 仅在本地存储）。
+---
+
+## 可选后端代理（server/）
+
+仓库中包含一个可选的代理服务（`server/`），用于补充更适合业务环境的服务端能力，例如：
+
+- 用户认证
+- 限流与风控
+- 日志与预警
+- OpenAI 兼容接口统一转发
+
+如果你只是本地单人使用，可以直接在前端配置 Base URL 与 API Key。
+如果你希望更安全、可控、多用户协作，建议增加 server 层。
 
 ### 启动 server
 
@@ -114,80 +144,59 @@ npm install
 npm run start
 ```
 
-默认端口：`3001`（可通过环境变量 `PORT` 修改）。
-
-### server 环境变量
-
-建议使用 `.env`（示例见 `.env.example`）：
-
-- `PORT`：服务端口（默认 3001）
-- `JWT_SECRET`：JWT 签名密钥（不填会随机生成，重启会导致旧 token 失效）
-- `API_URL`：上游 OpenAI 兼容接口（默认：`https://ai.shuaihong.fun/v1/chat/completions`）
-- `API_KEY`：上游 API Key（当客户端未传 `X-Custom-Api-Key` 时使用）
-- `ALLOWED_ORIGINS`：CORS 允许的来源（逗号分隔）
-- `ADMIN_KEY`：访问管理接口（alerts/blacklist/stats）的管理密钥
-
-### 与前端如何配合？
-
-当使用 server 作为转发层时：
-
-- 前端 `Base URL` 填：`http://localhost:3001`（或你的 server 域名）
-- 前端 API Key 建议不直接填上游 key，而是使用 server 的认证方式（或在 server 端配置 `API_KEY`）
-
-> 注：当前前端默认按 OpenAI 兼容 `/v1/...` 组织请求；如果要完全切换到 server 的 `/api/...` 路由，建议在前端增加一个“Proxy Mode”开关或适配器（后续可做）。
-
 ---
 
-## 📦 生产构建（前端）
+## 部署方式
+
+### 前端生产部署
 
 ```bash
 npm run build
 npm run start
 ```
 
-> `start` 脚本已支持平台注入端口：`PORT=${PORT:-3000}`。
-
----
-
-## 🐳 Docker 部署（前端）
+### Docker 部署
 
 ```bash
 docker compose up --build -d
 ```
 
-默认访问：
-- http://localhost:3001/
-
 ---
 
-## 🧭 常见问题
+## 常见问题
 
-### 1) 页面可打开但模型请求失败
-请优先检查：
+### 1. 页面能打开，但模型请求失败
 
-- Base URL 是否包含正确的 `/v1` 路径（系统会自动规范化）
+优先检查：
+
+- Base URL 是否正确
 - API Key 是否有效
-- 所选模型是否在服务端可用
+- 所选模型是否真实可用
 
-### 2) 部署后 502 / 无响应
-确认进程监听的是平台注入端口（本项目已在 `start` 脚本兼容）。
+### 2. 构建失败
 
-### 3) 构建失败
-建议顺序：
+建议顺序执行：
 
 ```bash
 npm install
 npm run build
 ```
 
+### 3. 部署后请求异常
+
+确认端口、反向代理和环境变量是否配置正确。
+
 ---
 
-## 📌 路线建议（可选）
+## 路线方向
 
-- 会话云同步（WebDAV 完整链路）
-- 多提供商统一抽象（OpenAI / Claude / Gemini）
-- 更细粒度的 Prompt 模板系统
-- 更完整的可观测性（请求耗时、错误率、模型成本）
+后续可以继续增强：
+
+- 会话云同步
+- 多提供商统一接入
+- 更完整的 Prompt 模板系统
+- 更强的视频脚本与爆款分析工作流
+- 更多结构化结果卡片与导出能力
 
 ---
 
