@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Paperclip, SendHorizontal, SlidersHorizontal, Square, Upload, X } from 'lucide-react';
+import { Eraser, Paperclip, SendHorizontal, SlidersHorizontal, Square, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -124,7 +124,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const { sessions, activeSessionId, sendMessage, createSession, generatingSessionIds, stopMessage, updateSession } = useChatStore(
+  const { sessions, activeSessionId, sendMessage, createSession, generatingSessionIds, stopMessage, updateSession, clearContext } = useChatStore(
     useShallow((state) => ({
       sessions: state.sessions,
       activeSessionId: state.activeSessionId,
@@ -133,6 +133,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       generatingSessionIds: state.generatingSessionIds,
       stopMessage: state.stopMessage,
       updateSession: state.updateSession,
+      clearContext: state.clearContext,
     })),
   );
   const { settings, setSettings } = useSettingsStore();
@@ -400,6 +401,19 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             onSend();
           }}
         />}
+
+        {activeSession?.id && mode !== 'training' && (
+          <Button
+            className="rounded-xl bg-transparent text-foreground"
+            title="清空当前会话上下文"
+            onClick={() => {
+              clearContext(activeSession.id);
+              setInputHint('已清空当前会话上下文。');
+            }}
+          >
+            <Eraser size={16} />
+          </Button>
+        )}
 
         {isGenerating && activeSession?.id ? (
           <Button className="rounded-xl bg-transparent text-foreground" onClick={() => stopMessage(activeSession.id)}>
