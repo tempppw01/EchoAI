@@ -93,6 +93,13 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
     '【用户本次需求】',
     userInput || '请基于以上预设，先给出一版可直接拍摄的脚本。',
     '',
+    '【输出格式要求】',
+    '请严格按以下四段结构输出，不要合并：',
+    '1. 标题：给出 3 个可选标题',
+    '2. 开头钩子：给出 1 段适合开场前 3 秒的钩子',
+    '3. 正文：给出完整脚本正文，按自然口播/叙事节奏展开',
+    '4. 结尾CTA：给出 1 段明确的收口与行动引导',
+    '',
     '要求：严格基于预设，不要擅自编造产品事实；若关键信息缺失，先列出缺失项再给保守版脚本。',
   ].join('\n');
 };
@@ -226,6 +233,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
               {showVideoPreset ? '收起' : '展开'}
             </button>
           </div>
+          <p className="mb-3 text-[11px] text-muted-foreground">输出将按「标题 / 开头钩子 / 正文 / 结尾 CTA」四段结构生成。</p>
           {showVideoPreset && (
             <div className="grid gap-2 md:grid-cols-2">
               <label className="grid gap-1 md:col-span-2">
