@@ -90,6 +90,9 @@ export interface AppSettings {
   defaultTextModel: string;
   defaultImageModel: string;
   defaultEmbeddingModel: string;
+  rerankEnabled: boolean;
+  rerankModel: string;
+  rerankTopK: number;
   temperature: number;
   maxTokens: number;
   stream: boolean;

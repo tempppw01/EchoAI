@@ -86,11 +86,8 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
         ))}
       </Tabs.List>
 
-      <Tabs.Content value="model" className="space-y-2 text-sm">
-        <Input
-          placeholder="OpenAI 兼容 Base URL"
-          {...form.register('baseUrl')}
-        />
+      <Tabs.Content value="model" className="space-y-3 text-sm">
+        <Input placeholder="OpenAI 兼容 Base URL" {...form.register('baseUrl')} />
         <Input
           placeholder="API Key"
           type="password"
@@ -107,11 +104,12 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
           <p>已持久化模型：{modelCatalog.length}</p>
           <p className="mt-1 max-h-20 overflow-y-auto break-all">{modelCatalog.length ? modelCatalog.join('、') : '暂无，请点击“拉取模型列表”'}</p>
         </div>
-        <div className="grid gap-2 md:grid-cols-1 xl:grid-cols-3">
+
+        <div className="grid gap-3 xl:grid-cols-3">
           <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
             默认文本模型
             <select
-              className="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm text-foreground"
+              className="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm text-foreground"
               value={form.watch('defaultTextModel')}
               onChange={(event) => {
                 form.setValue('defaultTextModel', event.target.value, { shouldDirty: true });
@@ -126,7 +124,7 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
           <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
             默认绘图模型
             <select
-              className="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm text-foreground"
+              className="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm text-foreground"
               value={form.watch('defaultImageModel')}
               onChange={(event) => {
                 form.setValue('defaultImageModel', event.target.value, { shouldDirty: true });
@@ -141,7 +139,7 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
           <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
             默认嵌入模型
             <select
-              className="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm text-foreground"
+              className="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm text-foreground"
               value={form.watch('defaultEmbeddingModel') || ''}
               onChange={(event) => {
                 form.setValue('defaultEmbeddingModel', event.target.value, { shouldDirty: true });
@@ -154,20 +152,76 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
           </label>
         </div>
 
-        <label className="grid gap-1 text-xs text-muted-foreground">
-          样本召回数量 TopK
-          <Input
-            type="number"
-            min={1}
-            max={10}
-            value={form.watch('sampleRecallTopK')}
-            onChange={(event) => {
-              const value = Number(event.target.value) || 3;
-              form.setValue('sampleRecallTopK', value, { shouldDirty: true });
-              onPersistSettings({ sampleRecallTopK: value });
-            }}
-          />
-        </label>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="grid gap-1 rounded-xl border bg-background/40 p-3 text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-foreground">样本召回数量 TopK</span>
+            <span>控制初始召回条数，建议先少量召回，再做重排序。</span>
+            <Input
+              type="number"
+              min={1}
+              max={10}
+              value={form.watch('sampleRecallTopK')}
+              onChange={(event) => {
+                const value = Number(event.target.value) || 3;
+                form.setValue('sampleRecallTopK', value, { shouldDirty: true });
+                onPersistSettings({ sampleRecallTopK: value });
+              }}
+            />
+          </label>
+
+          <div className="rounded-xl border bg-background/40 p-3 text-xs text-muted-foreground">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">重排序模型</p>
+                <p className="mt-1">把召回和重排拆开配置，后面更方便做相关性优化。</p>
+              </div>
+              <label className="flex items-center gap-2 rounded-full border px-2 py-1 text-xs">
+                <input
+                  type="checkbox"
+                  checked={form.watch('rerankEnabled')}
+                  onChange={(event) => {
+                    form.setValue('rerankEnabled', event.target.checked, { shouldDirty: true });
+                    onPersistSettings({ rerankEnabled: event.target.checked });
+                  }}
+                />
+                启用
+              </label>
+            </div>
+
+            <div className="mt-3 grid gap-3">
+              <label className="grid gap-1">
+                <span>重排序模型</span>
+                <select
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground"
+                  value={form.watch('rerankModel') || ''}
+                  onChange={(event) => {
+                    form.setValue('rerankModel', event.target.value, { shouldDirty: true });
+                    onPersistSettings({ rerankModel: event.target.value });
+                  }}
+                  disabled={modelCatalog.length === 0}
+                >
+                  {modelCatalog.length === 0 ? <option value="">请先拉取模型列表</option> : [<option key="empty" value="">未配置则跳过</option>, ...modelCatalog.map((model) => <option key={`rerank-${model}`} value={model}>{model}</option>)]}
+                </select>
+              </label>
+
+              <label className="grid gap-1">
+                <span>参与重排条数 TopK</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={form.watch('rerankTopK')}
+                  onChange={(event) => {
+                    const value = Number(event.target.value) || 3;
+                    form.setValue('rerankTopK', value, { shouldDirty: true });
+                    onPersistSettings({ rerankTopK: value });
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
         <datalist id="model-catalog">
           {modelCatalog.map((model) => (
             <option key={model} value={model} />

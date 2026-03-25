@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Bot, Copy, Download, Pencil, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, Copy, Download, Pencil, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
 import { ChatMode, ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -50,6 +50,46 @@ const formatStructuredVideoScript = (content: string) => {
     .join('\n');
 };
 
+const extractRecallSamples = (content: string) => {
+  const marker = '【召回到的示范样本】';
+  const markerIndex = content.indexOf(marker);
+  if (markerIndex === -1) {
+    return { cleanedContent: content, samples: [] as Array<{ title: string; content: string }> };
+  }
+
+  const tail = content.slice(markerIndex + marker.length);
+  const tailEndCandidates = ['【用户本次需求】', '【输出格式要求】'];
+  const endIndex = tailEndCandidates
+    .map((token) => tail.indexOf(token))
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b)[0] ?? tail.length;
+
+  const sampleBlock = tail.slice(0, endIndex).trim();
+  const afterBlock = tail.slice(endIndex).trimStart();
+  const beforeBlock = content.slice(0, markerIndex).trimEnd();
+
+  const matches = [...sampleBlock.matchAll(/样本(\d+)：([^\n]+)\n([\s\S]*?)(?=\n样本\d+：|$)/g)];
+  const samples = matches
+    .map((match) => ({
+      title: match[2].trim(),
+      content: match[3].trim(),
+    }))
+    .filter((item) => item.title || item.content);
+
+  const parts = [beforeBlock];
+  if (samples.length > 0) {
+    parts.push(`> 已折叠 ${samples.length} 条召回样本，避免干扰正文阅读。`);
+  }
+  if (afterBlock) {
+    parts.push(afterBlock);
+  }
+
+  return {
+    cleanedContent: parts.filter(Boolean).join('\n\n').trim(),
+    samples,
+  };
+};
+
 const parseVideoScriptSections = (content: string) => {
   const normalized = content.replace(/\r\n/g, '\n');
   const markers = [
@@ -70,12 +110,14 @@ const parseVideoScriptSections = (content: string) => {
 
   if (matches.length < 2) return null;
 
-  return matches.map((item, idx) => {
-    const start = item.index + item.matchText.length;
-    const end = idx + 1 < matches.length ? matches[idx + 1].index : normalized.length;
-    const body = normalized.slice(start, end).trim();
-    return { key: item.key, label: item.label, body };
-  }).filter((item) => item.body);
+  return matches
+    .map((item, idx) => {
+      const start = item.index + item.matchText.length;
+      const end = idx + 1 < matches.length ? matches[idx + 1].index : normalized.length;
+      const body = normalized.slice(start, end).trim();
+      return { key: item.key, label: item.label, body };
+    })
+    .filter((item) => item.body);
 };
 
 const parseVideoScriptVersions = (content: string) => {
@@ -88,14 +130,16 @@ const parseVideoScriptVersions = (content: string) => {
   }));
 
   if (matches.length >= 2) {
-    return matches.map((item, idx) => {
-      const start = item.index + item.matchText.length;
-      const end = idx + 1 < matches.length ? matches[idx + 1].index : normalized.length;
-      const body = normalized.slice(start, end).trim();
-      const formatted = formatStructuredVideoScript(body);
-      const sections = parseVideoScriptSections(formatted);
-      return { key: `${item.label}-${idx}`, label: item.label, body: formatted, sections };
-    }).filter((item) => item.body);
+    return matches
+      .map((item, idx) => {
+        const start = item.index + item.matchText.length;
+        const end = idx + 1 < matches.length ? matches[idx + 1].index : normalized.length;
+        const body = normalized.slice(start, end).trim();
+        const formatted = formatStructuredVideoScript(body);
+        const sections = parseVideoScriptSections(formatted);
+        return { key: `${item.label}-${idx}`, label: item.label, body: formatted, sections };
+      })
+      .filter((item) => item.body);
   }
 
   const sectionStartRegex = /(^|\n)(#{0,2}\s*)?(标题|开头钩子|正文|结尾\s*CTA|结尾CTA|缺失信息确认)[:：]?/g;
@@ -170,7 +214,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {session.mode === 'training' && (
         <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-indigo-500/10 via-cyan-500/10 to-emerald-500/10 p-4">
           <div className="mb-2 flex items-center justify-between text-sm">
@@ -206,7 +250,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
 
       {session.messages.length === 0 && session.mode !== 'image' && session.mode !== 'proImage' && (
         <div className="chat-panel p-5">
-          <h3 className="text-base font-semibold">{modeStarterMap[session.mode].title}</h3>
+          <h3 className="text-lg font-semibold tracking-tight">{modeStarterMap[session.mode].title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{modeStarterMap[session.mode].hint}</p>
         </div>
       )}
@@ -266,6 +310,36 @@ export function MessageList({ session }: { session?: ChatSession }) {
   );
 }
 
+const RecallSamplesPreview = memo(function RecallSamplesPreview({ samples }: { samples: Array<{ title: string; content: string }> }) {
+  const [open, setOpen] = useState(false);
+
+  if (samples.length === 0) return null;
+
+  return (
+    <div className="mb-3 rounded-xl border border-dashed border-white/15 bg-background/35 p-3">
+      <button type="button" className="flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpen((prev) => !prev)}>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">召回样本</p>
+          <p className="mt-1 text-sm text-muted-foreground">已折叠 {samples.length} 条参考样本，不占用正文阅读区。</p>
+        </div>
+        {open ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-3">
+          {samples.map((sample, index) => (
+            <div key={`${sample.title}-${index}`} className="rounded-xl border border-white/10 bg-background/55 p-3">
+              <p className="text-sm font-semibold">样本 {index + 1}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{sample.title}</p>
+              <p className="mt-2 line-clamp-5 whitespace-pre-wrap text-sm text-muted-foreground">{sample.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
 const MessageItem = memo(function MessageItem({
   msg,
   onEdit,
@@ -278,36 +352,54 @@ const MessageItem = memo(function MessageItem({
   onDelete: () => void;
 }) {
   const isUser = msg.role === 'user';
+  const { cleanedContent, samples } = useMemo(() => extractRecallSamples(msg.content), [msg.content]);
   const renderedMarkdown = useMemo(() => {
-    const content = msg.status === 'streaming' ? stabilizeMarkdownForStreaming(msg.content) : msg.content;
+    const content = msg.status === 'streaming' ? stabilizeMarkdownForStreaming(cleanedContent) : cleanedContent;
     return !isUser ? formatStructuredVideoScript(content) : content;
-  }, [isUser, msg.content, msg.status]);
+  }, [cleanedContent, isUser, msg.status]);
   const structuredSections = useMemo(() => (!isUser ? parseVideoScriptSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
-  const versionCards = useMemo(() => (!isUser ? parseVideoScriptVersions(msg.content) : null), [isUser, msg.content]);
+  const versionCards = useMemo(() => (!isUser ? parseVideoScriptVersions(cleanedContent) : null), [cleanedContent, isUser]);
+  const showDualCards = !isUser && versionCards && versionCards.length >= 2;
 
   return (
-    <div className={`flex items-start gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex items-start gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border"><Bot size={15} /></div>}
-      <div className={`${isUser ? 'chat-bubble-user ml-auto max-w-[88%]' : 'chat-bubble-assistant mr-auto max-w-[92%]'} p-4`}>
-        <p className="mb-2 text-xs font-medium text-muted-foreground">{isUser ? '你' : 'EchoAI 助手'}</p>
-        {versionCards && versionCards.length > 0 ? (
-          <div className="space-y-4">
-            {versionCards.map((version) => (
-              <div key={version.key} className="rounded-2xl border border-primary/20 bg-white/[0.03] p-4">
-                <p className="mb-3 text-sm font-semibold text-primary">{version.label}</p>
+      <div className={`${isUser ? 'chat-bubble-user ml-auto max-w-[88%]' : 'chat-bubble-assistant mr-auto max-w-[96%]'} p-4`}>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{isUser ? '用户输入' : 'EchoAI 助手'}</p>
+            {!isUser && <p className="mt-1 text-sm font-medium text-foreground/90">{showDualCards ? '多版本候选结果' : '生成结果'}</p>}
+          </div>
+          {msg.status === 'streaming' && <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] text-primary animate-pulse">生成中</span>}
+        </div>
+
+        <RecallSamplesPreview samples={samples} />
+
+        {showDualCards ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {versionCards.map((version, index) => (
+              <div key={version.key} className={`rounded-2xl border p-4 ${index === 0 ? 'border-primary/30 bg-primary/5 shadow-sm' : 'border-white/10 bg-white/[0.03]'}`}>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-base font-semibold tracking-tight">{version.label}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">并排候选回复，可直接对比结构和表达。</p>
+                  </div>
+                  {index === 0 && <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">推荐先看</span>}
+                </div>
+
                 {version.sections && version.sections.length > 0 ? (
                   <div className="space-y-3">
                     {version.sections.map((section) => (
                       <div key={`${version.key}-${section.key}`} className="rounded-xl border border-white/10 bg-background/40 p-3">
                         <p className="mb-2 text-sm font-semibold">{section.label}</p>
-                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                        <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
                           <ReactMarkdown>{section.body}</ReactMarkdown>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown>{version.body}</ReactMarkdown>
                   </div>
                 )}
@@ -319,23 +411,23 @@ const MessageItem = memo(function MessageItem({
             {structuredSections.map((section) => (
               <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                 <p className="mb-2 text-sm font-semibold">{section.label}</p>
-                <div className="prose prose-sm max-w-none dark:prose-invert">
+                <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
                   <ReactMarkdown>{section.body}</ReactMarkdown>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="prose prose-sm max-w-none dark:prose-invert">
+          <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
             <ReactMarkdown>{renderedMarkdown}</ReactMarkdown>
           </div>
         )}
-        <div className="mt-2 flex gap-2 text-xs opacity-70">
+
+        <div className="mt-3 flex gap-2 text-xs opacity-70">
           <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
           {isUser && <button onClick={onEdit}><Pencil size={14} /></button>}
           {isUser && <button onClick={onRetry}><RefreshCcw size={14} /></button>}
           <button onClick={onDelete}><Trash2 size={14} /></button>
-          {msg.status === 'streaming' && <span className="animate-pulse">streaming...</span>}
         </div>
       </div>
       {isUser && <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary"><UserRound size={15} /></div>}

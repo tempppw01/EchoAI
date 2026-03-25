@@ -11,6 +11,7 @@
   --primary: 250 84% 60%;
   --surface: 0 0% 100%;
   --surface-soft: 220 33% 98%;
+  --muted-foreground: 215 16% 47%;
 }
 
 .dark {
@@ -22,32 +23,82 @@
   --primary: 258 90% 66%;
   --surface: 222 40% 11%;
   --surface-soft: 223 31% 14%;
+  --muted-foreground: 215 20% 70%;
 }
 
 body { @apply bg-background text-foreground antialiased; }
 * { @apply border-border; }
 
-/* 统一的现代聊天容器风格，参考 Open WebUI 的“柔和卡片 + 轻玻璃质感” */
 .chat-panel {
   @apply rounded-2xl border shadow-sm;
   background: hsl(var(--surface) / 0.9);
   backdrop-filter: blur(10px);
 }
 
-/* 用户消息：更明显的品牌色强调 */
 .chat-bubble-user {
-  @apply rounded-2xl border border-primary/45 bg-primary/15;
   @apply rounded-2xl border border-primary/30 bg-primary/10 shadow-sm;
 }
 
-/* AI 消息：更中性的阅读区块 */
 .chat-bubble-assistant {
-  @apply rounded-2xl border border-emerald-400/30;
+  @apply rounded-2xl border border-emerald-400/30 shadow-sm;
   background: linear-gradient(180deg, hsl(var(--surface-soft) / 0.95), hsl(155 45% 96% / 0.92));
 }
 
 .dark .chat-bubble-assistant {
-  background: linear-gradient(180deg, hsl(var(--surface-soft) / 0.92), hsl(165 35% 18% / 0.9));
   @apply rounded-2xl border shadow-sm;
-  background: hsl(var(--surface-soft) / 0.9);
+  background: linear-gradient(180deg, hsl(var(--surface-soft) / 0.92), hsl(165 35% 18% / 0.9));
+}
+
+.message-markdown {
+  @apply text-[15px] leading-7 text-foreground;
+}
+
+.message-markdown h1,
+.message-markdown h2,
+.message-markdown h3,
+.message-markdown h4 {
+  @apply mt-4 mb-2 font-semibold tracking-tight text-foreground;
+}
+
+.message-markdown h1 {
+  @apply text-xl;
+}
+
+.message-markdown h2 {
+  @apply text-lg;
+}
+
+.message-markdown h3,
+.message-markdown h4 {
+  @apply text-base;
+}
+
+.message-markdown p {
+  @apply my-2 text-[15px] leading-7 text-foreground;
+}
+
+.message-markdown strong {
+  @apply font-semibold text-foreground;
+}
+
+.message-markdown ul,
+.message-markdown ol {
+  @apply my-3 pl-5;
+}
+
+.message-markdown li {
+  @apply my-1 text-[15px] leading-7;
+}
+
+.message-markdown blockquote {
+  @apply my-3 rounded-xl border-l-4 border-primary/30 bg-background/40 px-4 py-3 text-sm;
+  color: hsl(var(--muted-foreground));
+}
+
+.message-markdown code {
+  @apply rounded bg-black/5 px-1.5 py-0.5 text-[13px];
+}
+
+.dark .message-markdown code {
+  @apply bg-white/10;
 }
