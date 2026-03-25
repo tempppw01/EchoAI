@@ -288,7 +288,7 @@ function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModu
         <>
           <button className="fixed inset-0 z-40 cursor-default bg-transparent" onClick={() => setContextMenu(null)} aria-label="关闭会话菜单" />
           <div
-            className="fixed z-50 min-w-[160px] rounded-xl border bg-popover p-1 shadow-2xl"
+            className="fixed z-50 min-w-[160px] rounded-xl border border-border bg-card/100 p-1 shadow-2xl backdrop-blur-0"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
             <button

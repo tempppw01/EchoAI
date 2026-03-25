@@ -23,6 +23,33 @@ const stabilizeMarkdownForStreaming = (content: string) => {
   return stabilized;
 };
 
+const formatStructuredVideoScript = (content: string) => {
+  const sectionRules = [
+    { pattern: /^标题[:：]\s*/i, replacement: '## 标题\n' },
+    { pattern: /^开头钩子[:：]\s*/i, replacement: '## 开头钩子\n' },
+    { pattern: /^正文[:：]\s*/i, replacement: '## 正文\n' },
+    { pattern: /^结尾\s*CTA[:：]\s*/i, replacement: '## 结尾 CTA\n' },
+    { pattern: /^结尾CTA[:：]\s*/i, replacement: '## 结尾 CTA\n' },
+    { pattern: /^缺失信息确认[:：]\s*/i, replacement: '## 缺失信息确认\n' },
+  ];
+
+  return content
+    .split('\n')
+    .map((line) => {
+      const trimmed = line.trim();
+      for (const rule of sectionRules) {
+        if (rule.pattern.test(trimmed)) {
+          return trimmed.replace(rule.pattern, rule.replacement);
+        }
+      }
+      if (/^(主题|产品|人群|核心卖点|平台|语气风格|时长|镜头建议)[:：]/.test(trimmed)) {
+        return `- **${trimmed.replace(/^([^:：]+)[:：]\s*/, '$1：')}** ${trimmed.replace(/^([^:：]+)[:：]\s*/, '')}`;
+      }
+      return line;
+    })
+    .join('\n');
+};
+
 export function MessageList({ session }: { session?: ChatSession }) {
   const { retryMessage, regenerateLastAssistant, deleteMessage, editUserMessage, answerTrainingQuestion } = useChatStore();
   const apiKey = useSettingsStore((state) => state.settings.apiKey);
@@ -161,7 +188,10 @@ const MessageItem = memo(function MessageItem({
   onDelete: () => void;
 }) {
   const isUser = msg.role === 'user';
-  const renderedMarkdown = useMemo(() => (msg.status === 'streaming' ? stabilizeMarkdownForStreaming(msg.content) : msg.content), [msg.content, msg.status]);
+  const renderedMarkdown = useMemo(() => {
+    const content = msg.status === 'streaming' ? stabilizeMarkdownForStreaming(msg.content) : msg.content;
+    return !isUser ? formatStructuredVideoScript(content) : content;
+  }, [isUser, msg.content, msg.status]);
 
   return (
     <div className={`flex items-start gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
