@@ -14,6 +14,7 @@ export interface VideoScriptPreset {
   topic?: string;
   productName?: string;
   targetAudience?: string;
+  contentType?: string;
   coreSellingPoints?: string;
   toneStyle?: string;
   platform?: string;

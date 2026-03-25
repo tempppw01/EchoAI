@@ -32,6 +32,7 @@ const defaultVideoScriptPreset: VideoScriptPreset = {
   topic: '',
   productName: '',
   targetAudience: '',
+  contentType: '口播',
   coreSellingPoints: '',
   toneStyle: '',
   platform: '',
@@ -59,10 +60,21 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
           ? '时长策略：按60秒短视频输出，结构要完整，包含开头钩子、观点展开、卖点说明和结尾CTA。'
           : '时长策略：按90秒短视频输出，允许更完整的背景铺垫、对比论证、案例补充和更自然的收尾转化。';
 
+  const contentType = (preset.contentType || '口播').trim();
+  const contentTypeStrategy =
+    contentType === '剧情'
+      ? '内容类型策略：按剧情短视频输出，强调人物关系、场景冲突、转折和代入感。'
+      : contentType === '解说'
+        ? '内容类型策略：按解说型视频输出，强调观点清晰、解释顺序明确、信息表达稳定。'
+        : contentType === '混剪文案'
+          ? '内容类型策略：按混剪文案输出，强调短句、画面切换感、字幕节奏和片段拼接适配。'
+          : '内容类型策略：按口播视频输出，强调人直接说、表达自然、节奏清晰。';
+
   const lines = [
     `主题/选题：${preset.topic || '未填写'}`,
     `产品/服务：${preset.productName || '未填写'}`,
     `目标人群：${preset.targetAudience || '未填写'}`,
+    `内容类型：${contentType}`,
     `核心卖点：${preset.coreSellingPoints || '未填写'}`,
     `语气风格：${preset.toneStyle || '未填写'}`,
     `发布平台：${preset.platform || '未填写'}`,
@@ -71,6 +83,7 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
     `避免内容：${preset.avoid || '无'}`,
     platformStrategy,
     durationStrategy,
+    contentTypeStrategy,
   ];
 
   return [
@@ -226,6 +239,19 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
               <label className="grid gap-1">
                 <span className="text-muted-foreground">目标人群</span>
                 <Input value={videoPreset.targetAudience || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, targetAudience: e.target.value }))} placeholder="例如：工厂采购负责人" />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-muted-foreground">内容类型</span>
+                <select
+                  className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
+                  value={videoPreset.contentType || '口播'}
+                  onChange={(e) => setVideoPreset((prev) => ({ ...prev, contentType: e.target.value }))}
+                >
+                  <option value="口播">口播</option>
+                  <option value="剧情">剧情</option>
+                  <option value="解说">解说</option>
+                  <option value="混剪文案">混剪文案</option>
+                </select>
               </label>
               <label className="grid gap-1 md:col-span-2">
                 <span className="text-muted-foreground">核心卖点</span>
