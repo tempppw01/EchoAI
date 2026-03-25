@@ -41,6 +41,14 @@ const defaultVideoScriptPreset: VideoScriptPreset = {
 };
 
 const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: string) => {
+  const normalizedPlatform = (preset.platform || '').trim();
+  const platformStrategy =
+    normalizedPlatform === '抖音'
+      ? '平台策略：按抖音风格输出，强调前3秒钩子、快节奏、强情绪推进、短句表达和更直接的行动号召。'
+      : normalizedPlatform === '视频号'
+        ? '平台策略：按视频号风格输出，强调可信、稳重、节奏适中、信息完整和更自然的转化表达。'
+        : '平台策略：若未明确平台，请输出兼顾传播效率与可信度的通用短视频脚本。';
+
   const lines = [
     `主题/选题：${preset.topic || '未填写'}`,
     `产品/服务：${preset.productName || '未填写'}`,
@@ -51,6 +59,7 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
     `时长（秒）：${preset.durationSec || 60}`,
     `必须包含：${preset.mustInclude || '无'}`,
     `避免内容：${preset.avoid || '无'}`,
+    platformStrategy,
   ];
 
   return [
@@ -217,7 +226,15 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
               </label>
               <label className="grid gap-1">
                 <span className="text-muted-foreground">发布平台</span>
-                <Input value={videoPreset.platform || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, platform: e.target.value }))} placeholder="例如：抖音 / 视频号" />
+                <select
+                  className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
+                  value={videoPreset.platform || ''}
+                  onChange={(e) => setVideoPreset((prev) => ({ ...prev, platform: e.target.value }))}
+                >
+                  <option value="">请选择平台</option>
+                  <option value="抖音">抖音</option>
+                  <option value="视频号">视频号</option>
+                </select>
               </label>
               <label className="grid gap-1">
                 <span className="text-muted-foreground">时长（秒）</span>
