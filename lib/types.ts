@@ -11,6 +11,7 @@ export interface ChatMessage {
 }
 
 export interface VideoScriptPreset {
+  topic?: string;
   productName?: string;
   targetAudience?: string;
   coreSellingPoints?: string;

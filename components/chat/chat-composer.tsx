@@ -29,6 +29,7 @@ const readAsDataUrl = (file: File) =>
   });
 
 const defaultVideoScriptPreset: VideoScriptPreset = {
+  topic: '',
   productName: '',
   targetAudience: '',
   coreSellingPoints: '',
@@ -41,6 +42,7 @@ const defaultVideoScriptPreset: VideoScriptPreset = {
 
 const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: string) => {
   const lines = [
+    `主题/选题：${preset.topic || '未填写'}`,
     `产品/服务：${preset.productName || '未填写'}`,
     `目标人群：${preset.targetAudience || '未填写'}`,
     `核心卖点：${preset.coreSellingPoints || '未填写'}`,
@@ -193,6 +195,10 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           </div>
           {showVideoPreset && (
             <div className="grid gap-2 md:grid-cols-2">
+              <label className="grid gap-1 md:col-span-2">
+                <span className="text-muted-foreground">主题 / 选题</span>
+                <Input value={videoPreset.topic || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, topic: e.target.value }))} placeholder="例如：为什么越来越多工厂改用金属卡板？" />
+              </label>
               <label className="grid gap-1">
                 <span className="text-muted-foreground">产品/服务</span>
                 <Input value={videoPreset.productName || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, productName: e.target.value }))} placeholder="例如：金属卡板" />
