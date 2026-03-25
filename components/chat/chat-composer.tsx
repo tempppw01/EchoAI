@@ -33,6 +33,7 @@ const defaultVideoScriptPreset: VideoScriptPreset = {
   productName: '',
   targetAudience: '',
   contentType: '口播',
+  versionCount: 1,
   coreSellingPoints: '',
   toneStyle: '',
   platform: '',
@@ -70,11 +71,15 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
           ? '内容类型策略：按混剪文案输出，强调短句、画面切换感、字幕节奏和片段拼接适配。'
           : '内容类型策略：按口播视频输出，强调人直接说、表达自然、节奏清晰。';
 
+  const versionCount = Math.min(Math.max(preset.versionCount || 1, 1), 3);
+  const versionStrategy = versionCount > 1 ? `版本策略：请一次输出 ${versionCount} 个不同角度的脚本版本，每个版本都要完整包含标题、开头钩子、正文、结尾 CTA。` : '版本策略：先输出 1 个最稳妥的脚本版本。';
+
   const lines = [
     `主题/选题：${preset.topic || '未填写'}`,
     `产品/服务：${preset.productName || '未填写'}`,
     `目标人群：${preset.targetAudience || '未填写'}`,
     `内容类型：${contentType}`,
+    `脚本版本数：${versionCount}`,
     `核心卖点：${preset.coreSellingPoints || '未填写'}`,
     `语气风格：${preset.toneStyle || '未填写'}`,
     `发布平台：${preset.platform || '未填写'}`,
@@ -84,6 +89,7 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
     platformStrategy,
     durationStrategy,
     contentTypeStrategy,
+    versionStrategy,
   ];
 
   return [
@@ -259,6 +265,18 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                   <option value="剧情">剧情</option>
                   <option value="解说">解说</option>
                   <option value="混剪文案">混剪文案</option>
+                </select>
+              </label>
+              <label className="grid gap-1">
+                <span className="text-muted-foreground">脚本版本数</span>
+                <select
+                  className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
+                  value={String(videoPreset.versionCount || 1)}
+                  onChange={(e) => setVideoPreset((prev) => ({ ...prev, versionCount: Number(e.target.value) || 1 }))}
+                >
+                  <option value="1">1 个版本</option>
+                  <option value="2">2 个版本</option>
+                  <option value="3">3 个版本</option>
                 </select>
               </label>
               <label className="grid gap-1 md:col-span-2">
