@@ -87,16 +87,57 @@ const parseVideoScriptVersions = (content: string) => {
     matchText: match[0],
   }));
 
-  if (matches.length < 2) return null;
+  if (matches.length >= 2) {
+    return matches.map((item, idx) => {
+      const start = item.index + item.matchText.length;
+      const end = idx + 1 < matches.length ? matches[idx + 1].index : normalized.length;
+      const body = normalized.slice(start, end).trim();
+      const formatted = formatStructuredVideoScript(body);
+      const sections = parseVideoScriptSections(formatted);
+      return { key: `${item.label}-${idx}`, label: item.label, body: formatted, sections };
+    }).filter((item) => item.body);
+  }
 
-  return matches.map((item, idx) => {
-    const start = item.index + item.matchText.length;
-    const end = idx + 1 < matches.length ? matches[idx + 1].index : normalized.length;
-    const body = normalized.slice(start, end).trim();
-    const formatted = formatStructuredVideoScript(body);
-    const sections = parseVideoScriptSections(formatted);
-    return { key: `${item.label}-${idx}`, label: item.label, body: formatted, sections };
-  }).filter((item) => item.body);
+  const sectionStartRegex = /(^|\n)(#{0,2}\s*)?(标题|开头钩子|正文|结尾\s*CTA|结尾CTA|缺失信息确认)[:：]?/g;
+  const rawMatches = [...normalized.matchAll(sectionStartRegex)];
+  if (rawMatches.length < 8) return null;
+
+  const blocks: Array<{ label: string; body: string; key: string; sections: ReturnType<typeof parseVideoScriptSections> }> = [];
+  let buffer: string[] = [];
+  let titleCount = 0;
+
+  for (const line of normalized.split('\n')) {
+    if (/^#{0,2}\s*标题[:：]?/i.test(line.trim()) && buffer.length > 0) {
+      const body = buffer.join('\n').trim();
+      if (body) {
+        titleCount += 1;
+        const formatted = formatStructuredVideoScript(body);
+        blocks.push({
+          key: `版本 ${titleCount}-${blocks.length}`,
+          label: `版本 ${titleCount}`,
+          body: formatted,
+          sections: parseVideoScriptSections(formatted),
+        });
+      }
+      buffer = [line];
+    } else {
+      buffer.push(line);
+    }
+  }
+
+  const tail = buffer.join('\n').trim();
+  if (tail) {
+    titleCount += 1;
+    const formatted = formatStructuredVideoScript(tail);
+    blocks.push({
+      key: `版本 ${titleCount}-${blocks.length}`,
+      label: `版本 ${titleCount}`,
+      body: formatted,
+      sections: parseVideoScriptSections(formatted),
+    });
+  }
+
+  return blocks.length >= 2 ? blocks : null;
 };
 
 export function MessageList({ session }: { session?: ChatSession }) {

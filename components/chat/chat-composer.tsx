@@ -72,7 +72,9 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
           : '内容类型策略：按口播视频输出，强调人直接说、表达自然、节奏清晰。';
 
   const versionCount = Math.min(Math.max(preset.versionCount || 1, 1), 3);
-  const versionStrategy = versionCount > 1 ? `版本策略：请一次输出 ${versionCount} 个不同角度的脚本版本，每个版本都要完整包含标题、开头钩子、正文、结尾 CTA。` : '版本策略：先输出 1 个最稳妥的脚本版本。';
+  const versionStrategy = versionCount > 1
+    ? `版本策略：请一次输出 ${versionCount} 个不同角度的脚本版本。必须严格使用“版本1 / 版本2 / 版本3”作为每个版本的起始标题，每个版本下都要完整包含标题、开头钩子、正文、结尾 CTA。`
+    : '版本策略：先输出 1 个最稳妥的脚本版本。';
 
   const lines = [
     `主题/选题：${preset.topic || '未填写'}`,
@@ -101,6 +103,18 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
     '',
     '【输出格式要求】',
     '请严格按以下四段结构输出，不要合并：',
+    '当脚本版本数大于 1 时，必须按如下格式输出：',
+    '版本1',
+    '标题：...',
+    '开头钩子：...',
+    '正文：...',
+    '结尾CTA：...',
+    '版本2',
+    '标题：...',
+    '开头钩子：...',
+    '正文：...',
+    '结尾CTA：...',
+    '不要把多个版本写进同一个“标题/正文”区块里。',
     '1. 标题：给出 3 个可选标题',
     '2. 开头钩子：给出 1 段适合开场前 3 秒的钩子',
     '3. 正文：给出完整脚本正文，按自然口播/叙事节奏展开',
