@@ -16,6 +16,12 @@ type ChatCompletionResponse = {
   choices?: ChatCompletionChoice[];
 };
 
+type EmbeddingResponse = {
+  data?: Array<{
+    embedding?: number[];
+  }>;
+};
+
 export async function requestOpenAICompatible(params: {
   settings: AppSettings;
   model: string;
@@ -56,6 +62,44 @@ export async function requestOpenAICompatible(params: {
   }
 
   return content;
+}
+
+export async function requestEmbeddingVector(params: {
+  settings: AppSettings;
+  model: string;
+  input: string;
+}) {
+  const { settings, model, input } = params;
+  const apiKey = settings.apiKey?.trim();
+  if (!apiKey) {
+    throw new Error('请先在设置中心填写 API Key');
+  }
+
+  const url = `${normalizeOpenAIBaseUrl(settings.baseUrl)}/embeddings`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      input,
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`嵌入请求失败（${response.status}）：${message || '未知错误'}`);
+  }
+
+  const data = (await response.json()) as EmbeddingResponse;
+  const embedding = data.data?.[0]?.embedding;
+  if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
+    throw new Error('嵌入模型未返回有效向量');
+  }
+
+  return embedding;
 }
 
 export const toOpenAIMessages = (messages: ChatMessage[]): OpenAICompatibleMessage[] =>

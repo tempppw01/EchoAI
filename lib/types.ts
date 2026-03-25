@@ -113,6 +113,9 @@ export interface SampleLibraryItem {
   size?: number;
   textContent: string;
   summary: string;
+  embeddingVector?: number[];
+  embeddingModel?: string;
+  embeddingUpdatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

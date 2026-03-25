@@ -224,7 +224,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   };
 
   // 统一发送逻辑：复用已有会话，不存在时按当前 mode 创建新会话。
-  const onSend = () => {
+  const onSend = async () => {
     if (!value.trim() && attachments.length === 0) return;
 
     let sid = activeSession?.id;
@@ -258,7 +258,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         videoPreset.coreSellingPoints || '',
         contentToSend,
       ].filter(Boolean).join('\n');
-      const recalledSamples = getRelevantSamples(recallQuery, settings.sampleRecallTopK).map((item) => ({
+      const recalledSamples = (await getRelevantSamples(recallQuery, settings.sampleRecallTopK)).map((item) => ({
         title: item.title,
         content: item.textContent.slice(0, 1500),
       }));
