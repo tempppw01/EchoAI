@@ -50,6 +50,34 @@ const formatStructuredVideoScript = (content: string) => {
     .join('\n');
 };
 
+const parseVideoScriptSections = (content: string) => {
+  const normalized = content.replace(/\r\n/g, '\n');
+  const markers = [
+    { key: 'title', label: '标题', regex: /^#{0,2}\s*标题[:：]?/im },
+    { key: 'hook', label: '开头钩子', regex: /^#{0,2}\s*开头钩子[:：]?/im },
+    { key: 'body', label: '正文', regex: /^#{0,2}\s*正文[:：]?/im },
+    { key: 'cta', label: '结尾 CTA', regex: /^#{0,2}\s*结尾\s*CTA[:：]?/im },
+    { key: 'missing', label: '缺失信息确认', regex: /^#{0,2}\s*缺失信息确认[:：]?/im },
+  ] as const;
+
+  const matches = markers
+    .map((item) => {
+      const match = normalized.match(item.regex);
+      return match?.index !== undefined ? { ...item, index: match.index, matchText: match[0] } : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .sort((a, b) => a.index - b.index);
+
+  if (matches.length < 2) return null;
+
+  return matches.map((item, idx) => {
+    const start = item.index + item.matchText.length;
+    const end = idx + 1 < matches.length ? matches[idx + 1].index : normalized.length;
+    const body = normalized.slice(start, end).trim();
+    return { key: item.key, label: item.label, body };
+  }).filter((item) => item.body);
+};
+
 export function MessageList({ session }: { session?: ChatSession }) {
   const { retryMessage, regenerateLastAssistant, deleteMessage, editUserMessage, answerTrainingQuestion } = useChatStore();
   const apiKey = useSettingsStore((state) => state.settings.apiKey);
@@ -192,15 +220,29 @@ const MessageItem = memo(function MessageItem({
     const content = msg.status === 'streaming' ? stabilizeMarkdownForStreaming(msg.content) : msg.content;
     return !isUser ? formatStructuredVideoScript(content) : content;
   }, [isUser, msg.content, msg.status]);
+  const structuredSections = useMemo(() => (!isUser ? parseVideoScriptSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
 
   return (
     <div className={`flex items-start gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border"><Bot size={15} /></div>}
       <div className={`${isUser ? 'chat-bubble-user ml-auto max-w-[88%]' : 'chat-bubble-assistant mr-auto max-w-[92%]'} p-4`}>
         <p className="mb-2 text-xs font-medium text-muted-foreground">{isUser ? '你' : 'EchoAI 助手'}</p>
-        <div className="prose prose-sm max-w-none dark:prose-invert">
-          <ReactMarkdown>{renderedMarkdown}</ReactMarkdown>
-        </div>
+        {structuredSections && structuredSections.length > 0 ? (
+          <div className="space-y-3">
+            {structuredSections.map((section) => (
+              <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="mb-2 text-sm font-semibold">{section.label}</p>
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>{section.body}</ReactMarkdown>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <ReactMarkdown>{renderedMarkdown}</ReactMarkdown>
+          </div>
+        )}
         <div className="mt-2 flex gap-2 text-xs opacity-70">
           <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
           {isUser && <button onClick={onEdit}><Pencil size={14} /></button>}
