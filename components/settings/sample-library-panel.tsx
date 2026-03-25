@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, useRef, useState } from 'react';
-import { FileText, Trash2, Upload } from 'lucide-react';
+import { CheckCircle2, FileText, RefreshCcw, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSampleLibraryStore } from '@/stores/sample-library-store';
@@ -16,10 +16,11 @@ const readFileAsText = (file: File) =>
 
 export function SampleLibraryPanel() {
   const fileRef = useRef<HTMLInputElement>(null);
-  const { items, addTextSample, addFileSample, deleteSample } = useSampleLibraryStore();
+  const { items, addTextSample, addFileSample, deleteSample, ensureEmbeddingForItem } = useSampleLibraryStore();
   const [title, setTitle] = useState('');
   const [textContent, setTextContent] = useState('');
   const [notice, setNotice] = useState('');
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
 
   const showNotice = (message: string) => {
     setNotice(message);
@@ -43,6 +44,16 @@ export function SampleLibraryPanel() {
       showNotice('文件样本已加入样本库');
     } catch {
       showNotice('文件读取失败，请换 txt / md / json 等文本文件');
+    }
+  };
+
+  const refreshEmbedding = async (id: string) => {
+    setRefreshingId(id);
+    try {
+      await ensureEmbeddingForItem(id);
+      showNotice('嵌入状态已刷新');
+    } finally {
+      setRefreshingId(null);
     }
   };
 
@@ -108,11 +119,40 @@ export function SampleLibraryPanel() {
                       {item.sourceType === 'file' ? `文件：${item.filename || '-'} · ` : '文本样本 · '}
                       {item.contentType}
                     </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                      {item.embeddingVector?.length ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-300">
+                          <CheckCircle2 size={12} /> 已嵌入
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
+                          未嵌入
+                        </span>
+                      )}
+                      <span className="rounded-full border border-border/60 bg-background/60 px-2 py-1 text-muted-foreground">
+                        模型：{item.embeddingModel || '未生成'}
+                      </span>
+                      {item.embeddingUpdatedAt && (
+                        <span className="rounded-full border border-border/60 bg-background/60 px-2 py-1 text-muted-foreground">
+                          更新时间：{new Date(item.embeddingUpdatedAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">{item.summary || '暂无摘要'}</p>
                   </div>
-                  <Button type="button" className="bg-transparent text-foreground" onClick={() => deleteSample(item.id)}>
-                    <Trash2 size={14} />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      className="bg-transparent text-foreground"
+                      onClick={() => refreshEmbedding(item.id)}
+                      disabled={refreshingId === item.id}
+                    >
+                      <RefreshCcw size={14} className={refreshingId === item.id ? 'animate-spin' : ''} />
+                    </Button>
+                    <Button type="button" className="bg-transparent text-foreground" onClick={() => deleteSample(item.id)}>
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))
