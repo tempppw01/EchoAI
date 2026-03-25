@@ -119,6 +119,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [showOptions, setShowOptions] = useState(false);
   const [showVideoPreset, setShowVideoPreset] = useState(false);
   const [videoPreset, setVideoPreset] = useState<VideoScriptPreset>(defaultVideoScriptPreset);
+  const [videoTaskType, setVideoTaskType] = useState<'script' | 'viral-analysis'>('script');
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -204,7 +205,20 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
     let contentToSend = value.trim();
 
-    if (mode === 'videoScript' && hasVideoPresetInput) {
+    if (mode === 'videoScript' && videoTaskType === 'viral-analysis') {
+      contentToSend = [
+        '【爆款文案分析任务】',
+        '请分析下面这段爆款文案，输出：',
+        '1. 钩子结构',
+        '2. 冲突 / 观点推进',
+        '3. 结尾转化结构',
+        '4. 高频句式 / 金句',
+        '5. 情绪词 / 节奏词',
+        '6. 可复用的结构模板',
+        '',
+        value.trim(),
+      ].join('\n');
+    } else if (mode === 'videoScript' && hasVideoPresetInput) {
       updateSession(sid, { videoScriptPreset: { ...videoPreset } });
       contentToSend = buildVideoScriptPromptWithPreset(videoPreset, contentToSend);
     }
@@ -233,93 +247,106 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
       {mode === 'videoScript' && (
         <div className="mb-2 rounded-xl border bg-background/70 p-3 text-xs">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="font-medium">视频脚本预设</span>
-            <button className="text-muted-foreground" onClick={() => setShowVideoPreset((prev) => !prev)}>
-              {showVideoPreset ? '收起' : '展开'}
-            </button>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <Button className={videoTaskType === 'script' ? 'h-8 text-xs' : 'h-8 bg-transparent text-foreground text-xs'} onClick={() => setVideoTaskType('script')}>脚本生成</Button>
+            <Button className={videoTaskType === 'viral-analysis' ? 'h-8 text-xs' : 'h-8 bg-transparent text-foreground text-xs'} onClick={() => setVideoTaskType('viral-analysis')}>爆款文案分析</Button>
           </div>
-          <p className="mb-3 text-[11px] text-muted-foreground">输出将按「标题 / 开头钩子 / 正文 / 结尾 CTA」四段结构生成。</p>
-          {showVideoPreset && (
-            <div className="grid gap-2 md:grid-cols-2">
-              <label className="grid gap-1 md:col-span-2">
-                <span className="text-muted-foreground">主题 / 选题</span>
-                <Input value={videoPreset.topic || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, topic: e.target.value }))} placeholder="例如：为什么越来越多工厂改用金属卡板？" />
-              </label>
-              <label className="grid gap-1">
-                <span className="text-muted-foreground">产品/服务</span>
-                <Input value={videoPreset.productName || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, productName: e.target.value }))} placeholder="例如：金属卡板" />
-              </label>
-              <label className="grid gap-1">
-                <span className="text-muted-foreground">目标人群</span>
-                <Input value={videoPreset.targetAudience || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, targetAudience: e.target.value }))} placeholder="例如：工厂采购负责人" />
-              </label>
-              <label className="grid gap-1">
-                <span className="text-muted-foreground">内容类型</span>
-                <select
-                  className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
-                  value={videoPreset.contentType || '口播'}
-                  onChange={(e) => setVideoPreset((prev) => ({ ...prev, contentType: e.target.value }))}
-                >
-                  <option value="口播">口播</option>
-                  <option value="剧情">剧情</option>
-                  <option value="解说">解说</option>
-                  <option value="混剪文案">混剪文案</option>
-                </select>
-              </label>
-              <label className="grid gap-1">
-                <span className="text-muted-foreground">脚本版本数</span>
-                <select
-                  className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
-                  value={String(videoPreset.versionCount || 1)}
-                  onChange={(e) => setVideoPreset((prev) => ({ ...prev, versionCount: Number(e.target.value) || 1 }))}
-                >
-                  <option value="1">1 个版本</option>
-                  <option value="2">2 个版本</option>
-                  <option value="3">3 个版本</option>
-                </select>
-              </label>
-              <label className="grid gap-1 md:col-span-2">
-                <span className="text-muted-foreground">核心卖点</span>
-                <Input value={videoPreset.coreSellingPoints || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, coreSellingPoints: e.target.value }))} placeholder="例如：耐用、可循环、长期成本低" />
-              </label>
-              <label className="grid gap-1">
-                <span className="text-muted-foreground">语气风格</span>
-                <Input value={videoPreset.toneStyle || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, toneStyle: e.target.value }))} placeholder="例如：专业、直接、有对比" />
-              </label>
-              <label className="grid gap-1">
-                <span className="text-muted-foreground">发布平台</span>
-                <select
-                  className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
-                  value={videoPreset.platform || ''}
-                  onChange={(e) => setVideoPreset((prev) => ({ ...prev, platform: e.target.value }))}
-                >
-                  <option value="">请选择平台</option>
-                  <option value="抖音">抖音</option>
-                  <option value="视频号">视频号</option>
-                </select>
-              </label>
-              <label className="grid gap-1">
-                <span className="text-muted-foreground">时长（秒）</span>
-                <select
-                  className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
-                  value={String(videoPreset.durationSec || 60)}
-                  onChange={(e) => setVideoPreset((prev) => ({ ...prev, durationSec: Number(e.target.value) || 60 }))}
-                >
-                  <option value="15">15 秒</option>
-                  <option value="30">30 秒</option>
-                  <option value="60">60 秒</option>
-                  <option value="90">90 秒</option>
-                </select>
-              </label>
-              <label className="grid gap-1 md:col-span-2">
-                <span className="text-muted-foreground">必须包含</span>
-                <Input value={videoPreset.mustInclude || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, mustInclude: e.target.value }))} placeholder="例如：运镜、成本对比、行动号召" />
-              </label>
-              <label className="grid gap-1 md:col-span-2">
-                <span className="text-muted-foreground">避免内容</span>
-                <Input value={videoPreset.avoid || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, avoid: e.target.value }))} placeholder="例如：绝对化承诺、虚构参数" />
-              </label>
+          {videoTaskType === 'script' && (
+            <>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-medium">视频脚本预设</span>
+                <button className="text-muted-foreground" onClick={() => setShowVideoPreset((prev) => !prev)}>
+                  {showVideoPreset ? '收起' : '展开'}
+                </button>
+              </div>
+              <p className="mb-3 text-[11px] text-muted-foreground">输出将按「标题 / 开头钩子 / 正文 / 结尾 CTA」四段结构生成。</p>
+              {showVideoPreset && (
+                <div className="grid gap-2 md:grid-cols-2">
+                  <label className="grid gap-1 md:col-span-2">
+                    <span className="text-muted-foreground">主题 / 选题</span>
+                    <Input value={videoPreset.topic || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, topic: e.target.value }))} placeholder="例如：为什么越来越多工厂改用金属卡板？" />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-muted-foreground">产品/服务</span>
+                    <Input value={videoPreset.productName || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, productName: e.target.value }))} placeholder="例如：金属卡板" />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-muted-foreground">目标人群</span>
+                    <Input value={videoPreset.targetAudience || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, targetAudience: e.target.value }))} placeholder="例如：工厂采购负责人" />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-muted-foreground">内容类型</span>
+                    <select
+                      className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
+                      value={videoPreset.contentType || '口播'}
+                      onChange={(e) => setVideoPreset((prev) => ({ ...prev, contentType: e.target.value }))}
+                    >
+                      <option value="口播">口播</option>
+                      <option value="剧情">剧情</option>
+                      <option value="解说">解说</option>
+                      <option value="混剪文案">混剪文案</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-muted-foreground">脚本版本数</span>
+                    <select
+                      className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
+                      value={String(videoPreset.versionCount || 1)}
+                      onChange={(e) => setVideoPreset((prev) => ({ ...prev, versionCount: Number(e.target.value) || 1 }))}
+                    >
+                      <option value="1">1 个版本</option>
+                      <option value="2">2 个版本</option>
+                      <option value="3">3 个版本</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1 md:col-span-2">
+                    <span className="text-muted-foreground">核心卖点</span>
+                    <Input value={videoPreset.coreSellingPoints || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, coreSellingPoints: e.target.value }))} placeholder="例如：耐用、可循环、长期成本低" />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-muted-foreground">语气风格</span>
+                    <Input value={videoPreset.toneStyle || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, toneStyle: e.target.value }))} placeholder="例如：专业、直接、有对比" />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-muted-foreground">发布平台</span>
+                    <select
+                      className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
+                      value={videoPreset.platform || ''}
+                      onChange={(e) => setVideoPreset((prev) => ({ ...prev, platform: e.target.value }))}
+                    >
+                      <option value="">请选择平台</option>
+                      <option value="抖音">抖音</option>
+                      <option value="视频号">视频号</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-muted-foreground">时长（秒）</span>
+                    <select
+                      className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
+                      value={String(videoPreset.durationSec || 60)}
+                      onChange={(e) => setVideoPreset((prev) => ({ ...prev, durationSec: Number(e.target.value) || 60 }))}
+                    >
+                      <option value="15">15 秒</option>
+                      <option value="30">30 秒</option>
+                      <option value="60">60 秒</option>
+                      <option value="90">90 秒</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1 md:col-span-2">
+                    <span className="text-muted-foreground">必须包含</span>
+                    <Input value={videoPreset.mustInclude || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, mustInclude: e.target.value }))} placeholder="例如：运镜、成本对比、行动号召" />
+                  </label>
+                  <label className="grid gap-1 md:col-span-2">
+                    <span className="text-muted-foreground">避免内容</span>
+                    <Input value={videoPreset.avoid || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, avoid: e.target.value }))} placeholder="例如：绝对化承诺、虚构参数" />
+                  </label>
+                </div>
+              )}
+            </>
+          )}
+          {videoTaskType === 'viral-analysis' && (
+            <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-3 text-[12px] text-muted-foreground">
+              直接粘贴爆款文案内容后发送，系统会自动分析钩子结构、观点推进、结尾转化、高频句式与可复用模板。
             </div>
           )}
         </div>
