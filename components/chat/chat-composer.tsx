@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ChatMode, VideoScriptPreset } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
+import { useSampleLibraryStore } from '@/stores/sample-library-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -42,7 +43,7 @@ const defaultVideoScriptPreset: VideoScriptPreset = {
   avoid: '',
 };
 
-const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: string) => {
+const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: string, recalledSamples: Array<{ title: string; content: string }> = []) => {
   const normalizedPlatform = (preset.platform || '').trim();
   const platformStrategy =
     normalizedPlatform === '抖音'
@@ -94,10 +95,24 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
     versionStrategy,
   ];
 
+  const sampleBlock = recalledSamples.length > 0
+    ? [
+        '【召回到的示范样本】',
+        ...recalledSamples.flatMap((sample, index) => [
+          `样本${index + 1}：${sample.title}`,
+          sample.content,
+          '',
+        ]),
+        '请参考这些样本的表达方式、结构节奏和信息组织，但不要照抄原文，不要虚构事实。',
+        '',
+      ]
+    : [];
+
   return [
     '【视频脚本预设信息】',
     ...lines,
     '',
+    ...sampleBlock,
     '【用户本次需求】',
     userInput || '请基于以上预设，先给出一版可直接拍摄的脚本。',
     '',
@@ -151,6 +166,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     })),
   );
   const { settings, setSettings } = useSettingsStore();
+  const getRelevantSamples = useSampleLibraryStore((state) => state.getRelevantSamples);
 
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
   const isGenerating = !!activeSession?.id && generatingSessionIds.includes(activeSession.id);
@@ -235,7 +251,18 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       ].join('\n');
     } else if (mode === 'videoScript' && hasVideoPresetInput) {
       updateSession(sid, { videoScriptPreset: { ...videoPreset } });
-      contentToSend = buildVideoScriptPromptWithPreset(videoPreset, contentToSend);
+      const recallQuery = [
+        videoPreset.topic || '',
+        videoPreset.productName || '',
+        videoPreset.targetAudience || '',
+        videoPreset.coreSellingPoints || '',
+        contentToSend,
+      ].filter(Boolean).join('\n');
+      const recalledSamples = getRelevantSamples(recallQuery, settings.sampleRecallTopK).map((item) => ({
+        title: item.title,
+        content: item.textContent.slice(0, 1500),
+      }));
+      contentToSend = buildVideoScriptPromptWithPreset(videoPreset, contentToSend, recalledSamples);
     }
 
     const finalContent = [contentToSend, attachmentText].filter(Boolean).join('\n\n');
