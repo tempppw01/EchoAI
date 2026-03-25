@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { Loader2, RefreshCcw } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
+import { SampleLibraryPanel } from '@/components/settings/sample-library-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { fetchModelCatalog } from '@/lib/model-service';
@@ -15,6 +16,7 @@ interface SettingsTabsProps {
 
 const tabs = [
   { value: 'model', label: '模型设置' },
+  { value: 'samples', label: '示范样本库' },
   { value: 'webdav', label: 'WebDAV' },
 ] as const;
 
@@ -105,7 +107,7 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
           <p>已持久化模型：{modelCatalog.length}</p>
           <p className="mt-1 max-h-20 overflow-y-auto break-all">{modelCatalog.length ? modelCatalog.join('、') : '暂无，请点击“拉取模型列表”'}</p>
         </div>
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-3">
           <label className="grid gap-1 text-xs text-muted-foreground">
             默认文本模型
             <select
@@ -135,13 +137,51 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
               {modelCatalog.length === 0 ? <option value="">请先拉取模型列表</option> : modelCatalog.map((model) => <option key={`image-${model}`} value={model}>{model}</option>)}
             </select>
           </label>
+
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            默认嵌入模型
+            <select
+              className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+              value={form.watch('defaultEmbeddingModel') || ''}
+              onChange={(event) => {
+                form.setValue('defaultEmbeddingModel', event.target.value, { shouldDirty: true });
+                onPersistSettings({ defaultEmbeddingModel: event.target.value });
+              }}
+              disabled={modelCatalog.length === 0}
+            >
+              {modelCatalog.length === 0 ? <option value="">请先拉取模型列表</option> : modelCatalog.map((model) => <option key={`embed-${model}`} value={model}>{model}</option>)}
+            </select>
+          </label>
         </div>
+
+        <label className="grid gap-1 text-xs text-muted-foreground">
+          样本召回数量 TopK
+          <Input
+            type="number"
+            min={1}
+            max={10}
+            value={form.watch('sampleRecallTopK')}
+            onChange={(event) => {
+              const value = Number(event.target.value) || 3;
+              form.setValue('sampleRecallTopK', value, { shouldDirty: true });
+              onPersistSettings({ sampleRecallTopK: value });
+            }}
+          />
+        </label>
         <datalist id="model-catalog">
           {modelCatalog.map((model) => (
             <option key={model} value={model} />
           ))}
         </datalist>
         <p className="text-xs text-muted-foreground">安全提示：API Key 仅本地存储。</p>
+      </Tabs.Content>
+
+      <Tabs.Content value="samples" className="space-y-2">
+        <SampleLibraryPanel />
+        <div className="rounded-lg border border-dashed bg-muted/20 p-3 text-xs text-muted-foreground">
+          当前存储方案：示范样本先保存在浏览器本地存储（localStorage），适合 MVP 验证；后续接服务端时，建议把原文件放到
+          `server/data/sample-files/`，抽取后的文本与 embedding 索引放到 `server/data/sample-index/`。
+        </div>
       </Tabs.Content>
 
       <Tabs.Content value="webdav" className="grid gap-2">

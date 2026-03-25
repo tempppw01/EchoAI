@@ -5,6 +5,7 @@ import { AppSettings } from '@/lib/types';
 export const defaultSettings: AppSettings = {
   defaultTextModel: '',
   defaultImageModel: '',
+  defaultEmbeddingModel: '',
   temperature: 0.7,
   maxTokens: 2048,
   stream: true,
@@ -15,6 +16,7 @@ export const defaultSettings: AppSettings = {
   webdavUsername: '',
   autoSyncMinutes: 30,
   showTokenUsage: false,
+  sampleRecallTopK: 3,
   modelCatalog: [],
 };
 

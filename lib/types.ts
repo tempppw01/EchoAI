@@ -89,6 +89,7 @@ export interface WorldConfig {
 export interface AppSettings {
   defaultTextModel: string;
   defaultImageModel: string;
+  defaultEmbeddingModel: string;
   temperature: number;
   maxTokens: number;
   stream: boolean;
@@ -99,7 +100,21 @@ export interface AppSettings {
   webdavUsername: string;
   autoSyncMinutes: number;
   showTokenUsage: boolean;
+  sampleRecallTopK: number;
   modelCatalog: string[];
+}
+
+export interface SampleLibraryItem {
+  id: string;
+  title: string;
+  sourceType: 'text' | 'file';
+  contentType: string;
+  filename?: string;
+  size?: number;
+  textContent: string;
+  summary: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AppSnapshot {

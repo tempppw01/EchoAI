@@ -7,6 +7,7 @@ export const settingsSchema = z.object({
   baseUrl: z.string().optional(),
   defaultTextModel: z.string(),
   defaultImageModel: z.string(),
+  defaultEmbeddingModel: z.string().optional(),
   temperature: z.coerce.number().min(0).max(2),
   maxTokens: z.coerce.number().min(256).max(8192),
   stream: z.boolean(),
@@ -14,6 +15,7 @@ export const settingsSchema = z.object({
   webdavUsername: z.string().optional(),
   autoSyncMinutes: z.coerce.number().min(5).max(720),
   showTokenUsage: z.boolean(),
+  sampleRecallTopK: z.coerce.number().min(1).max(10),
   modelCatalog: z.array(z.string()).optional(),
 });
 
