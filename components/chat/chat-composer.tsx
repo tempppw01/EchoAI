@@ -288,22 +288,43 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       />
 
       {mode === 'videoScript' && (
-        <div className="mb-2 rounded-xl border bg-background/70 p-3 text-xs">
-          <div className="mb-3 flex flex-wrap gap-2">
-            <Button className={videoTaskType === 'script' ? 'h-8 text-xs' : 'h-8 bg-transparent text-foreground text-xs'} onClick={() => setVideoTaskType('script')}>脚本生成</Button>
-            <Button className={videoTaskType === 'viral-analysis' ? 'h-8 text-xs' : 'h-8 bg-transparent text-foreground text-xs'} onClick={() => setVideoTaskType('viral-analysis')}>爆款文案分析</Button>
+        <div className="mb-3 space-y-3">
+          <div className="flex justify-center">
+            <div className="inline-flex rounded-full border border-white/10 bg-background/70 p-1 shadow-sm">
+              <button
+                type="button"
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${videoTaskType === 'script' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setVideoTaskType('script')}
+              >
+                脚本生成
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${videoTaskType === 'viral-analysis' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setVideoTaskType('viral-analysis')}
+              >
+                爆款文案分析
+              </button>
+            </div>
           </div>
+
+          {activeSession?.preferredCandidate && (
+            <div className="rounded-xl border border-rose-400/20 bg-rose-500/5 px-3 py-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">当前参考候选：</span>
+              {activeSession.preferredCandidate.label}
+            </div>
+          )}
+
           {videoTaskType === 'script' && (
-            <>
-              <div className="mb-2 flex items-center justify-between">
+            <div className="rounded-xl border bg-background/70 p-3 text-xs">
+              <div className="flex items-center justify-between">
                 <span className="font-medium">视频脚本预设</span>
                 <button className="text-muted-foreground" onClick={() => setShowVideoPreset((prev) => !prev)}>
                   {showVideoPreset ? '收起' : '展开'}
                 </button>
               </div>
-              <p className="mb-3 text-[11px] text-muted-foreground">输出将按「标题 / 开头钩子 / 正文 / 结尾 CTA」四段结构生成。</p>
               {showVideoPreset && (
-                <div className="grid gap-2 md:grid-cols-2">
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
                   <label className="grid gap-1 md:col-span-2">
                     <span className="text-muted-foreground">主题 / 选题</span>
                     <Input value={videoPreset.topic || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, topic: e.target.value }))} placeholder="例如：为什么越来越多工厂改用金属卡板？" />
@@ -384,11 +405,6 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                   </label>
                 </div>
               )}
-            </>
-          )}
-          {videoTaskType === 'viral-analysis' && (
-            <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-3 text-[12px] text-muted-foreground">
-              直接粘贴爆款文案内容后发送，系统会自动分析钩子结构、观点推进、结尾转化、高频句式与可复用模板。
             </div>
           )}
         </div>
@@ -433,7 +449,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           }}
           rows={1}
           className="min-h-16 max-h-[220px] resize-none overflow-y-auto rounded-xl border-0 bg-transparent shadow-none focus-visible:ring-0"
-          placeholder="支持 Markdown。Enter 发送，Shift + Enter 换行"
+          placeholder={mode === 'videoScript' && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，回车发送分析' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
           onKeyDown={(e) => {
@@ -506,7 +522,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       )}
 
       <div className="mt-1 flex items-center px-2 text-xs text-muted-foreground">
-        <span>{inputHint || '提示：支持文件内容随消息发送。'}</span>
+        <span>{inputHint || '支持文件内容随消息发送。'}</span>
       </div>
     </div>
   );

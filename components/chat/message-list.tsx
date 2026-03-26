@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Bot, ChevronDown, ChevronUp, Copy, Download, Pencil, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, Copy, Download, Heart, Pencil, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
 import { ChatMode, ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -185,7 +185,7 @@ const parseVideoScriptVersions = (content: string) => {
 };
 
 export function MessageList({ session }: { session?: ChatSession }) {
-  const { retryMessage, regenerateLastAssistant, deleteMessage, editUserMessage, answerTrainingQuestion } = useChatStore();
+  const { retryMessage, regenerateLastAssistant, deleteMessage, editUserMessage, answerTrainingQuestion, setPreferredCandidate } = useChatStore();
   const apiKey = useSettingsStore((state) => state.settings.apiKey);
   const normalizedApiKey = (apiKey ?? '').trim();
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
@@ -279,6 +279,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
         return (
           <MessageItem
             key={msg.id}
+            session={session}
             msg={msg}
             onEdit={() => {
               setEditingId(msg.id);
@@ -286,6 +287,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
             }}
             onRetry={() => retryMessage(session.id, msg.id)}
             onDelete={() => deleteMessage(session.id, msg.id)}
+            onSelectPreferredCandidate={(candidate) => setPreferredCandidate(session.id, candidate)}
           />
         );
       })}
@@ -341,15 +343,19 @@ const RecallSamplesPreview = memo(function RecallSamplesPreview({ samples }: { s
 });
 
 const MessageItem = memo(function MessageItem({
+  session,
   msg,
   onEdit,
   onRetry,
   onDelete,
+  onSelectPreferredCandidate,
 }: {
+  session: ChatSession;
   msg: ChatSession['messages'][number];
   onEdit: () => void;
   onRetry: () => void;
   onDelete: () => void;
+  onSelectPreferredCandidate: (candidate?: ChatSession['preferredCandidate']) => void;
 }) {
   const isUser = msg.role === 'user';
   const { cleanedContent, samples } = useMemo(() => extractRecallSamples(msg.content), [msg.content]);
@@ -360,6 +366,7 @@ const MessageItem = memo(function MessageItem({
   const structuredSections = useMemo(() => (!isUser ? parseVideoScriptSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
   const versionCards = useMemo(() => (!isUser ? parseVideoScriptVersions(cleanedContent) : null), [cleanedContent, isUser]);
   const showDualCards = !isUser && versionCards && versionCards.length >= 2;
+  const preferredCandidate = session.preferredCandidate;
 
   return (
     <div className={`flex items-start gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -377,7 +384,9 @@ const MessageItem = memo(function MessageItem({
 
         {showDualCards ? (
           <div className="grid gap-4 md:grid-cols-2">
-            {versionCards.map((version, index) => (
+            {versionCards.map((version, index) => {
+              const isPreferred = preferredCandidate?.sourceMessageId === msg.id && preferredCandidate?.versionKey === version.key;
+              return (
               <div key={version.key} className={`rounded-2xl border p-4 ${index === 0 ? 'border-primary/30 bg-primary/5 shadow-sm' : 'border-white/10 bg-white/[0.03]'}`}>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
@@ -403,8 +412,25 @@ const MessageItem = memo(function MessageItem({
                     <ReactMarkdown>{version.body}</ReactMarkdown>
                   </div>
                 )}
+
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => onSelectPreferredCandidate(isPreferred ? undefined : {
+                      sourceMessageId: msg.id,
+                      versionKey: version.key,
+                      label: version.label,
+                      content: version.body,
+                      savedAt: new Date().toISOString(),
+                    })}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition ${isPreferred ? 'border-rose-400/40 bg-rose-500/10 text-rose-300' : 'border-white/10 bg-background/40 text-muted-foreground hover:border-primary/30 hover:text-foreground'}`}
+                  >
+                    <Heart size={14} className={isPreferred ? 'fill-current' : ''} />
+                    {isPreferred ? '已作为下一轮参考' : '点赞为下一轮参考'}
+                  </button>
+                </div>
               </div>
-            ))}
+            )})}
           </div>
         ) : structuredSections && structuredSections.length > 0 ? (
           <div className="space-y-3">

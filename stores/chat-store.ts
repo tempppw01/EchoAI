@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AppSnapshot, ChatMessage, ChatMode, ChatSession, TrainingQuestion, TrainingRecord } from '@/lib/types';
+import { AppSnapshot, ChatMessage, ChatMode, ChatSession, PreferredCandidateContext, TrainingQuestion, TrainingRecord } from '@/lib/types';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
 import { defaultSettings, useSettingsStore } from '@/stores/settings-store';
 
@@ -119,6 +119,7 @@ interface ChatState {
   createSession: (mode: ChatMode, subtype?: string, model?: string, roleplayConfig?: { characterId?: string; worldId?: string }) => string;
   selectSession: (id: string) => void;
   sendMessage: (content: string, targetSessionId?: string) => Promise<void>;
+  setPreferredCandidate: (sessionId: string, candidate?: PreferredCandidateContext) => void;
   startTraining: (sessionId: string, topic: string) => Promise<void>;
   answerTrainingQuestion: (sessionId: string, optionId: string) => Promise<void>;
   stopMessage: (sessionId: string) => void;
@@ -286,8 +287,13 @@ export const useChatStore = create<ChatState>()(
 
         try {
           const settings = useSettingsStore.getState().settings;
+          const latestSession = get().sessions.find((item) => item.id === targetId) || session;
+          const preferredCandidatePrompt = latestSession.preferredCandidate
+            ? `【上一轮你点赞保留的候选参考】\n你需要把下面这份内容当作本轮回复的重要参考上下文，优先继承它的结构、措辞方向或信息组织方式；但不要机械重复，仍需结合本轮用户的新要求生成。\n\n候选标签：${latestSession.preferredCandidate.label}\n候选内容：\n${latestSession.preferredCandidate.content}`
+            : '';
           const requestMessages = [
             { role: 'system' as const, content: buildSystemPromptByMode(session) },
+            ...(preferredCandidatePrompt ? [{ role: 'system' as const, content: preferredCandidatePrompt }] : []),
             ...session.messages.slice(-12).map((item) => ({ role: item.role, content: item.content })),
             { role: 'user' as const, content },
           ];
@@ -337,6 +343,20 @@ export const useChatStore = create<ChatState>()(
         inflightRequests.get(sessionId)?.abort();
         set((state) => ({ generatingSessionIds: state.generatingSessionIds.filter((id) => id !== sessionId) }));
       },
+      setPreferredCandidate: (sessionId, candidate) =>
+        set((state) => ({
+          sessions: sortedSessions(
+            state.sessions.map((session) =>
+              session.id === sessionId
+                ? {
+                    ...session,
+                    preferredCandidate: candidate,
+                    updatedAt: now(),
+                  }
+                : session,
+            ),
+          ),
+        })),
       clearContext: (sessionId) =>
         set((state) => ({
           sessions: state.sessions.map((session) =>
@@ -347,6 +367,7 @@ export const useChatStore = create<ChatState>()(
                   summary: '开始你的第一条消息',
                   memorySummary: '',
                   pinnedMemory: '',
+                  preferredCandidate: undefined,
                   trainingCurrentQuestion: undefined,
                   trainingRound: 0,
                   trainingRecentRecords: [],

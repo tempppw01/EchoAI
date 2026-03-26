@@ -24,6 +24,14 @@ export interface VideoScriptPreset {
   avoid?: string;
 }
 
+export interface PreferredCandidateContext {
+  sourceMessageId: string;
+  versionKey: string;
+  label: string;
+  content: string;
+  savedAt: string;
+}
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -33,6 +41,7 @@ export interface ChatSession {
   worldId?: string;
   pinnedMemory?: string;
   memorySummary?: string;
+  preferredCandidate?: PreferredCandidateContext;
   pinned: boolean;
   updatedAt: string;
   summary: string;
