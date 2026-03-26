@@ -962,7 +962,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 e.preventDefault();
                 onSend();
               }}
-              className="min-h-[84px] rounded-[18px] border-white/10 bg-white/5 text-white placeholder:text-white/30 sm:min-h-[96px] sm:rounded-[20px]"
+              className="min-h-[84px] rounded-[18px] border-white/10 bg-white/5 text-base text-white placeholder:text-white/30 sm:min-h-[96px] sm:rounded-[20px] sm:text-sm"
             />
             <Button type="button" className="h-11 w-full rounded-[16px] px-4 sm:h-12 sm:w-auto sm:rounded-[18px]" onClick={onSend}>
               <SendHorizontal size={17} className="mr-2 sm:mr-0" />
@@ -1040,7 +1040,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               e.preventDefault();
               onSend();
             }}
-            className="min-h-[76px] rounded-[16px] border-white/10 bg-white/5 text-white placeholder:text-white/30 sm:min-h-[88px] sm:rounded-[20px]"
+            className="min-h-[76px] rounded-[16px] border-white/10 bg-white/5 text-base text-white placeholder:text-white/30 sm:min-h-[88px] sm:rounded-[20px] sm:text-sm"
           />
           <Button type="button" className="h-11 w-full rounded-[16px] px-4 sm:h-12 sm:w-auto sm:rounded-[18px]" onClick={onSend}>
             <SendHorizontal size={17} className="mr-2 sm:mr-0" />
