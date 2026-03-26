@@ -1,10 +1,11 @@
 'use client';
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Eraser, Paperclip, SendHorizontal, SlidersHorizontal, Square, Upload, X } from 'lucide-react';
+import { Eraser, Paperclip, SendHorizontal, SlidersHorizontal, Sparkles, Square, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { requestOpenAICompatible } from '@/lib/openai-compatible';
 import { ChatMode, VideoScriptPreset } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSampleLibraryStore } from '@/stores/sample-library-store';
@@ -149,6 +150,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [showVideoPreset, setShowVideoPreset] = useState(false);
   const [videoPreset, setVideoPreset] = useState<VideoScriptPreset>(defaultVideoScriptPreset);
   const [videoTaskType, setVideoTaskType] = useState<'script' | 'viral-analysis'>('script');
+  const [isGeneratingTopic, setIsGeneratingTopic] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -222,6 +224,46 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     const failedCount = parsedResults.length - parsed.length;
     if (failedCount > 0) {
       setInputHint(`有 ${failedCount} 个附件读取失败，已跳过。`);
+    }
+  };
+
+  const generatePresetTopic = async () => {
+    if (isGeneratingTopic) return;
+    setIsGeneratingTopic(true);
+    try {
+      const prompt = [
+        '请根据以下视频脚本预设，生成 1 个适合直接放进“主题 / 选题”输入框的中文标题。',
+        '要求：',
+        '1. 只返回标题本身，不要解释，不要序号，不要引号。',
+        '2. 标题适合短视频选题，不要太长，尽量控制在 12-28 个字。',
+        `产品/服务：${videoPreset.productName || '未填写'}`,
+        `目标人群：${videoPreset.targetAudience || '未填写'}`,
+        `核心卖点：${videoPreset.coreSellingPoints || '未填写'}`,
+        `语气风格：${videoPreset.toneStyle || '未填写'}`,
+        `发布平台：${videoPreset.platform || '未填写'}`,
+        `内容类型：${videoPreset.contentType || '口播'}`,
+        `时长（秒）：${videoPreset.durationSec || 60}`,
+        `必须包含：${videoPreset.mustInclude || '无'}`,
+        `避免内容：${videoPreset.avoid || '无'}`,
+      ].join('\n');
+
+      const topic = await requestOpenAICompatible({
+        settings,
+        model: settings.defaultTextModel || settings.modelCatalog[0],
+        messages: [
+          { role: 'system', content: '你是短视频选题助手。只输出一个可直接使用的中文标题。' },
+          { role: 'user', content: prompt },
+        ],
+      });
+
+      const cleanedTopic = topic.replace(/^标题[:：]\s*/i, '').split('\n')[0].trim();
+      setVideoPreset((prev) => ({ ...prev, topic: cleanedTopic }));
+      setInputHint('已自动生成标题。');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '自动生成标题失败';
+      setInputHint(message);
+    } finally {
+      setIsGeneratingTopic(false);
     }
   };
 
@@ -329,7 +371,18 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                 <div className="mt-3 grid gap-2 md:grid-cols-2">
                   <label className="grid gap-1 md:col-span-2">
                     <span className="text-muted-foreground">主题 / 选题</span>
-                    <Input value={videoPreset.topic || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, topic: e.target.value }))} placeholder="例如：为什么越来越多工厂改用金属卡板？" />
+                    <div className="flex gap-2">
+                      <Input value={videoPreset.topic || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, topic: e.target.value }))} placeholder="例如：为什么越来越多工厂改用金属卡板？" />
+                      <Button
+                        type="button"
+                        className="h-10 rounded-xl px-3"
+                        onClick={generatePresetTopic}
+                        disabled={isGeneratingTopic}
+                        title="自动生成标题"
+                      >
+                        <Sparkles size={16} className={isGeneratingTopic ? 'animate-pulse' : ''} />
+                      </Button>
+                    </div>
                   </label>
                   <label className="grid gap-1">
                     <span className="text-muted-foreground">产品/服务</span>

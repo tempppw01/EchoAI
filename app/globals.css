@@ -79,6 +79,12 @@ body { @apply bg-background text-foreground antialiased; }
 
 .message-markdown strong {
   @apply font-semibold text-foreground;
+  padding-bottom: 1px;
+  background-image: linear-gradient(to top, hsl(var(--primary) / 0.22) 0.58em, transparent 0.58em);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 .message-markdown ul,
