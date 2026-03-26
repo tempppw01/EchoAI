@@ -33,6 +33,23 @@ const readResponseError = async (response: Response) => {
   }
 };
 
+const normalizeClientRequestError = (error: unknown) => {
+  const raw = error instanceof Error ? error.message.trim() : '';
+  const lower = raw.toLowerCase();
+
+  if (!raw) return '请求失败，请稍后重试';
+
+  if (lower.includes('load failed') || lower.includes('failed to fetch') || lower.includes('networkerror') || lower.includes('network request failed')) {
+    return '网络连接失败，请检查当前网络或稍后再试';
+  }
+
+  if (lower.includes('aborted')) {
+    return '请求已取消';
+  }
+
+  return raw;
+};
+
 export async function requestOpenAICompatible(params: {
   settings: AppSettings;
   model: string;
@@ -40,19 +57,24 @@ export async function requestOpenAICompatible(params: {
 }) {
   const { settings, model, messages } = params;
 
-  const response = await fetch('/api/openai/chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: settings.temperature,
-      max_tokens: settings.maxTokens,
-      stream: false,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch('/api/openai/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: settings.temperature,
+        max_tokens: settings.maxTokens,
+        stream: false,
+      }),
+    });
+  } catch (error) {
+    throw new Error(normalizeClientRequestError(error));
+  }
 
   if (!response.ok) {
     const message = await readResponseError(response);
@@ -75,16 +97,21 @@ export async function requestEmbeddingVector(params: {
 }) {
   const { model, input } = params;
 
-  const response = await fetch('/api/openai/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      input,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch('/api/openai/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        input,
+      }),
+    });
+  } catch (error) {
+    throw new Error(normalizeClientRequestError(error));
+  }
 
   if (!response.ok) {
     const message = await readResponseError(response);
