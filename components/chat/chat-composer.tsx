@@ -173,6 +173,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const hasVideoPresetInput = useMemo(() => {
     const p = videoPreset;
     return Boolean(
+      p.topic?.trim() ||
       p.productName?.trim() ||
       p.targetAudience?.trim() ||
       p.coreSellingPoints?.trim() ||
@@ -182,6 +183,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       p.avoid?.trim(),
     );
   }, [videoPreset]);
+  const canSendVideoScriptFromPreset = mode === 'videoScript' && videoTaskType === 'script' && hasVideoPresetInput;
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -225,7 +227,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
   // 统一发送逻辑：复用已有会话，不存在时按当前 mode 创建新会话。
   const onSend = async () => {
-    if (!value.trim() && attachments.length === 0) return;
+    if (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset) return;
 
     let sid = activeSession?.id;
     if (!sid) sid = createSession(mode);
@@ -454,6 +456,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           onCompositionEnd={() => setIsComposing(false)}
           onKeyDown={(e) => {
             if (e.key !== 'Enter' || isComposing || e.shiftKey) return;
+            if (!value.trim() && !attachments.length && !canSendVideoScriptFromPreset) return;
             e.preventDefault();
             onSend();
           }}
@@ -477,7 +480,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             <Square size={16} />
           </Button>
         ) : (
-          <Button className="rounded-xl" disabled={mode === 'training' || (!value.trim() && attachments.length === 0)} onClick={onSend}>
+          <Button className="rounded-xl" disabled={mode === 'training' || (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset)} onClick={onSend}>
             <SendHorizontal size={16} />
           </Button>
         )}
