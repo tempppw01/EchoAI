@@ -6,6 +6,7 @@ import {
   Brain,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Copy,
   Globe2,
   LayoutGrid,
@@ -899,6 +900,91 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
     </div>
   );
 
+  const renderMobileTopDrawer = () => {
+    if (!leftPanelOpen && !rightPanelOpen) return null;
+
+    const isLeft = leftPanelOpen;
+    const title = isLeft ? '角色设置' : '记忆设置';
+    const subtitle = isLeft ? '角色池 / 导演台' : '侧写 / 记忆';
+
+    return (
+      <div className="mb-3 rounded-[24px] border border-white/10 bg-black/16 p-3 lg:hidden">
+        <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-white/35">Top Drawer</p>
+            <h3 className="mt-1 text-base font-semibold text-white">{title}</h3>
+            <p className="mt-1 text-xs text-white/45">{subtitle}</p>
+          </div>
+          <button
+            type="button"
+            className="roleplay-rail-button h-10 w-10 rounded-2xl"
+            onClick={() => {
+              setLeftPanelOpen(false);
+              setRightPanelOpen(false);
+            }}
+            aria-label="收起顶部设置"
+          >
+            {isLeft ? <ChevronUp size={16} /> : <ChevronUp size={16} />}
+          </button>
+        </div>
+
+        {isLeft ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              {leftPanelTabs.map((tab) => {
+                const Icon = tab.icon;
+                const active = leftPanelView === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setLeftPanelView(tab.key)}
+                    className={cn(
+                      'flex flex-1 items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs transition',
+                      active ? 'border-white/20 bg-white text-slate-900 shadow-lg' : 'border-white/10 bg-white/[0.05] text-white/65 hover:text-white',
+                    )}
+                  >
+                    <Icon size={14} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="max-h-[44vh] overflow-y-auto pr-1">
+              {leftPanelView === 'cast' ? renderCastPanel() : renderDirectorPanel()}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              {rightPanelTabs.map((tab) => {
+                const Icon = tab.icon;
+                const active = rightPanelView === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setRightPanelView(tab.key)}
+                    className={cn(
+                      'flex flex-1 items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs transition',
+                      active ? 'border-white/20 bg-white text-slate-900 shadow-lg' : 'border-white/10 bg-white/[0.05] text-white/65 hover:text-white',
+                    )}
+                  >
+                    <Icon size={14} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="max-h-[44vh] overflow-y-auto pr-1">
+              {rightPanelView === 'spotlight' ? renderSpotlightPanel() : renderMemoryPanel()}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderComposerNotice = () => (
     <div className="mb-1.5 flex items-start gap-2 rounded-[14px] border border-white/7 bg-white/[0.025] px-2.5 py-1.5 text-[10px] leading-4 text-white/42">
       <Shield size={11} className="mt-0.5 shrink-0 text-white/28" />
@@ -1062,8 +1148,8 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         <motion.aside
           layout
           className={cn(
-            'order-2 w-full lg:order-none lg:shrink-0',
-            leftPanelOpen ? 'block lg:w-[280px] xl:w-[300px]' : 'hidden lg:block lg:w-[74px]',
+            'order-2 hidden w-full lg:order-none lg:shrink-0',
+            leftPanelOpen ? 'lg:block lg:w-[280px] xl:w-[300px]' : 'lg:block lg:w-[74px]',
           )}
         >
           <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-0">
@@ -1143,16 +1229,34 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           </div>
 
           <div className="mb-3 flex flex-wrap gap-2 lg:hidden">
-            <Button type="button" className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15" onClick={() => setLeftPanelOpen((prev) => !prev)}>
-              <ChevronRight size={15} className={cn('mr-2 transition', leftPanelOpen && 'rotate-180')} /> 角色
+            <Button
+              type="button"
+              className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15"
+              onClick={() => {
+                setRightPanelOpen(false);
+                setLeftPanelView('cast');
+                setLeftPanelOpen((prev) => !prev);
+              }}
+            >
+              <ChevronRight size={15} className={cn('mr-2 transition', leftPanelOpen && 'rotate-90')} /> 角色
             </Button>
-            <Button type="button" className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15" onClick={() => setRightPanelOpen((prev) => !prev)}>
-              <ChevronLeft size={15} className={cn('mr-2 transition', rightPanelOpen && 'rotate-180')} /> 记忆
+            <Button
+              type="button"
+              className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15"
+              onClick={() => {
+                setLeftPanelOpen(false);
+                setRightPanelView('memory');
+                setRightPanelOpen((prev) => !prev);
+              }}
+            >
+              <ChevronRight size={15} className={cn('mr-2 transition', rightPanelOpen && 'rotate-90')} /> 记忆
             </Button>
             <Button type="button" className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15" disabled={!session || session.messages.length === 0} onClick={handleClearContext}>
               <RotateCcw size={14} className="mr-2" /> 清空
             </Button>
           </div>
+
+          {renderMobileTopDrawer()}
 
           <div className="mb-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-3">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -1194,8 +1298,8 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         <motion.aside
           layout
           className={cn(
-            'order-3 w-full lg:order-none lg:shrink-0',
-            rightPanelOpen ? 'block lg:w-[260px] xl:w-[280px]' : 'hidden lg:block lg:w-[74px]',
+            'order-3 hidden w-full lg:order-none lg:shrink-0',
+            rightPanelOpen ? 'lg:block lg:w-[260px] xl:w-[280px]' : 'lg:block lg:w-[74px]',
           )}
         >
           <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-0">
