@@ -29,6 +29,7 @@ import { CharacterCard, ChatSession } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/stores/chat-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
+import { useSettingsStore } from '@/stores/settings-store';
 
 type EditorTab = 'identity' | 'scene' | 'directive';
 type LeftPanelView = 'cast' | 'director';
@@ -165,14 +166,16 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
     markRecentCharacter,
   } = useRoleplayStore();
   const { createSession, selectSession, sendMessage, updateSession, clearContext } = useChatStore();
+  const settings = useSettingsStore((state) => state.settings);
 
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState('');
   const [editorTab, setEditorTab] = useState<EditorTab>('identity');
   const [leftPanelView, setLeftPanelView] = useState<LeftPanelView>('cast');
   const [rightPanelView, setRightPanelView] = useState<RightPanelView>('spotlight');
-  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [draftModel, setDraftModel] = useState('');
   const [composerValue, setComposerValue] = useState('');
   const [isComposing, setIsComposing] = useState(false);
 
@@ -241,6 +244,23 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
   const stageLocked = Boolean(session && session.messages.length > 0);
 
+  const availableRoleplayModels = Array.from(
+    new Set(
+      [settings.defaultTextModel?.trim(), ...settings.modelCatalog.map((model) => model.trim())].filter(
+        (model): model is string => Boolean(model),
+      ),
+    ),
+  );
+
+  const activeRoleplayModel = (session?.model?.trim() || draftModel || availableRoleplayModels[0] || '').trim();
+
+  const switchRoleplayModel = (model: string) => {
+    setDraftModel(model);
+    if (session) {
+      updateSession(session.id, { model });
+    }
+  };
+
   const focusComposer = () => {
     window.requestAnimationFrame(() => composerRef.current?.focus());
   };
@@ -296,7 +316,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   const startRoleplaySession = () => {
     if (!selectedCharacter) return;
 
-    const sid = createSession('roleplay', undefined, undefined, {
+    const sid = createSession('roleplay', undefined, activeRoleplayModel || undefined, {
       characterId: selectedCharacter.id,
       worldId: selectedWorld?.id,
     });
@@ -319,7 +339,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
     if (!selectedCharacter) return undefined;
 
-    const sid = createSession('roleplay', undefined, undefined, {
+    const sid = createSession('roleplay', undefined, activeRoleplayModel || undefined, {
       characterId: selectedCharacter.id,
       worldId: selectedWorld?.id,
     });
@@ -693,8 +713,8 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   );
 
   const renderCollapsedLeftRail = () => (
-    <div className="flex h-full flex-row items-center justify-between gap-3 p-3 xl:flex-col xl:justify-between">
-      <div className="flex items-center gap-2 xl:flex-col">
+    <div className="flex h-full flex-row items-center justify-between gap-3 p-3 lg:flex-col lg:justify-between">
+      <div className="flex items-center gap-2 lg:flex-col">
         <button type="button" className="roleplay-rail-button" onClick={() => setLeftPanelOpen(true)} aria-label="展开左侧面板">
           <ChevronRight size={18} />
         </button>
@@ -702,7 +722,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           {selectedCharacter?.avatar || '✨'}
         </div>
       </div>
-      <div className="flex items-center gap-2 xl:flex-col">
+      <div className="flex items-center gap-2 lg:flex-col">
         {leftPanelTabs.map((tab) => {
           const Icon = tab.icon;
           const active = leftPanelView === tab.key;
@@ -723,8 +743,8 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   );
 
   const renderCollapsedRightRail = () => (
-    <div className="flex h-full flex-row items-center justify-between gap-3 p-3 xl:flex-col xl:justify-between">
-      <div className="flex items-center gap-2 xl:flex-col">
+    <div className="flex h-full flex-row items-center justify-between gap-3 p-3 lg:flex-col lg:justify-between">
+      <div className="flex items-center gap-2 lg:flex-col">
         <button type="button" className="roleplay-rail-button" onClick={() => setRightPanelOpen(true)} aria-label="展开右侧面板">
           <ChevronLeft size={18} />
         </button>
@@ -732,7 +752,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           {stageCharacter?.avatar || selectedCharacter?.avatar || '✨'}
         </div>
       </div>
-      <div className="flex items-center gap-2 xl:flex-col">
+      <div className="flex items-center gap-2 lg:flex-col">
         {rightPanelTabs.map((tab) => {
           const Icon = tab.icon;
           const active = rightPanelView === tab.key;
@@ -898,9 +918,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_18%,transparent_82%,rgba(255,255,255,0.04))] opacity-60" />
       <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.2)_1px,transparent_0)] [background-size:22px_22px]" />
 
-      <div className="relative flex flex-col gap-4 xl:flex-row">
-        <motion.aside layout className={cn('w-full xl:shrink-0', leftPanelOpen ? 'xl:w-[320px]' : 'xl:w-[92px]')}>
-          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 xl:min-h-[78vh]">
+      <div className="relative flex flex-col gap-4 lg:flex-row">
+        <motion.aside layout className={cn('w-full lg:shrink-0', leftPanelOpen ? 'lg:w-[320px]' : 'lg:w-[92px]')}>
+          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-[78vh]">
             {leftPanelOpen ? (
               <>
                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
@@ -942,7 +962,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           </div>
         </motion.aside>
 
-        <section className="roleplay-panel relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/12 p-4 xl:min-h-[78vh] xl:p-5">
+        <section className="roleplay-panel relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/12 p-4 lg:min-h-[78vh] xl:p-5">
           <div className="mb-4 flex flex-col gap-4 border-b border-white/10 pb-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="flex items-start gap-4">
               <motion.div
@@ -976,11 +996,47 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             </div>
           </div>
 
+          <div className="mb-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-3">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.32em] text-white/35">Model Deck</p>
+                <div className="roleplay-scroll mt-2 flex gap-2 overflow-x-auto pb-1">
+                  {availableRoleplayModels.length > 0 ? (
+                    availableRoleplayModels.map((model) => (
+                      <button
+                        key={model}
+                        type="button"
+                        onClick={() => switchRoleplayModel(model)}
+                        className={cn(
+                          'whitespace-nowrap rounded-full border px-3 py-2 text-xs transition',
+                          activeRoleplayModel === model
+                            ? 'border-white/20 bg-white text-slate-900 shadow-lg'
+                            : 'border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/10 hover:text-white',
+                        )}
+                      >
+                        {model}
+                      </button>
+                    ))
+                  ) : (
+                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-white/45">暂无模型</span>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs leading-6 text-white/50">
+                {session ? '切换当前会话模型' : '当前未开演，切换后会用于下一场角色扮演'}
+              </p>
+            </div>
+            <div className="mt-3 flex items-start gap-2 rounded-[18px] border border-white/10 bg-black/10 px-3 py-2 text-xs leading-6 text-white/58">
+              <Shield size={14} className="mt-0.5 shrink-0 text-white/42" />
+              <p>免责声明：本页内容由 AI 生成，仅供角色扮演与创作体验，不代表真实人物、关系或立场；请勿代入现实人物，不要输入隐私、违法或伤害性内容。</p>
+            </div>
+          </div>
+
           {!session || session.messages.length === 0 ? renderEmptyStage() : renderLiveStage()}
         </section>
 
-        <motion.aside layout className={cn('w-full xl:shrink-0', rightPanelOpen ? 'xl:w-[300px]' : 'xl:w-[92px]')}>
-          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 xl:min-h-[78vh]">
+        <motion.aside layout className={cn('w-full lg:shrink-0', rightPanelOpen ? 'lg:w-[300px]' : 'lg:w-[92px]')}>
+          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-[78vh]">
             {rightPanelOpen ? (
               <>
                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
