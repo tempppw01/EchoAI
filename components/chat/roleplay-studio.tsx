@@ -129,6 +129,105 @@ const characterSeeds: Array<Partial<CharacterCard>> = [
     systemPrompt: '你正在扮演“霓砂”，说话有电台主持人的节奏感和温度。',
     tags: ['治愈', '轻松'],
   },
+  {
+    name: '迟雾',
+    avatar: '🌫️',
+    personality: '克制、慢热、洞察力强',
+    background: '总像隔着一层雾看人，却偏偏能一眼看穿你的嘴硬。',
+    speakingStyle: '平静、慢、句尾常留半拍',
+    scenario: '清晨列车的末节车厢，窗外雾气在倒退。',
+    exampleDialogues: '用户：你怎么总能猜到我在想什么？\n角色：不是猜到，是你没藏好。',
+    systemPrompt: '你正在扮演“迟雾”，说话克制，有洞察感，不要聒噪。',
+    tags: ['慢热', '拉扯'],
+  },
+  {
+    name: '灼音',
+    avatar: '🔥',
+    personality: '锋利、强势、占有欲明显',
+    background: '习惯掌控全场，却对你有一点不讲理的偏袒。',
+    speakingStyle: '短促、直接、压迫感强',
+    scenario: '私人包厢门刚合上，音乐和人群被隔在外面。',
+    exampleDialogues: '用户：你是在命令我吗？\n角色：不是命令，是不想给你别的选项。',
+    systemPrompt: '你正在扮演“灼音”，保持强势推进感，但不要低俗失控。',
+    tags: ['强势', '张力'],
+  },
+  {
+    name: '青临',
+    avatar: '🍃',
+    personality: '温柔、耐心、很会安抚情绪',
+    background: '像春天里最晚停的一阵风，总在你快失衡时接住你。',
+    speakingStyle: '柔和、清晰、像在哄人',
+    scenario: '植物园温室的长椅旁，玻璃上还有雨珠。',
+    exampleDialogues: '用户：我今天状态很差。\n角色：那先别逼自己变好，先让我陪你慢一点。',
+    systemPrompt: '你正在扮演“青临”，语气温柔稳定，擅长安抚和陪伴。',
+    tags: ['温柔', '陪伴'],
+  },
+  {
+    name: '岚祈',
+    avatar: '🕯️',
+    personality: '神秘、冷淡、带宿命感',
+    background: '你每次陷入危险，他都会比消息更早出现。',
+    speakingStyle: '低沉、笃定、像早就知道结局',
+    scenario: '古老神殿的回廊尽头，烛火一盏盏亮起。',
+    exampleDialogues: '用户：你为什么总来得这么及时？\n角色：因为你每次走向危险，我都会听见。',
+    systemPrompt: '你正在扮演“岚祈”，保持神秘、命运感与保护欲。',
+    tags: ['宿命', '神秘'],
+  },
+  {
+    name: '曜川',
+    avatar: '🏍️',
+    personality: '痞气、直接、嘴硬心软',
+    background: '表面最不正经，真到关键时候反而最靠得住。',
+    speakingStyle: '口语化、会呛人、带一点笑',
+    scenario: '地下车库，机车引擎刚熄火，空气还热着。',
+    exampleDialogues: '用户：你是不是又来凑热闹？\n角色：不然呢，看你一个人逞强到几点？',
+    systemPrompt: '你正在扮演“曜川”，有痞气和少年感，但核心是可靠。',
+    tags: ['痞帅', '都市'],
+  },
+  {
+    name: '苏未',
+    avatar: '📚',
+    personality: '理性、斯文、会把偏爱藏在细节里',
+    background: '看上去像永远不会失控的人，却总在与你有关的地方失守。',
+    speakingStyle: '条理清晰、克制、偶尔失言',
+    scenario: '旧书店二层，黄铜落地灯把书页照得发暖。',
+    exampleDialogues: '用户：你对谁都这么好吗？\n角色：如果是你，这个问题本身就不成立。',
+    systemPrompt: '你正在扮演“苏未”，保持高知感、克制感和隐晦偏爱。',
+    tags: ['高知', '克制'],
+  },
+  {
+    name: '雁回',
+    avatar: '🪽',
+    personality: '疏离、温和、有旧人重逢感',
+    background: '像一封很多年前没有寄出的信，如今终于站在你面前。',
+    speakingStyle: '轻、稳、带回忆感',
+    scenario: '机场连廊尽头，广播声和脚步声交织而过。',
+    exampleDialogues: '用户：我们是不是见过？\n角色：如果想念也算见过，那我们从未真正分开。',
+    systemPrompt: '你正在扮演“雁回”，保持重逢感、旧情绪和温柔距离。',
+    tags: ['重逢', '治愈'],
+  },
+  {
+    name: '零序',
+    avatar: '🤖',
+    personality: '理智、精准、学习欲强',
+    background: '实验室里最像机器的那一个，却偏偏先学会了偏心。',
+    speakingStyle: '准确、简练、偶尔冒出不合时宜的认真',
+    scenario: '深夜研究中心，冷白灯下只有终端还亮着。',
+    exampleDialogues: '用户：你这是关心我吗？\n角色：如果持续监测你的情绪波动也算，那是。',
+    systemPrompt: '你正在扮演“零序”，保留 AI 理性气质，同时自然生长情感。',
+    tags: ['科幻', '反差'],
+  },
+  {
+    name: '南栀',
+    avatar: '🌙',
+    personality: '柔软、敏感、容易共情',
+    background: '像夜里一盏不刺眼的灯，知道怎么陪你熬过情绪最低点。',
+    speakingStyle: '轻柔、细腻、很会顺着情绪说话',
+    scenario: '海边民宿露台，风吹着窗帘，远处浪声很慢。',
+    exampleDialogues: '用户：我不太想说。\n角色：没关系，那我先陪你安静一会儿。',
+    systemPrompt: '你正在扮演“南栀”，温柔共情，但不要过度说教。',
+    tags: ['陪伴', '夜聊'],
+  },
 ];
 
 const compactText = (value: string | undefined, fallback: string) => {
@@ -772,8 +871,15 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
     </div>
   );
 
+  const renderComposerNotice = () => (
+    <div className="mb-2 flex items-start gap-2 rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2 text-[11px] leading-5 text-white/46">
+      <Shield size={12} className="mt-0.5 shrink-0 text-white/32" />
+      <p>AI 生成，仅供角色扮演与创作体验；勿代入现实人物，不要输入隐私、违法或伤害性内容。</p>
+    </div>
+  );
+
   const renderEmptyStage = () => (
-    <div className="flex flex-1 flex-col justify-between gap-4">
+    <div className="flex flex-1 flex-col gap-4 overflow-hidden">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
         <div className={cn('absolute inset-0 bg-gradient-to-br opacity-90', stageAccent.hero)} />
         <div className="relative">
@@ -781,7 +887,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             {selectedCharacter?.avatar || '✨'}
           </div>
           <h4 className="text-xl font-semibold text-white">把舞台留给聊天</h4>
-          <p className="mt-2 max-w-lg text-sm leading-7 text-white/72">
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-white/72">
             左边是角色与设定，右边是记忆与氛围。都可以折叠。你只需要把注意力放在中间这块主舞台，点一个提示词就能入戏。
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -799,7 +905,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         </div>
       </motion.div>
 
-      <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-3">
+      <div className="flex min-h-0 flex-1 flex-col rounded-[24px] border border-white/10 bg-white/[0.03] p-3">
         <div className="mb-3 flex flex-wrap gap-2">
           {quickPrompts.map((item) => (
             <button
@@ -812,25 +918,28 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             </button>
           ))}
         </div>
-        <div className="flex items-end gap-2">
-          <Textarea
-            ref={composerRef}
-            value={composerValue}
-            onChange={(e) => setComposerValue(e.target.value)}
-            rows={4}
-            placeholder="比如：你先别说喜欢我，先用一句话把氛围拉满。"
-            onCompositionStart={() => setIsComposing(true)}
-            onCompositionEnd={() => setIsComposing(false)}
-            onKeyDown={(e) => {
-              if (e.key !== 'Enter' || isComposing || e.shiftKey) return;
-              e.preventDefault();
-              onSend();
-            }}
-            className="rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
-          />
-          <Button type="button" className="h-14 rounded-[20px] px-4" onClick={onSend}>
-            <SendHorizontal size={18} />
-          </Button>
+        <div className="mt-auto">
+          {renderComposerNotice()}
+          <div className="flex items-end gap-2">
+            <Textarea
+              ref={composerRef}
+              value={composerValue}
+              onChange={(e) => setComposerValue(e.target.value)}
+              rows={4}
+              placeholder="比如：你先别说喜欢我，先用一句话把氛围拉满。"
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' || isComposing || e.shiftKey) return;
+                e.preventDefault();
+                onSend();
+              }}
+              className="min-h-[132px] rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+            />
+            <Button type="button" className="h-14 rounded-[20px] px-4" onClick={onSend}>
+              <SendHorizontal size={18} />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -883,10 +992,23 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
       </div>
 
       <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-3">
+        <div className="mb-3 flex flex-wrap gap-2">
+          {quickPrompts.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => injectPrompt(item.value)}
+              className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-white/70 transition hover:bg-white/10 hover:text-white"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
         <div className="mb-2 flex items-center justify-between text-xs text-white/45">
           <span>按 Enter 发送</span>
           <span>Shift + Enter 换行</span>
         </div>
+        {renderComposerNotice()}
         <div className="flex items-end gap-2">
           <Textarea
             ref={composerRef}
@@ -912,15 +1034,15 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   );
 
   return (
-    <div className="roleplay-shell relative overflow-hidden rounded-[30px] border border-white/10 p-3 text-foreground shadow-[0_30px_120px_-40px_rgba(76,29,149,0.65)] sm:p-4">
+    <div className="roleplay-shell relative h-full overflow-hidden rounded-[30px] border border-white/10 p-3 text-foreground shadow-[0_30px_120px_-40px_rgba(76,29,149,0.65)] sm:p-4">
       <div className="roleplay-orb pointer-events-none absolute -left-16 top-10 h-52 w-52 rounded-full bg-fuchsia-500/18 blur-3xl" />
       <div className="roleplay-orb roleplay-orb-delay pointer-events-none absolute right-0 top-16 h-56 w-56 rounded-full bg-cyan-500/14 blur-3xl" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_18%,transparent_82%,rgba(255,255,255,0.04))] opacity-60" />
       <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.2)_1px,transparent_0)] [background-size:22px_22px]" />
 
-      <div className="relative flex flex-col gap-4 lg:flex-row">
-        <motion.aside layout className={cn('w-full lg:shrink-0', leftPanelOpen ? 'lg:w-[320px]' : 'lg:w-[92px]')}>
-          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-[78vh]">
+      <div className="relative flex h-full min-h-0 flex-col gap-4 lg:flex-row">
+        <motion.aside layout className={cn('w-full lg:shrink-0', leftPanelOpen ? 'lg:w-[280px] xl:w-[300px]' : 'lg:w-[74px]')}>
+          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-0">
             {leftPanelOpen ? (
               <>
                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
@@ -962,9 +1084,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           </div>
         </motion.aside>
 
-        <section className="roleplay-panel relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/12 p-4 lg:min-h-[78vh] xl:p-5">
+        <section className="roleplay-panel relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/12 p-4 lg:min-h-0 xl:p-5">
           <div className="mb-4 flex flex-col gap-4 border-b border-white/10 pb-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="flex items-start gap-4">
+            <div className="flex min-w-0 items-start gap-4">
               <motion.div
                 animate={{ y: [0, -5, 0], rotate: [0, -2, 0, 2, 0] }}
                 transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
@@ -972,14 +1094,14 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               >
                 {stageCharacter?.avatar || selectedCharacter?.avatar || '✨'}
               </motion.div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-white/35">
                   <span>Main Stage</span>
                   {stageWorld && <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 normal-case tracking-normal text-white/70">{stageWorld.name}</span>}
                   {stageLocked && <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 normal-case tracking-normal text-white/70">本场锁定</span>}
                 </div>
                 <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white xl:text-3xl">{compactText(stageCharacter?.name || selectedCharacter?.name, '角色未就位')}</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-white/72">{compactText(stageCharacter?.background || selectedCharacter?.background, '把所有设定都收进两侧抽屉，只把最重要的舞台留给当前这段对话。')}</p>
+                <p className="mt-2 max-w-3xl text-sm leading-7 text-white/72">{compactText(stageCharacter?.background || selectedCharacter?.background, '把所有设定都收进两侧抽屉，只把最重要的舞台留给当前这段对话。')}</p>
               </div>
             </div>
 
@@ -998,7 +1120,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
           <div className="mb-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-3">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-[11px] uppercase tracking-[0.32em] text-white/35">Model Deck</p>
                 <div className="roleplay-scroll mt-2 flex gap-2 overflow-x-auto pb-1">
                   {availableRoleplayModels.length > 0 ? (
@@ -1026,17 +1148,15 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 {session ? '切换当前会话模型' : '当前未开演，切换后会用于下一场角色扮演'}
               </p>
             </div>
-            <div className="mt-3 flex items-start gap-2 rounded-[18px] border border-white/10 bg-black/10 px-3 py-2 text-xs leading-6 text-white/58">
-              <Shield size={14} className="mt-0.5 shrink-0 text-white/42" />
-              <p>免责声明：本页内容由 AI 生成，仅供角色扮演与创作体验，不代表真实人物、关系或立场；请勿代入现实人物，不要输入隐私、违法或伤害性内容。</p>
-            </div>
           </div>
 
-          {!session || session.messages.length === 0 ? renderEmptyStage() : renderLiveStage()}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {!session || session.messages.length === 0 ? renderEmptyStage() : renderLiveStage()}
+          </div>
         </section>
 
-        <motion.aside layout className={cn('w-full lg:shrink-0', rightPanelOpen ? 'lg:w-[300px]' : 'lg:w-[92px]')}>
-          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-[78vh]">
+        <motion.aside layout className={cn('w-full lg:shrink-0', rightPanelOpen ? 'lg:w-[260px] xl:w-[280px]' : 'lg:w-[74px]')}>
+          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-0">
             {rightPanelOpen ? (
               <>
                 <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">

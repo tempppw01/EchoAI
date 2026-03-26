@@ -12,6 +12,7 @@ import { ProImagePanel } from '@/components/image/pro-image-panel';
 import { SettingsCenter } from '@/components/settings/settings-center';
 import { Button } from '@/components/ui/button';
 import { ChatMode, ChatSession } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { useChatStore } from '@/stores/chat-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 import { useUIStore } from '@/stores/ui-store';
@@ -93,6 +94,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   };
 
   const contentMode = active?.mode ?? mode;
+  const isRoleplayMode = contentMode === 'roleplay';
 
   return (
     <div className="h-screen overflow-hidden bg-[#f6f6f8] dark:bg-background">
@@ -115,7 +117,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
         </div>
       </header>
 
-      <div className="flex h-[calc(100vh-56px)]">
+      <div className="flex h-[calc(100vh-56px)] overflow-hidden">
         <aside className={`hidden border-r p-3 md:flex md:flex-col ${workspaceCollapsed ? 'md:hidden' : 'md:w-80'}`}>
           <div className="min-h-0 overflow-y-auto">
             <SidebarNav
@@ -145,8 +147,8 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           )}
           <AnimatePresence mode="wait">
             <motion.div key={section + (active?.id ?? '')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-3 md:p-6">
-                <div className="mx-auto w-full max-w-6xl">
+              <div className={cn('min-h-0 flex-1 overflow-hidden', isRoleplayMode ? 'p-2 md:p-3' : 'overflow-y-auto p-3 md:p-6')}>
+                <div className={cn('mx-auto w-full', isRoleplayMode ? 'h-full max-w-none' : 'max-w-6xl')}>
                   {contentMode === 'proImage' || contentMode === 'image' ? <ProImagePanel /> : contentMode === 'roleplay' ? <RoleplayStudio session={active} /> : <MessageList session={active} />}
                 </div>
               </div>
@@ -188,7 +190,6 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           </aside>
         </div>
       )}
-
 
       {trainingTopicDialog.open && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4">
