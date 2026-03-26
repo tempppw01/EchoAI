@@ -1138,7 +1138,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   );
 
   return (
-    <div className="roleplay-shell relative h-full overflow-y-auto rounded-[30px] border border-white/10 p-3 text-foreground shadow-[0_30px_120px_-40px_rgba(76,29,149,0.65)] sm:p-4 lg:overflow-hidden">
+    <div className="roleplay-shell relative h-full overflow-y-auto overscroll-none rounded-[30px] border border-white/10 p-3 text-foreground shadow-[0_30px_120px_-40px_rgba(76,29,149,0.65)] [overscroll-behavior-y:none] sm:p-4 lg:overflow-hidden">
       <div className="roleplay-orb pointer-events-none absolute -left-16 top-10 h-52 w-52 rounded-full bg-fuchsia-500/18 blur-3xl" />
       <div className="roleplay-orb roleplay-orb-delay pointer-events-none absolute right-0 top-16 h-56 w-56 rounded-full bg-cyan-500/14 blur-3xl" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_18%,transparent_82%,rgba(255,255,255,0.04))] opacity-60" />

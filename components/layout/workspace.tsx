@@ -98,7 +98,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
   return (
     <div className="h-screen overflow-hidden bg-[#f6f6f8] dark:bg-background">
-      <header className="flex h-14 items-center justify-between border-b bg-card/85 px-4 backdrop-blur">
+      <header className="relative z-20 flex h-14 shrink-0 items-center justify-between border-b bg-card/85 px-4 backdrop-blur">
         <div className="flex items-center gap-2">
           <Button className="bg-transparent text-foreground md:hidden" onClick={() => setSidebarOpen(true)}><Menu size={16} /></Button>
           <span className="text-sm font-medium">EchoAI 工作区</span>
@@ -147,8 +147,8 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           )}
           <AnimatePresence mode="wait">
             <motion.div key={section + (active?.id ?? '')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <div className={cn('min-h-0 flex-1 overflow-hidden', isRoleplayMode ? 'p-2 md:p-3' : 'overflow-y-auto p-3 md:p-6')}>
-                <div className={cn('mx-auto w-full', isRoleplayMode ? 'h-full max-w-none' : 'max-w-6xl')}>
+              <div className={cn('min-h-0 flex-1 overflow-hidden', isRoleplayMode ? 'overscroll-none p-2 md:p-3' : 'overflow-y-auto p-3 md:p-6')}>
+                <div className={cn('mx-auto w-full', isRoleplayMode ? 'h-full max-w-none overflow-hidden' : 'max-w-6xl')}>
                   {contentMode === 'proImage' || contentMode === 'image' ? <ProImagePanel /> : contentMode === 'roleplay' ? <RoleplayStudio session={active} /> : <MessageList session={active} />}
                 </div>
               </div>
