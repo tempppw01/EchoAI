@@ -174,18 +174,21 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
       <Dialog.Root open={open} onOpenChange={onOpenChange}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,780px)] -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-card p-4">
-            <Dialog.Title className="mb-3 text-base font-semibold">设置中心</Dialog.Title>
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[min(92vw,780px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border bg-card p-4 md:max-h-[90vh]">
+            <Dialog.Title className="mb-3 shrink-0 text-base font-semibold">设置中心</Dialog.Title>
 
             <form
+              className="flex min-h-0 flex-1 flex-col"
               onSubmit={form.handleSubmit((data) => {
                 setSettings(data);
                 showNotice('保存成功');
                 onOpenChange(false);
               })}
             >
-              <SettingsTabs form={form} onPersistSettings={setSettings} onShowNotice={showNotice} />
-              <div className="mt-4 flex flex-wrap justify-between gap-2">
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                <SettingsTabs form={form} onPersistSettings={setSettings} onShowNotice={showNotice} />
+              </div>
+              <div className="mt-4 flex shrink-0 flex-wrap justify-between gap-2 border-t pt-3">
                 <div className="flex gap-2">
                   <Button type="button" className="bg-transparent text-foreground" onClick={exportData}>
                     <Download size={14} className="mr-1" /> 导出 JSON
