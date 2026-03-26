@@ -1195,27 +1195,28 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         </motion.aside>
 
         <section className="order-1 roleplay-panel relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/12 p-4 lg:order-none lg:min-h-0 xl:p-5">
-          <div className="mb-4 flex flex-col gap-4 border-b border-white/10 pb-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="flex min-w-0 items-start gap-4">
+          <div className="sticky top-0 z-10 -mx-4 mb-3 border-b border-white/10 bg-[linear-gradient(180deg,rgba(8,11,19,0.98),rgba(8,11,19,0.92))] px-4 pb-3 pt-2 backdrop-blur sm:static sm:mx-0 sm:mb-4 sm:border-b-0 sm:bg-transparent sm:px-0 sm:pb-4 sm:pt-0 xl:flex-row xl:items-start xl:justify-between">
+            <div className="flex min-w-0 items-start gap-3 sm:gap-4">
               <motion.div
                 animate={{ y: [0, -5, 0], rotate: [0, -2, 0, 2, 0] }}
                 transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
-                className={cn('flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] border text-3xl shadow-xl', stageAccent.avatar)}
+                className={cn('flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] border text-2xl shadow-xl sm:h-16 sm:w-16 sm:rounded-[22px] sm:text-3xl', stageAccent.avatar)}
               >
                 {stageCharacter?.avatar || selectedCharacter?.avatar || '✨'}
               </motion.div>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-white/35">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/35 sm:text-[11px] sm:tracking-[0.32em]">
                   <span>Main Stage</span>
-                  {stageWorld && <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 normal-case tracking-normal text-white/70">{stageWorld.name}</span>}
-                  {stageLocked && <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 normal-case tracking-normal text-white/70">本场锁定</span>}
+                  {stageWorld && <span className="rounded-full border border-white/10 bg-white/10 px-2 py-1 normal-case tracking-normal text-white/70 sm:px-2.5">{stageWorld.name}</span>}
+                  {stageLocked && <span className="rounded-full border border-white/10 bg-white/10 px-2 py-1 normal-case tracking-normal text-white/70 sm:px-2.5">本场锁定</span>}
                 </div>
-                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white xl:text-3xl">{compactText(stageCharacter?.name || selectedCharacter?.name, '角色未就位')}</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-7 text-white/72">{compactText(stageCharacter?.background || selectedCharacter?.background, '把所有设定都收进两侧抽屉，只把最重要的舞台留给当前这段对话。')}</p>
+                <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:mt-3 sm:text-2xl xl:text-3xl">{compactText(stageCharacter?.name || selectedCharacter?.name, '角色未就位')}</h2>
+                <p className="mt-1 truncate text-xs leading-6 text-white/68 sm:hidden">{compactText(stageCharacter?.background || selectedCharacter?.background, '把所有设定都收进两侧抽屉，只把最重要的舞台留给当前这段对话。')}</p>
+                <p className="mt-2 hidden max-w-3xl text-sm leading-7 text-white/72 sm:block">{compactText(stageCharacter?.background || selectedCharacter?.background, '把所有设定都收进两侧抽屉，只把最重要的舞台留给当前这段对话。')}</p>
               </div>
             </div>
 
-            <div className="hidden flex-wrap gap-2 xl:justify-end lg:flex">
+            <div className="mt-3 hidden flex-wrap gap-2 xl:mt-0 xl:justify-end lg:flex">
               <Button type="button" className="h-11 rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15" onClick={() => openLeftPanel('director')}>
                 <PenSquare size={15} className="mr-2" /> 设定
               </Button>
