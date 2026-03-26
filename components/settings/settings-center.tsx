@@ -11,7 +11,7 @@ import { settingsSchema, SettingsFormValues } from '@/components/settings/settin
 import { Button } from '@/components/ui/button';
 import { AppSnapshot } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
-import { sanitizeSettingsForExport, useSettingsStore } from '@/stores/settings-store';
+import { defaultSettings, sanitizeSettingsForExport, useSettingsStore } from '@/stores/settings-store';
 
 interface SettingsCenterProps {
   open: boolean;
@@ -148,9 +148,14 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
         return;
       }
 
+      const normalizedSettings: AppSnapshot['settings'] = sanitizeSettingsForExport({
+        ...defaultSettings,
+        ...parsed.data.settings,
+      } as AppSnapshot['settings']);
+
       const snapshot: AppSnapshot = {
         ...parsed.data,
-        settings: sanitizeSettingsForExport(parsed.data.settings),
+        settings: normalizedSettings,
       };
 
       importSnapshot(snapshot);
