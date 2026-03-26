@@ -229,7 +229,7 @@ function ThemeIconButton({ active, onClick, icon }: { active: boolean; onClick: 
 }
 
 function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModule, onToggle, onSelect, onSelectSession, onCreate }: { section: SectionKey; sessions: ReturnType<typeof useChatStore.getState>['sessions']; expanded: Record<SectionKey, boolean>; moduleCollapsed: boolean; onToggleModule: () => void; onToggle: (key: SectionKey) => void; onSelect: (key: SectionKey) => void; onSelectSession: (id: string) => void; onCreate: (key: SectionKey) => void }) {
-  const { deleteSession } = useChatStore();
+  const { deleteSession, regenerateSessionTitle } = useChatStore();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; session: ChatSession } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
 
@@ -260,7 +260,7 @@ function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModu
                 <div className="mt-2 space-y-2 px-1">
                   <Button className="h-8 w-full text-xs" onClick={() => onCreate(item.key)}><Plus size={12} className="mr-1" />新建</Button>
                   {recentSessions.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="space-y-2">
                       {recentSessions.map((sessionItem) => (
                         <button
                           key={sessionItem.id}
@@ -270,10 +270,11 @@ function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModu
                             event.stopPropagation();
                             setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
                           }}
-                          className="max-w-full rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground"
+                          className="block w-full rounded-2xl border border-border/70 bg-background/70 px-3 py-2.5 text-left transition hover:border-primary/30 hover:bg-muted/40"
                           title={sessionItem.title}
                         >
-                          <span className="line-clamp-1">{sessionItem.title}</span>
+                          <div className="line-clamp-1 text-sm font-medium text-foreground">{sessionItem.title}</div>
+                          <div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{sessionItem.summary || '开始你的第一条消息'}</div>
                         </button>
                       ))}
                     </div>
@@ -289,9 +290,19 @@ function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModu
         <>
           <button className="fixed inset-0 z-40 cursor-default bg-transparent" onClick={() => setContextMenu(null)} aria-label="关闭会话菜单" />
           <div
-            className="fixed z-50 min-w-[160px] rounded-xl border border-border bg-card/100 p-1 shadow-2xl backdrop-blur-0"
+            className="fixed z-50 min-w-[180px] rounded-xl border border-border bg-card/100 p-1 shadow-2xl backdrop-blur-0"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
+            <button
+              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-foreground hover:bg-muted"
+              onClick={async () => {
+                const sessionId = contextMenu.session.id;
+                setContextMenu(null);
+                await regenerateSessionTitle(sessionId);
+              }}
+            >
+              重新生成标题
+            </button>
             <button
               className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-red-500 hover:bg-muted"
               onClick={() => {

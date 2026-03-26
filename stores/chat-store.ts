@@ -125,6 +125,7 @@ interface ChatState {
   stopMessage: (sessionId: string) => void;
   clearContext: (sessionId: string) => void;
   renameSession: (id: string, title: string) => void;
+  regenerateSessionTitle: (id: string) => Promise<void>;
   updateSession: (id: string, patch: Partial<ChatSession>) => void;
   deleteSession: (id: string) => void;
   togglePinSession: (id: string) => void;
@@ -554,6 +555,39 @@ export const useChatStore = create<ChatState>()(
         }));
       },
       renameSession: (id, title) => set((state) => ({ sessions: state.sessions.map((s) => (s.id === id ? { ...s, title: title.trim() || s.title } : s)) })),
+      regenerateSessionTitle: async (id) => {
+        const session = get().sessions.find((s) => s.id === id);
+        if (!session) return;
+
+        const userMessages = session.messages.filter((message) => message.role === 'user').slice(-6);
+        const assistantMessages = session.messages.filter((message) => message.role === 'assistant').slice(-3);
+        const fallbackTitle = userMessages[0]?.content?.trim().slice(0, 20) || getDefaultTitleByMode(session.mode);
+
+        if (userMessages.length === 0) {
+          set((state) => ({ sessions: state.sessions.map((s) => (s.id === id ? { ...s, title: fallbackTitle, updatedAt: now() } : s)) }));
+          return;
+        }
+
+        try {
+          const settings = useSettingsStore.getState().settings;
+          const reply = await requestOpenAICompatible({
+            settings,
+            model: resolveTextModel(session, settings),
+            messages: [
+              { role: 'system', content: '你是会话命名助手。请基于对话内容生成一个简短自然的中文标题。只输出标题本身，不要解释，不要加引号，不超过12个字。' },
+              {
+                role: 'user',
+                content: `请为这段会话生成一个更准确的标题：\n\n最近用户消息：\n${userMessages.map((m, idx) => `${idx + 1}. ${m.content}`).join('\n')}\n\n最近助手消息：\n${assistantMessages.map((m, idx) => `${idx + 1}. ${m.content}`).join('\n')}`,
+              },
+            ],
+          });
+
+          const nextTitle = reply.replace(/[\n\r"'「」]/g, ' ').trim().slice(0, 24) || fallbackTitle;
+          set((state) => ({ sessions: state.sessions.map((s) => (s.id === id ? { ...s, title: nextTitle, updatedAt: now() } : s)) }));
+        } catch {
+          set((state) => ({ sessions: state.sessions.map((s) => (s.id === id ? { ...s, title: fallbackTitle, updatedAt: now() } : s)) }));
+        }
+      },
       updateSession: (id, patch) => set((state) => ({ sessions: sortedSessions(state.sessions.map((session) => (session.id === id ? { ...session, ...patch, updatedAt: now() } : session))) })),
       deleteSession: (id) =>
         set((state) => {
