@@ -5,8 +5,6 @@ import ReactMarkdown from 'react-markdown';
 import { Bot, ChevronDown, ChevronUp, Copy, Download, Heart, Pencil, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
 import { ChatMode, ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
-import { useSettingsStore } from '@/stores/settings-store';
-import { useUIStore } from '@/stores/ui-store';
 
 const modeStarterMap: Record<Exclude<ChatMode, 'image' | 'proImage'>, { title: string; hint: string }> = {
   chat: { title: '通用对话工作台', hint: '从任意问题开始，系统会保留上下文。' },
@@ -186,9 +184,6 @@ const parseVideoScriptVersions = (content: string) => {
 
 export function MessageList({ session }: { session?: ChatSession }) {
   const { retryMessage, regenerateLastAssistant, deleteMessage, editUserMessage, answerTrainingQuestion, setPreferredCandidate } = useChatStore();
-  const apiKey = useSettingsStore((state) => state.settings.apiKey);
-  const normalizedApiKey = (apiKey ?? '').trim();
-  const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
   const [editingId, setEditingId] = useState<string>();
   const [editingText, setEditingText] = useState('');
   const trainingQuestionRef = useRef<HTMLDivElement>(null);
@@ -225,15 +220,6 @@ export function MessageList({ session }: { session?: ChatSession }) {
             <div className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 transition-all" style={{ width: `${session.trainingScore ?? 60}%` }} />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">主题：{session.trainingTopic || '尚未设置'} · 已完成 {session.trainingRound ?? 0} 题</p>
-        </div>
-      )}
-
-      {!normalizedApiKey && (
-        <div className="rounded-xl border border-amber-300/80 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
-          <p>尚未配置 API Key，发送消息前请先完成设置。</p>
-          <button onClick={() => setSettingsOpen(true)} className="mt-2 inline-flex items-center rounded-md border border-amber-400/70 px-2 py-1 text-xs font-medium">
-            立即前往设置
-          </button>
         </div>
       )}
 

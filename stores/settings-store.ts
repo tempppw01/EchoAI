@@ -23,6 +23,11 @@ export const defaultSettings: AppSettings = {
   modelCatalog: [],
 };
 
+export const sanitizeSettingsForExport = (settings: AppSettings): AppSettings => ({
+  ...settings,
+  apiKey: '',
+});
+
 const LEGACY_PRESET_MODELS = new Set(['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-image-1']);
 
 const isLegacyPresetModels = (models?: string[]) => {
@@ -44,20 +49,25 @@ export const useSettingsStore = create<{
             Object.entries(incoming).filter(([, value]) => value !== undefined),
           ) as Partial<AppSettings>;
 
-          return { settings: { ...state.settings, ...sanitizedIncoming } };
+          return {
+            settings: sanitizeSettingsForExport({
+              ...state.settings,
+              ...sanitizedIncoming,
+            }),
+          };
         }),
-      replaceSettings: (settings) => set({ settings: { ...defaultSettings, ...settings } }),
+      replaceSettings: (settings) => set({ settings: sanitizeSettingsForExport({ ...defaultSettings, ...settings }) }),
     }),
     {
       name: 'echoai-settings',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ settings: state.settings }),
+      partialize: (state) => ({ settings: sanitizeSettingsForExport(state.settings) }),
       merge: (persistedState, currentState) => {
         const persistedSettings = ((persistedState as { settings?: Partial<AppSettings> } | undefined)?.settings ?? {}) as Partial<AppSettings>;
-        const mergedSettings: AppSettings = {
+        const mergedSettings = sanitizeSettingsForExport({
           ...defaultSettings,
           ...persistedSettings,
-        };
+        });
 
         if (isLegacyPresetModels(mergedSettings.modelCatalog)) {
           mergedSettings.modelCatalog = [];

@@ -1,5 +1,4 @@
 import { AppSettings, ChatMessage } from '@/lib/types';
-import { normalizeOpenAIBaseUrl } from '@/lib/openai-endpoint';
 
 type OpenAICompatibleMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -22,24 +21,29 @@ type EmbeddingResponse = {
   }>;
 };
 
+const readResponseError = async (response: Response) => {
+  const message = await response.text();
+  if (!message) return '';
+
+  try {
+    const data = JSON.parse(message) as { error?: string };
+    return data.error || message;
+  } catch {
+    return message;
+  }
+};
+
 export async function requestOpenAICompatible(params: {
   settings: AppSettings;
   model: string;
   messages: OpenAICompatibleMessage[];
 }) {
   const { settings, model, messages } = params;
-  const url = `${normalizeOpenAIBaseUrl(settings.baseUrl)}/chat/completions`;
-  const apiKey = settings.apiKey?.trim();
 
-  if (!apiKey) {
-    throw new Error('请先在设置中心填写 API Key');
-  }
-
-  const response = await fetch(url, {
+  const response = await fetch('/api/openai/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
@@ -51,7 +55,7 @@ export async function requestOpenAICompatible(params: {
   });
 
   if (!response.ok) {
-    const message = await response.text();
+    const message = await readResponseError(response);
     throw new Error(`请求失败（${response.status}）：${message || '未知错误'}`);
   }
 
@@ -69,18 +73,12 @@ export async function requestEmbeddingVector(params: {
   model: string;
   input: string;
 }) {
-  const { settings, model, input } = params;
-  const apiKey = settings.apiKey?.trim();
-  if (!apiKey) {
-    throw new Error('请先在设置中心填写 API Key');
-  }
+  const { model, input } = params;
 
-  const url = `${normalizeOpenAIBaseUrl(settings.baseUrl)}/embeddings`;
-  const response = await fetch(url, {
+  const response = await fetch('/api/openai/embeddings', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
@@ -89,7 +87,7 @@ export async function requestEmbeddingVector(params: {
   });
 
   if (!response.ok) {
-    const message = await response.text();
+    const message = await readResponseError(response);
     throw new Error(`嵌入请求失败（${response.status}）：${message || '未知错误'}`);
   }
 

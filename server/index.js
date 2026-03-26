@@ -31,6 +31,7 @@ const CONFIG = {
     JWT_SECRET: process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
     API_KEY: process.env.API_KEY,
     API_URL: process.env.API_URL || 'https://ai.shuaihong.fun/v1/chat/completions',
+    TRUST_PROXY: process.env.TRUST_PROXY,
     
     // IP 级别速率限制
     IP_RATE_LIMIT: {
@@ -69,6 +70,52 @@ const CONFIG = {
     }
 };
 
+const DEV_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+
+function parseTrustProxySetting(value) {
+    if (value === undefined || value === null || value === '') {
+        return false;
+    }
+
+    const normalized = String(value).trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+        return true;
+    }
+    if (['0', 'false', 'no', 'off'].includes(normalized)) {
+        return false;
+    }
+
+    const parsedNumber = Number(normalized);
+    if (Number.isInteger(parsedNumber) && parsedNumber >= 0) {
+        return parsedNumber;
+    }
+
+    return normalized;
+}
+
+const configuredAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+const resolvedAllowedOrigins = configuredAllowedOrigins.length > 0
+    ? configuredAllowedOrigins
+    : (process.env.NODE_ENV === 'production' ? [] : DEV_ALLOWED_ORIGINS);
+
+const allowAllOrigins = resolvedAllowedOrigins.includes('*');
+
+function resolveCorsOrigin(origin, callback) {
+    if (!origin) {
+        return callback(null, true);
+    }
+
+    if (allowAllOrigins || resolvedAllowedOrigins.includes(origin)) {
+        return callback(null, true);
+    }
+
+    return callback(new Error('CORS origin not allowed'));
+}
+
 // ============ 中间件 ============
 
 // 安全头
@@ -76,13 +123,13 @@ app.use(helmet({
     contentSecurityPolicy: false, // 禁用 Helmet 的 CSP，由前端 HTML meta 标签控制
 }));
 
-// 获取真实 IP
-app.set('trust proxy', true);
+// 获取真实 IP，仅信任显式配置的代理层
+app.set('trust proxy', parseTrustProxySetting(CONFIG.TRUST_PROXY));
 
 // CORS 配置
 app.use(cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-    credentials: true
+    origin: resolveCorsOrigin,
+    credentials: !allowAllOrigins
 }));
 
 // JSON 解析
@@ -130,9 +177,8 @@ const requestLogs = new Map();
  * 获取客户端真实 IP
  */
 function getClientIP(req) {
-    return req.ip || 
-           req.headers['x-real-ip'] || 
-           req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+    return req.ip ||
+           req.socket?.remoteAddress ||
            req.connection?.remoteAddress ||
            'unknown';
 }
@@ -550,41 +596,20 @@ app.use(['/api', '/health'], antiBrushMiddleware);
 
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    
-    if (!token) {
+
+    if (!authHeader || typeof authHeader !== 'string') {
         return res.status(401).json({ error: '未提供认证令牌' });
     }
+
+    const [scheme, token] = authHeader.split(' ');
+    if (scheme !== 'Bearer' || !token) {
+        return res.status(401).json({ error: '认证令牌格式无效' });
+    }
     
-    // 尝试验证 JWT
+    // 仅接受有效 JWT，禁止回退为匿名或透传 API Key
     jwt.verify(token, CONFIG.JWT_SECRET, (err, user) => {
-        if (err) {
-            // 如果 JWT 验证失败，检查是否可能是 API Key（例如 sk- 开头）
-            // 或者我们允许直接透传 Key 的模式
-            // 在这种情况下，我们创建一个临时用户身份
-            
-            // 简单的启发式检查：如果 token 包含点号且分为三部分，可能是 JWT 但过期了
-            // 如果不包含点号，或者明显是 API Key 格式
-            
-            // 为了支持用户直接填 Key，我们在这里放行，
-            // 并将 token 标记为可能的 API Key，存入 headers 供后续使用
-            req.headers['x-custom-api-key'] = token;
-            
-            // 生成一个基于 IP 的临时用户 ID，用于限流
-            const ip = getClientIP(req);
-            const tempUserId = crypto.createHash('md5').update(ip).digest('hex');
-            
-            req.user = {
-                userId: `guest_${tempUserId}`,
-                type: 'guest'
-            };
-            
-            // 检查黑名单（使用 IP 或临时 ID）
-            if (isBlacklisted('user', req.user.userId) || isBlacklisted('ip', ip)) {
-                return res.status(403).json({ error: '您的访问已被限制' });
-            }
-            
-            return next();
+        if (err || !user?.userId) {
+            return res.status(401).json({ error: '认证令牌无效或已过期' });
         }
         
         // JWT 验证成功
@@ -652,17 +677,32 @@ app.post('/api/auth/login', (req, res) => {
     try {
         const ip = req.clientIP;
         const fingerprint = req.deviceFingerprint;
-        const { deviceId } = req.body;
+        const rawDeviceId = req.body?.deviceId;
+        const normalizedDeviceId = typeof rawDeviceId === 'string' ? rawDeviceId.trim() : '';
+
+        if (normalizedDeviceId && !/^[a-f0-9]{32}$/i.test(normalizedDeviceId)) {
+            return res.status(400).json({ error: '设备标识无效' });
+        }
         
         // 检查设备指纹黑名单
         if (isBlacklisted('fingerprint', fingerprint)) {
             return res.status(403).json({ error: '设备已被限制' });
         }
+
+        const existingUser = normalizedDeviceId ? users.get(normalizedDeviceId) : undefined;
+        if (existingUser?.fingerprint && existingUser.fingerprint !== fingerprint) {
+            logAlert(normalizedDeviceId, 'DEVICE_MISMATCH_LOGIN', {
+                ip,
+                previousFingerprint: existingUser.fingerprint,
+                currentFingerprint: fingerprint
+            });
+            return res.status(403).json({ error: '设备校验失败，请重新登录' });
+        }
         
-        let userId = deviceId;
+        let userId = existingUser?.id;
         let isNewUser = false;
         
-        if (!userId || !users.has(userId)) {
+        if (!userId) {
             // 检查 IP 注册限制
             const registerCheck = checkIPRegisterLimit(ip);
             if (!registerCheck.allowed) {
@@ -674,7 +714,6 @@ app.post('/api/auth/login', (req, res) => {
         }
         
         // 创建或更新用户
-        const existingUser = users.get(userId);
         users.set(userId, {
             id: userId,
             createdAt: existingUser?.createdAt || Date.now(),
@@ -770,23 +809,11 @@ app.post('/api/chat', authenticateToken, async (req, res) => {
             return res.status(403).json({ error: fpCheck.error });
         }
         
-        // 7. 确定使用的 API Key（优先使用请求头中的 Key，其次使用环境变量）
-        // 注意：authenticateToken 中间件会校验 Authorization 头是 JWT，
-        // 但这里我们需要支持用户透传 API Key。
-        // 前端传来的 Authorization 头目前被用作 JWT 用户认证，
-        // 我们约定：用户自定义的 API Key 放在 'X-Custom-Api-Key' 头中，
-        // 或者如果后端未开启强制登录，则 Authorization 头就是 API Key。
-        
-        let targetApiKey = CONFIG.API_KEY;
-        
-        // 检查请求头中是否有自定义 Key
-        const customKey = req.headers['x-custom-api-key'] || req.headers['x-api-key'];
-        if (customKey) {
-            targetApiKey = customKey;
-        }
+        // 7. 仅使用服务端环境变量中的 API Key，禁止客户端透传上游密钥
+        const targetApiKey = CONFIG.API_KEY?.trim();
         
         if (!targetApiKey) {
-            return res.status(500).json({ error: '未配置 API Key，请在设置中填写您的 Key' });
+            return res.status(500).json({ error: '服务器未配置上游 API Key' });
         }
         
         // 8. 构建请求

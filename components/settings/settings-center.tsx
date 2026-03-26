@@ -5,17 +5,100 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Download, Upload } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { SettingsTabs } from '@/components/settings/settings-tabs';
 import { settingsSchema, SettingsFormValues } from '@/components/settings/settings-form-schema';
 import { Button } from '@/components/ui/button';
 import { AppSnapshot } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
-import { useSettingsStore } from '@/stores/settings-store';
+import { sanitizeSettingsForExport, useSettingsStore } from '@/stores/settings-store';
 
 interface SettingsCenterProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }
+
+const MAX_IMPORT_FILE_BYTES = 2 * 1024 * 1024;
+
+const chatMessageSchema = z.object({
+  id: z.string().min(1).max(128),
+  role: z.enum(['user', 'assistant']),
+  content: z.string().max(100000),
+  originalContent: z.string().max(100000).optional(),
+  createdAt: z.string().min(1).max(64),
+  imageUrl: z.string().max(4096).optional(),
+  status: z.enum(['streaming', 'error', 'done']).optional(),
+});
+
+const preferredCandidateSchema = z.object({
+  sourceMessageId: z.string().min(1).max(128),
+  versionKey: z.string().min(1).max(128),
+  label: z.string().min(1).max(256),
+  content: z.string().max(20000),
+  savedAt: z.string().min(1).max(64),
+});
+
+const trainingQuestionSchema = z.object({
+  stem: z.string().min(1).max(5000),
+  options: z.array(z.object({ id: z.string().min(1).max(16), text: z.string().min(1).max(1000) })).min(2).max(8),
+  correctOptionId: z.string().min(1).max(16),
+  explanation: z.string().max(5000),
+});
+
+const trainingRecordSchema = z.object({
+  round: z.number().int().min(1).max(100000),
+  stem: z.string().min(1).max(5000),
+  pickedOptionId: z.string().min(1).max(16),
+  correctOptionId: z.string().min(1).max(16),
+  isCorrect: z.boolean(),
+  explanation: z.string().max(5000),
+});
+
+const videoScriptPresetSchema = z.object({
+  topic: z.string().max(500).optional(),
+  productName: z.string().max(500).optional(),
+  targetAudience: z.string().max(500).optional(),
+  contentType: z.string().max(100).optional(),
+  versionCount: z.number().int().min(1).max(20).optional(),
+  coreSellingPoints: z.string().max(2000).optional(),
+  toneStyle: z.string().max(500).optional(),
+  platform: z.string().max(100).optional(),
+  durationSec: z.number().int().min(1).max(3600).optional(),
+  mustInclude: z.string().max(2000).optional(),
+  avoid: z.string().max(2000).optional(),
+});
+
+const chatSessionSchema = z.object({
+  id: z.string().min(1).max(128),
+  title: z.string().min(1).max(200),
+  mode: z.enum(['chat', 'image', 'proImage', 'copywriting', 'videoScript', 'roleplay', 'training']),
+  subtype: z.string().max(200).optional(),
+  characterId: z.string().max(128).optional(),
+  worldId: z.string().max(128).optional(),
+  pinnedMemory: z.string().max(20000).optional(),
+  memorySummary: z.string().max(10000).optional(),
+  preferredCandidate: preferredCandidateSchema.optional(),
+  pinned: z.boolean(),
+  updatedAt: z.string().min(1).max(64),
+  summary: z.string().max(1000),
+  model: z.string().max(200),
+  messages: z.array(chatMessageSchema).max(500),
+  trainingTopic: z.string().max(500).optional(),
+  trainingScore: z.number().min(0).max(100).optional(),
+  trainingCurrentQuestion: trainingQuestionSchema.optional(),
+  trainingRound: z.number().int().min(0).max(100000).optional(),
+  trainingLastCorrectOption: z.string().max(16).optional(),
+  trainingRecentRecords: z.array(trainingRecordSchema).max(100).optional(),
+  videoScriptPreset: videoScriptPresetSchema.optional(),
+});
+
+const appSnapshotImportSchema = z.object({
+  version: z.literal(1),
+  exportedAt: z.string().min(1).max(64),
+  settings: settingsSchema,
+  sessions: z.array(chatSessionSchema).min(1).max(100),
+  activeSessionId: z.string().min(1).max(128).optional(),
+});
 
 export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
   const { settings, setSettings, replaceSettings } = useSettingsStore();
@@ -38,7 +121,7 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
   }, [settings, form]);
 
   const exportData = () => {
-    const snapshot = exportSnapshot(settings);
+    const snapshot = exportSnapshot(sanitizeSettingsForExport(settings));
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -50,19 +133,34 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
 
   const handleImport = async (file?: File) => {
     if (!file) return;
+
+    if (file.size > MAX_IMPORT_FILE_BYTES) {
+      showNotice('导入失败：文件过大，限制为 2MB');
+      if (importRef.current) importRef.current.value = '';
+      return;
+    }
+
     try {
       const text = await file.text();
-      const snapshot = JSON.parse(text) as AppSnapshot;
-      if (!snapshot.sessions || !snapshot.settings) {
-        showNotice('导入失败：文件格式不正确');
+      const parsed = appSnapshotImportSchema.safeParse(JSON.parse(text));
+      if (!parsed.success) {
+        showNotice('导入失败：文件结构不正确');
         return;
       }
+
+      const snapshot: AppSnapshot = {
+        ...parsed.data,
+        settings: sanitizeSettingsForExport(parsed.data.settings),
+      };
+
       importSnapshot(snapshot);
       replaceSettings(snapshot.settings);
-      showNotice('导入成功');
+      showNotice('导入成功，敏感密钥已忽略');
       onOpenChange(false);
     } catch {
       showNotice('导入失败：无法解析 JSON');
+    } finally {
+      if (importRef.current) importRef.current.value = '';
     }
   };
 

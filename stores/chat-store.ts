@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AppSnapshot, ChatMessage, ChatMode, ChatSession, PreferredCandidateContext, TrainingQuestion, TrainingRecord } from '@/lib/types';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
-import { defaultSettings, useSettingsStore } from '@/stores/settings-store';
+import { defaultSettings, sanitizeSettingsForExport, useSettingsStore } from '@/stores/settings-store';
 
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -596,7 +596,7 @@ export const useChatStore = create<ChatState>()(
         }));
         get().sendMessage(lastUser.content, sessionId);
       },
-      exportSnapshot: (settings) => ({ version: 1, exportedAt: now(), settings, sessions: get().sessions, activeSessionId: get().activeSessionId }),
+      exportSnapshot: (settings) => ({ version: 1, exportedAt: now(), settings: sanitizeSettingsForExport(settings), sessions: get().sessions, activeSessionId: get().activeSessionId }),
       importSnapshot: (snapshot) => {
         const safeSessions = snapshot.sessions?.length ? sortedSessions(snapshot.sessions) : [createInitialSession()];
         const safeActiveId = safeSessions.some((s) => s.id === snapshot.activeSessionId) ? snapshot.activeSessionId : safeSessions[0]?.id;

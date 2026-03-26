@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { Loader2, RefreshCcw } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
@@ -22,34 +22,13 @@ const tabs = [
 
 export function SettingsTabs({ form, onPersistSettings, onShowNotice }: SettingsTabsProps) {
   const [loading, setLoading] = useState(false);
-  const baseUrl = form.watch('baseUrl');
-  const apiKey = form.watch('apiKey');
   const modelCatalog = form.watch('modelCatalog') || [];
-
-  useEffect(() => {
-    onPersistSettings({
-      baseUrl: (baseUrl ?? '').trim(),
-      apiKey: (apiKey ?? '').trim(),
-    });
-  }, [apiKey, baseUrl, onPersistSettings]);
 
   const pullModels = async () => {
     setLoading(true);
     try {
       const values = form.getValues();
-      const normalizedBaseUrl = (values.baseUrl ?? '').trim();
-      const normalizedApiKey = (values.apiKey ?? '').trim();
-
-      onPersistSettings({
-        baseUrl: normalizedBaseUrl,
-        apiKey: normalizedApiKey,
-      });
-
-      const models = await fetchModelCatalog({
-        ...values,
-        baseUrl: normalizedBaseUrl,
-        apiKey: normalizedApiKey,
-      });
+      const models = await fetchModelCatalog();
       form.setValue('modelCatalog', models, { shouldDirty: true });
 
       const fallback = models[0] || '';
@@ -69,7 +48,7 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
       });
       onShowNotice(`模型列表已更新（${models.length} 个）`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : '拉取失败，请检查渠道地址和密钥';
+      const message = error instanceof Error ? error.message : '拉取失败，请检查服务端 OPENAI_API_KEY / OPENAI_BASE_URL 配置';
       onShowNotice(message);
     } finally {
       setLoading(false);
@@ -87,15 +66,11 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
       </Tabs.List>
 
       <Tabs.Content value="model" className="space-y-3 text-sm">
-        <Input placeholder="OpenAI 兼容 Base URL" {...form.register('baseUrl')} />
-        <Input
-          placeholder="API Key"
-          type="password"
-          autoComplete="off"
-          {...form.register('apiKey', {
-            onChange: () => onShowNotice('API Key 已自动保存'),
-          })}
-        />
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground">当前已启用服务端代理模式</p>
+          <p className="mt-1">模型列表、对话请求和嵌入请求都会通过服务端 API 路由转发，浏览器不会持久化 API Key。</p>
+          <p className="mt-1">如需修改渠道地址或密钥，请在服务端环境变量中配置 <code>OPENAI_BASE_URL</code> 与 <code>OPENAI_API_KEY</code>。</p>
+        </div>
         <Button type="button" className="w-full" onClick={pullModels} disabled={loading}>
           {loading ? <Loader2 size={14} className="mr-2 animate-spin" /> : <RefreshCcw size={14} className="mr-2" />}
           拉取模型列表
@@ -227,7 +202,7 @@ export function SettingsTabs({ form, onPersistSettings, onShowNotice }: Settings
             <option key={model} value={model} />
           ))}
         </datalist>
-        <p className="text-xs text-muted-foreground">安全提示：API Key 仅本地存储。</p>
+        <p className="text-xs text-muted-foreground">安全提示：浏览器不会持久化 API Key，模型调用统一走服务端代理。</p>
       </Tabs.Content>
 
       <Tabs.Content value="samples" className="space-y-2">

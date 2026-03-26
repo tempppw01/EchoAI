@@ -1,25 +1,26 @@
-import { AppSettings } from '@/lib/types';
-import { normalizeOpenAIBaseUrl } from '@/lib/openai-endpoint';
+const readResponseError = async (response: Response) => {
+  const message = await response.text();
+  if (!message) return '';
 
-type ModelFetchSettings = Partial<Pick<AppSettings, 'modelCatalog' | 'baseUrl' | 'apiKey'>>;
-
-export async function fetchModelCatalog(settings: ModelFetchSettings): Promise<string[]> {
-  const baseUrl = settings.baseUrl?.trim();
-  const apiKey = settings.apiKey?.trim();
-
-  if (!baseUrl || !apiKey) {
-    throw new Error('请先填写并保存 OpenAI 渠道地址和 API Key');
+  try {
+    const data = JSON.parse(message) as { error?: string };
+    return data.error || message;
+  } catch {
+    return message;
   }
+};
 
-  const response = await fetch(`${normalizeOpenAIBaseUrl(baseUrl)}/models`, {
+export async function fetchModelCatalog(): Promise<string[]> {
+  const response = await fetch('/api/openai/models', {
     headers: {
-      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
+    cache: 'no-store',
   });
 
   if (!response.ok) {
-    throw new Error(`拉取模型失败 (${response.status})`);
+    const message = await readResponseError(response);
+    throw new Error(message || `拉取模型失败 (${response.status})`);
   }
 
   const data = await response.json() as { data?: Array<{ id?: string }> };
