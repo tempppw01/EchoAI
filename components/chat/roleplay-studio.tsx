@@ -230,6 +230,13 @@ const characterSeeds: Array<Partial<CharacterCard>> = [
   },
 ];
 
+const presetGroups = [
+  { key: 'ambiguous', label: '暧昧系', matcher: (tags: string[]) => tags.some((tag) => ['暧昧', '拉扯', '慢热', '重逢'].includes(tag)) },
+  { key: 'healing', label: '治愈系', matcher: (tags: string[]) => tags.some((tag) => ['治愈', '温柔', '陪伴', '夜聊'].includes(tag)) },
+  { key: 'strong', label: '强势系', matcher: (tags: string[]) => tags.some((tag) => ['强势', '张力', '守护', '痞帅'].includes(tag)) },
+  { key: 'special', label: '世界观系', matcher: (tags: string[]) => tags.some((tag) => ['奇幻', '神秘', '宿命', '科幻', '高知', '都市'].includes(tag)) },
+] as const;
+
 const compactText = (value: string | undefined, fallback: string) => {
   const normalized = (value || '').trim();
   return normalized || fallback;
@@ -327,6 +334,17 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
       return matchesKeyword && matchesTag;
     });
   }, [characters, search, activeTag]);
+
+  const groupedCharacters = useMemo(
+    () =>
+      presetGroups
+        .map((group) => ({
+          ...group,
+          items: filteredCharacters.filter((item) => group.matcher(item.tags || [])),
+        }))
+        .filter((group) => group.items.length > 0),
+    [filteredCharacters],
+  );
 
   const quickPrompts = useMemo(() => {
     const roleName = stageCharacter?.name || selectedCharacter?.name || '角色';
@@ -521,7 +539,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         ))}
       </div>
 
-      <div className="roleplay-scroll min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+      <div className="roleplay-scroll min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
         <AnimatePresence initial={false}>
           {filteredCharacters.length === 0 ? (
             <motion.div
@@ -534,48 +552,58 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               <p className="mt-1 text-xs text-white/35">换个关键词，或直接新建一个更有戏的人物。</p>
             </motion.div>
           ) : (
-            filteredCharacters.map((item, index) => {
-              const accent = getAccentPreset(item.id || item.name);
-              const active = item.id === selectedCharacter?.id;
+            groupedCharacters.map((group) => (
+              <div key={group.key} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-white/35">{group.label}</p>
+                  <span className="text-[11px] text-white/30">{group.items.length} 张</span>
+                </div>
+                <div className="grid gap-3">
+                  {group.items.map((item, index) => {
+                    const accent = getAccentPreset(item.id || item.name);
+                    const active = item.id === selectedCharacter?.id;
 
-              return (
-                <motion.button
-                  key={item.id}
-                  type="button"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(index * 0.03, 0.16) }}
-                  whileHover={{ y: -3, scale: 1.01 }}
-                  whileTap={{ scale: 0.985 }}
-                  onClick={() => handleSelectCharacter(item.id)}
-                  className={cn(
-                    'group relative w-full overflow-hidden rounded-[24px] border p-3 text-left transition',
-                    active ? cn('shadow-[0_18px_48px_-26px_rgba(168,85,247,0.7)]', accent.card) : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]',
-                  )}
-                >
-                  <div className={cn('absolute inset-0 bg-gradient-to-br opacity-80', accent.hero)} />
-                  <div className="relative flex items-start gap-3">
-                    <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border text-2xl shadow-lg backdrop-blur', accent.avatar)}>
-                      {item.avatar || '✨'}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-sm font-semibold text-white">{compactText(item.name, '未命名角色')}</p>
-                        {active && <Sparkles size={14} className="shrink-0 text-white/85" />}
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-xs text-white/65">{compactText(item.personality, '先点进来，给他一点会让人想继续聊的气质。')}</p>
-                    </div>
-                  </div>
-                  <div className="relative mt-3 flex flex-wrap gap-2">
-                    {(item.tags.length ? item.tags : ['待设定']).slice(0, 3).map((tag) => (
-                      <span key={tag} className={cn('rounded-full border px-2.5 py-1 text-[11px] text-white/75', accent.chip)}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </motion.button>
-              );
-            })
+                    return (
+                      <motion.button
+                        key={item.id}
+                        type="button"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: Math.min(index * 0.03, 0.16) }}
+                        whileHover={{ y: -3, scale: 1.01 }}
+                        whileTap={{ scale: 0.985 }}
+                        onClick={() => handleSelectCharacter(item.id)}
+                        className={cn(
+                          'group relative w-full overflow-hidden rounded-[24px] border p-3 text-left transition',
+                          active ? cn('shadow-[0_18px_48px_-26px_rgba(168,85,247,0.7)]', accent.card) : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]',
+                        )}
+                      >
+                        <div className={cn('absolute inset-0 bg-gradient-to-br opacity-80', accent.hero)} />
+                        <div className="relative flex items-start gap-3">
+                          <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border text-2xl shadow-lg backdrop-blur', accent.avatar)}>
+                            {item.avatar || '✨'}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="truncate text-sm font-semibold text-white">{compactText(item.name, '未命名角色')}</p>
+                              {active && <Sparkles size={14} className="shrink-0 text-white/85" />}
+                            </div>
+                            <p className="mt-1 line-clamp-2 text-xs text-white/65">{compactText(item.personality, '先点进来，给他一点会让人想继续聊的气质。')}</p>
+                          </div>
+                        </div>
+                        <div className="relative mt-3 flex flex-wrap gap-2">
+                          {(item.tags.length ? item.tags : ['待设定']).slice(0, 3).map((tag) => (
+                            <span key={tag} className={cn('rounded-full border px-2.5 py-1 text-[11px] text-white/75', accent.chip)}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
           )}
         </AnimatePresence>
       </div>
@@ -872,8 +900,8 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   );
 
   const renderComposerNotice = () => (
-    <div className="mb-2 flex items-start gap-2 rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2 text-[11px] leading-5 text-white/46">
-      <Shield size={12} className="mt-0.5 shrink-0 text-white/32" />
+    <div className="mb-1.5 flex items-start gap-2 rounded-[14px] border border-white/7 bg-white/[0.025] px-2.5 py-1.5 text-[10px] leading-4 text-white/42">
+      <Shield size={11} className="mt-0.5 shrink-0 text-white/28" />
       <p>AI 生成，仅供角色扮演与创作体验；勿代入现实人物，不要输入隐私、违法或伤害性内容。</p>
     </div>
   );
@@ -906,13 +934,13 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
       </motion.div>
 
       <div className="flex min-h-0 flex-1 flex-col rounded-[24px] border border-white/10 bg-white/[0.03] p-3">
-        <div className="mb-3 flex flex-wrap gap-2">
-          {quickPrompts.map((item) => (
+        <div className="mb-2 flex flex-wrap gap-2">
+          {quickPrompts.slice(0, 4).map((item) => (
             <button
               key={item.label}
               type="button"
               onClick={() => injectPrompt(item.value)}
-              className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-white/70 transition hover:bg-white/10 hover:text-white"
+              className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] text-white/70 transition hover:bg-white/10 hover:text-white"
             >
               {item.label}
             </button>
@@ -925,7 +953,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               ref={composerRef}
               value={composerValue}
               onChange={(e) => setComposerValue(e.target.value)}
-              rows={4}
+              rows={3}
               placeholder="比如：你先别说喜欢我，先用一句话把氛围拉满。"
               onCompositionStart={() => setIsComposing(true)}
               onCompositionEnd={() => setIsComposing(false)}
@@ -934,10 +962,10 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 e.preventDefault();
                 onSend();
               }}
-              className="min-h-[132px] rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+              className="min-h-[96px] rounded-[20px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
             />
-            <Button type="button" className="h-14 rounded-[20px] px-4" onClick={onSend}>
-              <SendHorizontal size={18} />
+            <Button type="button" className="h-12 rounded-[18px] px-4" onClick={onSend}>
+              <SendHorizontal size={17} />
             </Button>
           </div>
         </div>
@@ -947,13 +975,13 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
   const renderLiveStage = () => (
     <>
-      <div className="mb-3 flex flex-wrap gap-2">
-        {quickPrompts.map((item) => (
+      <div className="mb-2 flex flex-wrap gap-2">
+        {quickPrompts.slice(0, 4).map((item) => (
           <button
             key={item.label}
             type="button"
             onClick={() => injectPrompt(item.value)}
-            className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-white/70 transition hover:bg-white/10 hover:text-white"
+            className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] text-white/70 transition hover:bg-white/10 hover:text-white"
           >
             {item.label}
           </button>
@@ -972,7 +1000,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             >
               <div
                 className={cn(
-                  'max-w-[92%] rounded-[28px] border px-4 py-3 shadow-[0_18px_60px_-28px_rgba(15,23,42,0.8)] backdrop-blur',
+                  'max-w-[92%] rounded-[26px] border px-4 py-3 shadow-[0_18px_60px_-28px_rgba(15,23,42,0.8)] backdrop-blur',
                   msg.role === 'user' ? 'border-violet-400/20 bg-violet-500/12' : 'border-white/10 bg-white/[0.05]',
                 )}
               >
@@ -991,21 +1019,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         </AnimatePresence>
       </div>
 
-      <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-3">
-        <div className="mb-3 flex flex-wrap gap-2">
-          {quickPrompts.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              onClick={() => injectPrompt(item.value)}
-              className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-white/70 transition hover:bg-white/10 hover:text-white"
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <div className="mb-2 flex items-center justify-between text-xs text-white/45">
-          <span>按 Enter 发送</span>
+      <div className="mt-3 rounded-[22px] border border-white/10 bg-white/[0.04] p-3">
+        <div className="mb-1.5 flex items-center justify-between text-[11px] text-white/42">
+          <span>Enter 发送</span>
           <span>Shift + Enter 换行</span>
         </div>
         {renderComposerNotice()}
@@ -1014,7 +1030,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             ref={composerRef}
             value={composerValue}
             onChange={(e) => setComposerValue(e.target.value)}
-            rows={4}
+            rows={3}
             placeholder={`对 ${compactText(stageCharacter?.name, '角色')} 说点什么…`}
             onCompositionStart={() => setIsComposing(true)}
             onCompositionEnd={() => setIsComposing(false)}
@@ -1023,10 +1039,10 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               e.preventDefault();
               onSend();
             }}
-            className="rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+            className="min-h-[88px] rounded-[20px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
           />
-          <Button type="button" className="h-14 rounded-[20px] px-4" onClick={onSend}>
-            <SendHorizontal size={18} />
+          <Button type="button" className="h-12 rounded-[18px] px-4" onClick={onSend}>
+            <SendHorizontal size={17} />
           </Button>
         </div>
       </div>
