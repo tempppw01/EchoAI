@@ -948,7 +948,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         </div>
         <div className="mt-auto">
           {renderComposerNotice()}
-          <div className="flex items-end gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <Textarea
               ref={composerRef}
               value={composerValue}
@@ -962,10 +962,11 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 e.preventDefault();
                 onSend();
               }}
-              className="min-h-[96px] rounded-[20px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+              className="min-h-[84px] rounded-[18px] border-white/10 bg-white/5 text-white placeholder:text-white/30 sm:min-h-[96px] sm:rounded-[20px]"
             />
-            <Button type="button" className="h-12 rounded-[18px] px-4" onClick={onSend}>
-              <SendHorizontal size={17} />
+            <Button type="button" className="h-11 w-full rounded-[16px] px-4 sm:h-12 sm:w-auto sm:rounded-[18px]" onClick={onSend}>
+              <SendHorizontal size={17} className="mr-2 sm:mr-0" />
+              <span className="sm:hidden">发送</span>
             </Button>
           </div>
         </div>
@@ -1019,13 +1020,13 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         </AnimatePresence>
       </div>
 
-      <div className="mt-3 rounded-[22px] border border-white/10 bg-white/[0.04] p-3">
+      <div className="mt-3 rounded-[20px] border border-white/10 bg-white/[0.04] p-2.5 sm:rounded-[22px] sm:p-3">
         <div className="mb-1.5 flex items-center justify-between text-[11px] text-white/42">
           <span>Enter 发送</span>
           <span>Shift + Enter 换行</span>
         </div>
         {renderComposerNotice()}
-        <div className="flex items-end gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <Textarea
             ref={composerRef}
             value={composerValue}
@@ -1039,10 +1040,11 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               e.preventDefault();
               onSend();
             }}
-            className="min-h-[88px] rounded-[20px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+            className="min-h-[76px] rounded-[16px] border-white/10 bg-white/5 text-white placeholder:text-white/30 sm:min-h-[88px] sm:rounded-[20px]"
           />
-          <Button type="button" className="h-12 rounded-[18px] px-4" onClick={onSend}>
-            <SendHorizontal size={17} />
+          <Button type="button" className="h-11 w-full rounded-[16px] px-4 sm:h-12 sm:w-auto sm:rounded-[18px]" onClick={onSend}>
+            <SendHorizontal size={17} className="mr-2 sm:mr-0" />
+            <span className="sm:hidden">发送</span>
           </Button>
         </div>
       </div>
