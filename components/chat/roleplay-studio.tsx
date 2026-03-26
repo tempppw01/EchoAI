@@ -1057,7 +1057,13 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
       <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.2)_1px,transparent_0)] [background-size:22px_22px]" />
 
       <div className="relative flex h-full min-h-0 flex-col gap-4 lg:flex-row">
-        <motion.aside layout className={cn('w-full lg:shrink-0', leftPanelOpen ? 'lg:w-[280px] xl:w-[300px]' : 'lg:w-[74px]')}>
+        <motion.aside
+          layout
+          className={cn(
+            'order-2 w-full lg:order-none lg:shrink-0',
+            leftPanelOpen ? 'block lg:w-[280px] xl:w-[300px]' : 'hidden lg:block lg:w-[74px]',
+          )}
+        >
           <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-0">
             {leftPanelOpen ? (
               <>
@@ -1100,7 +1106,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           </div>
         </motion.aside>
 
-        <section className="roleplay-panel relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/12 p-4 lg:min-h-0 xl:p-5">
+        <section className="order-1 roleplay-panel relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/12 p-4 lg:order-none lg:min-h-0 xl:p-5">
           <div className="mb-4 flex flex-col gap-4 border-b border-white/10 pb-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="flex min-w-0 items-start gap-4">
               <motion.div
@@ -1121,7 +1127,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 xl:justify-end">
+            <div className="hidden flex-wrap gap-2 xl:justify-end lg:flex">
               <Button type="button" className="h-11 rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15" onClick={() => openLeftPanel('director')}>
                 <PenSquare size={15} className="mr-2" /> 设定
               </Button>
@@ -1132,6 +1138,18 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 <RotateCcw size={15} className="mr-2" /> 清空
               </Button>
             </div>
+          </div>
+
+          <div className="mb-3 flex flex-wrap gap-2 lg:hidden">
+            <Button type="button" className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15" onClick={() => setLeftPanelOpen((prev) => !prev)}>
+              <ChevronRight size={15} className={cn('mr-2 transition', leftPanelOpen && 'rotate-180')} /> 角色
+            </Button>
+            <Button type="button" className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15" onClick={() => setRightPanelOpen((prev) => !prev)}>
+              <ChevronLeft size={15} className={cn('mr-2 transition', rightPanelOpen && 'rotate-180')} /> 记忆
+            </Button>
+            <Button type="button" className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15" disabled={!session || session.messages.length === 0} onClick={handleClearContext}>
+              <RotateCcw size={14} className="mr-2" /> 清空
+            </Button>
           </div>
 
           <div className="mb-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-3">
@@ -1171,7 +1189,13 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           </div>
         </section>
 
-        <motion.aside layout className={cn('w-full lg:shrink-0', rightPanelOpen ? 'lg:w-[260px] xl:w-[280px]' : 'lg:w-[74px]')}>
+        <motion.aside
+          layout
+          className={cn(
+            'order-3 w-full lg:order-none lg:shrink-0',
+            rightPanelOpen ? 'block lg:w-[260px] xl:w-[280px]' : 'hidden lg:block lg:w-[74px]',
+          )}
+        >
           <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-0">
             {rightPanelOpen ? (
               <>
