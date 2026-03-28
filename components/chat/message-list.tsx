@@ -3,6 +3,8 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Bot, ChevronDown, ChevronUp, Copy, Download, Heart, Pencil, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
+import { VideoScriptStateCard } from '@/components/chat/video-script-state-card';
+import { Button } from '@/components/ui/button';
 import { ChatMode, ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 
@@ -187,13 +189,22 @@ export function MessageList({ session }: { session?: ChatSession }) {
   const [editingId, setEditingId] = useState<string>();
   const [editingText, setEditingText] = useState('');
   const trainingQuestionRef = useRef<HTMLDivElement>(null);
+  const messageEndRef = useRef<HTMLDivElement>(null);
   const isTrainingMode = session?.mode === 'training';
   const trainingQuestionStem = session?.trainingCurrentQuestion?.stem;
+  const isVideoScriptMode = session?.mode === 'videoScript';
+  const lastMessage = session?.messages.at(-1);
+  const hasStreamingMessage = session?.messages.some((msg) => msg.status === 'streaming');
 
   useEffect(() => {
     if (!isTrainingMode || !trainingQuestionStem) return;
     trainingQuestionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [isTrainingMode, trainingQuestionStem]);
+
+  useEffect(() => {
+    if (!session) return;
+    messageEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [session]);
 
   if (!session) return null;
 
@@ -207,6 +218,9 @@ export function MessageList({ session }: { session?: ChatSession }) {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const showVideoScriptEmptyState = session.messages.length === 0 && isVideoScriptMode;
+  const showVideoScriptLoadingState = isVideoScriptMode && hasStreamingMessage;
 
   return (
     <div className="space-y-5">
@@ -234,11 +248,37 @@ export function MessageList({ session }: { session?: ChatSession }) {
         </div>
       )}
 
-      {session.messages.length === 0 && session.mode !== 'image' && session.mode !== 'proImage' && (
+      {showVideoScriptEmptyState && (
+        <VideoScriptStateCard
+          variant="empty"
+          title="短视频功能区已就绪，先给我一份素材或需求"
+          description="这里支持两种常用工作流：一类是直接生成视频脚本，另一类是粘贴爆款文案做结构拆解。"
+          tips={[
+            '脚本生成：先填主题、产品、人群、平台和时长，再发送需求。',
+            '爆款分析：切到“爆款文案分析”，直接粘贴转录稿或现成文案。',
+            '结果会按标题、开头钩子、正文、结尾 CTA 结构化展示。',
+          ]}
+        />
+      )}
+
+      {session.messages.length === 0 && session.mode !== 'image' && session.mode !== 'proImage' && !showVideoScriptEmptyState && (
         <div className="chat-panel p-5">
           <h3 className="text-lg font-semibold tracking-tight">{modeStarterMap[session.mode].title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{modeStarterMap[session.mode].hint}</p>
         </div>
+      )}
+
+      {showVideoScriptLoadingState && (
+        <VideoScriptStateCard
+          variant="loading"
+          title="正在整理短视频结果"
+          description="我在按短视频场景整理输出结构，优先拆成你更容易直接拿去拍、改、复用的结果。"
+          tips={[
+            '脚本生成会优先组织标题、开头钩子、正文、结尾 CTA。',
+            '爆款分析会优先提取钩子、推进结构、金句和可复用模板。',
+          ]}
+          compact
+        />
       )}
 
       {session.messages.map((msg) => {
@@ -294,6 +334,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
           </div>
         </div>
       )}
+      <div ref={messageEndRef} />
     </div>
   );
 }
@@ -344,6 +385,7 @@ const MessageItem = memo(function MessageItem({
   onSelectPreferredCandidate: (candidate?: ChatSession['preferredCandidate']) => void;
 }) {
   const isUser = msg.role === 'user';
+  const isError = msg.status === 'error';
   const { cleanedContent, samples } = useMemo(() => extractRecallSamples(msg.content), [msg.content]);
   const renderedMarkdown = useMemo(() => {
     const content = msg.status === 'streaming' ? stabilizeMarkdownForStreaming(cleanedContent) : cleanedContent;
@@ -361,14 +403,26 @@ const MessageItem = memo(function MessageItem({
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{isUser ? '用户输入' : 'EchoAI 助手'}</p>
-            {!isUser && <p className="mt-1 text-sm font-medium text-foreground/90">{showDualCards ? '多版本候选结果' : '生成结果'}</p>}
+            {!isUser && <p className="mt-1 text-sm font-medium text-foreground/90">{isError ? '生成失败' : showDualCards ? '多版本候选结果' : '生成结果'}</p>}
           </div>
           {msg.status === 'streaming' && <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] text-primary animate-pulse">生成中</span>}
         </div>
 
         <RecallSamplesPreview samples={samples} />
 
-        {showDualCards ? (
+        {isError && !isUser ? (
+          <VideoScriptStateCard
+            variant="error"
+            title="这次生成没走通"
+            description={cleanedContent.replace(/^⚠️\s*/, '') || '模型请求失败，请稍后重试。'}
+            tips={[
+              '可直接点“重新生成”，沿用上一条用户输入再跑一次。',
+              '如果是配置问题，先检查模型、Key 或 Base URL。',
+            ]}
+            compact
+            action={<Button className="h-8 rounded-lg px-3 text-xs" onClick={onRetry}><RefreshCcw size={13} className="mr-1" />重新生成</Button>}
+          />
+        ) : showDualCards ? (
           <div className="grid gap-4 md:grid-cols-2">
             {versionCards.map((version, index) => {
               const isPreferred = preferredCandidate?.sourceMessageId === msg.id && preferredCandidate?.versionKey === version.key;
@@ -416,7 +470,7 @@ const MessageItem = memo(function MessageItem({
                   </button>
                 </div>
               </div>
-            )})}
+            );})}
           </div>
         ) : structuredSections && structuredSections.length > 0 ? (
           <div className="space-y-3">
@@ -439,6 +493,7 @@ const MessageItem = memo(function MessageItem({
           <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
           {isUser && <button onClick={onEdit}><Pencil size={14} /></button>}
           {isUser && <button onClick={onRetry}><RefreshCcw size={14} /></button>}
+          {!isUser && isError && <button onClick={onRetry}><RefreshCcw size={14} /></button>}
           <button onClick={onDelete}><Trash2 size={14} /></button>
         </div>
       </div>
@@ -446,3 +501,4 @@ const MessageItem = memo(function MessageItem({
     </div>
   );
 });
+
