@@ -185,9 +185,48 @@ const parseVideoScriptVersions = (content: string) => {
 };
 
 
+
+type StoryboardRow = {
+  segment: string;
+  voiceover: string;
+  shot: string;
+  subtitle: string;
+  duration: string;
+};
+
+const parseStoryboardTable = (content: string): StoryboardRow[] | null => {
+  const normalized = content.replace(/\r\n/g, '\n');
+  const sectionMatch = normalized.match(/^#{1,3}\s*分镜表[:：]?\s*\n([\s\S]*?)(?=\n#{1,3}\s*|$)/im);
+  if (!sectionMatch) return null;
+
+  const block = sectionMatch[1].trim();
+  const lines = block.split('\n').map((line) => line.trim()).filter(Boolean);
+  const tableLines = lines.filter((line) => line.startsWith('|') && line.endsWith('|'));
+  if (tableLines.length < 3) return null;
+
+  const rows = tableLines
+    .map((line) => line.replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim()))
+    .filter((cells) => cells.length >= 5);
+
+  if (rows.length < 3) return null;
+
+  const dataRows = rows.slice(2)
+    .map((cells) => ({
+      segment: cells[0] || '',
+      voiceover: cells[1] || '',
+      shot: cells[2] || '',
+      subtitle: cells[3] || '',
+      duration: cells[4] || '',
+    }))
+    .filter((row) => row.segment || row.voiceover || row.shot || row.subtitle || row.duration);
+
+  return dataRows.length >= 2 ? dataRows : null;
+};
+
 const parseEditingIdeaSections = (content: string) => {
   const normalized = content.replace(/\r\n/g, '\n');
   const markers = [
+    { key: 'storyboardTable', label: '分镜表', regex: /^#{1,3}\s*分镜表[:：]?/im },
     { key: 'storyboard', label: '分镜建议', regex: /^#{1,3}\s*分镜建议[:：]?/im },
     { key: 'subtitle', label: '字幕重点', regex: /^#{1,3}\s*字幕重点[:：]?/im },
     { key: 'rhythm', label: '节奏建议', regex: /^#{1,3}\s*节奏建议[:：]?/im },
@@ -214,6 +253,7 @@ const parseEditingIdeaSections = (content: string) => {
     })
     .filter((item) => item.body);
 };
+
 const parseViralAnalysisSections = (content: string) => {
   const normalized = content.replace(/\r\n/g, '\n');
   const markers = [
@@ -460,6 +500,7 @@ const MessageItem = memo(function MessageItem({
   const structuredSections = useMemo(() => (!isUser ? parseVideoScriptSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
   const viralAnalysisSections = useMemo(() => (!isUser ? parseViralAnalysisSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
   const editingIdeaSections = useMemo(() => (!isUser ? parseEditingIdeaSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
+  const storyboardRows = useMemo(() => (!isUser ? parseStoryboardTable(renderedMarkdown) : null), [isUser, renderedMarkdown]);
   const versionCards = useMemo(() => (!isUser ? parseVideoScriptVersions(cleanedContent) : null), [cleanedContent, isUser]);
   const showDualCards = !isUser && versionCards && versionCards.length >= 2;
   const preferredCandidate = session.preferredCandidate;
@@ -572,15 +613,48 @@ const MessageItem = memo(function MessageItem({
             ))}
           </div>
         ) : editingIdeaSections && editingIdeaSections.length > 0 ? (
-          <div className="grid gap-3 md:grid-cols-2">
-            {editingIdeaSections.map((section) => (
-              <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <p className="mb-2 text-sm font-semibold">{section.label}</p>
-                <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown>{section.body}</ReactMarkdown>
+          <div className="space-y-3">
+            {storyboardRows && storyboardRows.length > 0 ? (
+              <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+                <div className="border-b border-white/10 px-3 py-2">
+                  <p className="text-sm font-semibold">分镜表</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="bg-white/[0.04] text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">段落</th>
+                        <th className="px-3 py-2 font-medium">旁白</th>
+                        <th className="px-3 py-2 font-medium">镜头</th>
+                        <th className="px-3 py-2 font-medium">字幕重点</th>
+                        <th className="px-3 py-2 font-medium">建议时长</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {storyboardRows.map((row, index) => (
+                        <tr key={`${row.segment}-${index}`} className="border-t border-white/10 align-top">
+                          <td className="px-3 py-2">{row.segment}</td>
+                          <td className="px-3 py-2 whitespace-pre-wrap">{row.voiceover}</td>
+                          <td className="px-3 py-2 whitespace-pre-wrap">{row.shot}</td>
+                          <td className="px-3 py-2 whitespace-pre-wrap">{row.subtitle}</td>
+                          <td className="px-3 py-2 whitespace-pre-wrap">{row.duration}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            ))}
+            ) : null}
+            <div className="grid gap-3 md:grid-cols-2">
+              {editingIdeaSections.filter((section) => section.key !== 'storyboardTable').map((section) => (
+                <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="mb-2 text-sm font-semibold">{section.label}</p>
+                  <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                    <ReactMarkdown>{section.body}</ReactMarkdown>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : structuredSections && structuredSections.length > 0 ? (
           <div className="space-y-3">
