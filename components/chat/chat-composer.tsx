@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Eraser, Paperclip, SendHorizontal, SlidersHorizontal, Sparkles, Square, Upload, X } from 'lucide-react';
+import { Eraser, FileText, Paperclip, SendHorizontal, SlidersHorizontal, Sparkles, Square, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,8 @@ type PendingAttachment = {
 };
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+const MAX_INPUT_CHARS = 6000;
+const TEXT_IMPORT_EXTENSIONS = ['txt', 'md', 'srt', 'vtt', 'json'];
 
 const readAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -29,6 +31,20 @@ const readAsDataUrl = (file: File) =>
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+
+const readAsText = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file, 'utf-8');
+  });
+
+const isTranscriptTextFile = (file: File) => {
+  const filename = file.name.toLowerCase();
+  const ext = filename.includes('.') ? filename.split('.').pop() || '' : '';
+  return file.type.startsWith('text/') || TEXT_IMPORT_EXTENSIONS.includes(ext);
+};
 
 const defaultVideoScriptPreset: VideoScriptPreset = {
   topic: '',
@@ -141,7 +157,6 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
 };
 
 export function ChatComposer({ mode }: { mode: ChatMode }) {
-  const MAX_INPUT_CHARS = 6000;
   const [value, setValue] = useState('');
   const [isComposing, setIsComposing] = useState(false);
   const [inputHint, setInputHint] = useState('');
@@ -151,6 +166,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [videoPreset, setVideoPreset] = useState<VideoScriptPreset>(defaultVideoScriptPreset);
   const [videoTaskType, setVideoTaskType] = useState<'script' | 'viral-analysis'>('script');
   const [isGeneratingTopic, setIsGeneratingTopic] = useState(false);
+  const [importedTranscriptMeta, setImportedTranscriptMeta] = useState<{ name: string; size: number } | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -199,9 +215,50 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     setVideoPreset({ ...defaultVideoScriptPreset, ...(activeSession.videoScriptPreset || {}) });
   }, [activeSession?.id, activeSession?.mode, activeSession?.videoScriptPreset]);
 
+  useEffect(() => {
+    if (videoTaskType !== 'viral-analysis') {
+      setImportedTranscriptMeta(null);
+    }
+  }, [videoTaskType]);
+
+  const appendTranscriptContent = (fileName: string, text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setInputHint(`文件 ${fileName} 为空，未导入。`);
+      return;
+    }
+
+    const nextValue = [
+      value.trim(),
+      value.trim() ? '' : '',
+      `【导入转录文本：${fileName}】`,
+      trimmed,
+    ].filter((item, index, arr) => !(item === '' && arr[index - 1] === '')).join('\n');
+
+    if (nextValue.length > MAX_INPUT_CHARS) {
+      const reserved = Math.max(MAX_INPUT_CHARS - value.length - 120, 0);
+      const clippedText = trimmed.slice(0, reserved);
+      const merged = [value.trim(), value.trim() ? '' : '', `【导入转录文本：${fileName}】`, clippedText].filter(Boolean).join('\n');
+      setValue(merged.slice(0, MAX_INPUT_CHARS));
+      setInputHint(`已导入 ${fileName}，但内容过长，已截断到 ${MAX_INPUT_CHARS} 字以内。`);
+    } else {
+      setValue(nextValue);
+      setInputHint(`已导入转录文本：${fileName}`);
+    }
+
+    setImportedTranscriptMeta({ name: fileName, size: text.length });
+  };
+
   const parseFiles = async (files: File[]) => {
+    const transcriptImports: string[] = [];
     const parsedResults = await Promise.allSettled(
       files.map(async (file) => {
+        if (mode === 'videoScript' && videoTaskType === 'viral-analysis' && isTranscriptTextFile(file)) {
+          const text = await readAsText(file);
+          transcriptImports.push(text ? `${file.name}::${text}` : '');
+          return null;
+        }
+
         const item: PendingAttachment = {
           id: uid(),
           name: file.name,
@@ -214,16 +271,27 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     );
 
     const parsed = parsedResults
-      .filter((result): result is PromiseFulfilledResult<PendingAttachment> => result.status === 'fulfilled')
-      .map((result) => result.value);
+      .filter((result): result is PromiseFulfilledResult<PendingAttachment | null> => result.status === 'fulfilled')
+      .map((result) => result.value)
+      .filter((item): item is PendingAttachment => Boolean(item));
 
     if (parsed.length) {
       setAttachments((prev) => [...prev, ...parsed]);
     }
 
-    const failedCount = parsedResults.length - parsed.length;
+    const importedEntries = transcriptImports.filter(Boolean);
+    if (importedEntries.length > 0) {
+      const [first] = importedEntries;
+      const [fileName, text] = first.split('::');
+      appendTranscriptContent(fileName, text || '');
+      if (importedEntries.length > 1) {
+        setInputHint(`已导入 ${importedEntries.length} 个转录文件，当前先合并第一个进行分析。`);
+      }
+    }
+
+    const failedCount = parsedResults.filter((result) => result.status === 'rejected').length;
     if (failedCount > 0) {
-      setInputHint(`有 ${failedCount} 个附件读取失败，已跳过。`);
+      setInputHint(`有 ${failedCount} 个文件读取失败，已跳过。`);
     }
   };
 
@@ -267,7 +335,6 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     }
   };
 
-  // 统一发送逻辑：复用已有会话，不存在时按当前 mode 创建新会话。
   const onSend = async () => {
     if (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset) return;
 
@@ -314,6 +381,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
     setValue('');
     setAttachments([]);
+    setImportedTranscriptMeta(null);
     setInputHint('已发送，附件内容已随消息提交。');
     setShowOptions(false);
   };
@@ -462,6 +530,17 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
               )}
             </div>
           )}
+
+          {videoTaskType === 'viral-analysis' && importedTranscriptMeta && (
+            <div className="rounded-xl border border-sky-400/20 bg-sky-500/5 px-3 py-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <FileText size={14} className="text-sky-300" />
+                <span className="font-medium text-foreground">已导入转录文本：</span>
+                <span>{importedTranscriptMeta.name}</span>
+              </div>
+              <p className="mt-1">内容已自动填入分析输入框，可直接发送继续做结构提取。</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -504,7 +583,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           }}
           rows={1}
           className="min-h-16 max-h-[220px] resize-none overflow-y-auto rounded-xl border-0 bg-transparent shadow-none focus-visible:ring-0"
-          placeholder={mode === 'videoScript' && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，回车发送分析' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
+          placeholder={mode === 'videoScript' && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，或导入 txt/md/srt/vtt/json 转录文本后回车发送分析' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
           onKeyDown={(e) => {
@@ -521,6 +600,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             title="清空当前会话上下文"
             onClick={() => {
               clearContext(activeSession.id);
+              setImportedTranscriptMeta(null);
               setInputHint('已清空当前会话上下文。');
             }}
           >
