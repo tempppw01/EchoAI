@@ -173,6 +173,46 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
   ].join('\n');
 };
 
+
+const buildEditingIdeaPrompt = (scriptContent: string, preset: VideoScriptPreset, userInput: string) => {
+  const lines = [
+    '【剪辑思路生成任务】',
+    `发布平台：${preset.platform || '未填写'}`,
+    `内容类型：${preset.contentType || '口播'}`,
+    `时长（秒）：${preset.durationSec || 60}`,
+    `主题/选题：${preset.topic || '未填写'}`,
+    `产品/服务：${preset.productName || '未填写'}`,
+    `目标人群：${preset.targetAudience || '未填写'}`,
+    `核心卖点：${preset.coreSellingPoints || '未填写'}`,
+    '',
+    '【脚本原文】',
+    scriptContent.trim() || '未提供脚本原文',
+    '',
+    '【补充要求】',
+    userInput || '请根据这份脚本输出可直接执行的剪辑思路。',
+    '',
+    '【输出格式要求】',
+    '请严格按以下栏目输出，不要省略标题：',
+    '## 分镜建议',
+    '- 按段落拆解镜头、画面与旁白对应关系',
+    '',
+    '## 字幕重点',
+    '- 提取适合上字幕强化的关键词和句子',
+    '',
+    '## 节奏建议',
+    '- 说明哪里适合快切、停顿、转场或情绪推进',
+    '',
+    '## 音乐/音效建议',
+    '- 给出背景音乐情绪与关键音效点建议',
+    '',
+    '## 执行备注',
+    '- 给出拍摄或剪辑执行时需要注意的补充说明',
+    '',
+    '要求：内容必须具体、可执行，并且和脚本内容强相关，避免空泛套话。',
+  ];
+  return lines.join('\n');
+};
+
 export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [value, setValue] = useState('');
   const [isComposing, setIsComposing] = useState(false);
@@ -181,7 +221,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [showOptions, setShowOptions] = useState(false);
   const [showVideoPreset, setShowVideoPreset] = useState(false);
   const [videoPreset, setVideoPreset] = useState<VideoScriptPreset>(defaultVideoScriptPreset);
-  const [videoTaskType, setVideoTaskType] = useState<'script' | 'viral-analysis'>('script');
+  const [videoTaskType, setVideoTaskType] = useState<'script' | 'viral-analysis' | 'editing-idea'>('script');
   const [isGeneratingTopic, setIsGeneratingTopic] = useState(false);
   const [importedTranscriptMeta, setImportedTranscriptMeta] = useState<{ name: string; fileSize: number; charCount: number } | null>(null);
 
@@ -221,6 +261,9 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     );
   }, [videoPreset, viralStructureReference]);
   const canSendVideoScriptFromPreset = mode === 'videoScript' && videoTaskType === 'script' && hasVideoPresetInput;
+  const latestAssistantMessage = [...(activeSession?.messages || [])].reverse().find((message) => message.role === 'assistant' && message.status !== 'error');
+  const editingIdeaSource = (activeSession?.preferredCandidate?.content || latestAssistantMessage?.content || '').trim();
+  const canSendEditingIdea = mode === 'videoScript' && videoTaskType === 'editing-idea' && Boolean(editingIdeaSource || value.trim() || attachments.length > 0);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -386,7 +429,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   };
 
   const onSend = async () => {
-    if (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset) return;
+    if (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset && !canSendEditingIdea) return;
 
     let sid = activeSession?.id;
     if (!sid) sid = createSession(mode);
@@ -438,6 +481,12 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         '',
         value.trim(),
       ].join('\n');
+    } else if (mode === 'videoScript' && videoTaskType === 'editing-idea') {
+      const scriptContent = editingIdeaSource || value.trim();
+      contentToSend = buildEditingIdeaPrompt(scriptContent, videoPreset, value.trim());
+      if (!editingIdeaSource && value.trim()) {
+        setInputHint('本次使用你手动输入的脚本文本生成剪辑思路。');
+      }
     } else if (mode === 'videoScript' && hasVideoPresetInput) {
       updateSession(sid, { videoScriptPreset: { ...videoPreset, viralStructureReference } });
       const recallQuery = [
@@ -495,6 +544,13 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                 onClick={() => setVideoTaskType('viral-analysis')}
               >
                 爆款文案分析
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${videoTaskType === 'editing-idea' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setVideoTaskType('editing-idea')}
+              >
+                剪辑思路
               </button>
             </div>
           </div>
@@ -632,6 +688,26 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             </div>
           )}
 
+
+          {videoTaskType === 'editing-idea' && (
+            <div className="rounded-xl border bg-background/70 p-3 text-xs">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium">剪辑思路输入</span>
+                <span className="text-muted-foreground">自动复用当前脚本结果</span>
+              </div>
+              <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-muted-foreground">
+                {editingIdeaSource ? (
+                  <>
+                    <p><span className="font-medium text-foreground">已自动带入当前脚本结果，</span>可直接生成剪辑思路。</p>
+                    <p className="mt-1 line-clamp-4 whitespace-pre-wrap">{editingIdeaSource}</p>
+                  </>
+                ) : (
+                  <p>当前会话还没有可复用的脚本结果，你也可以直接在下方输入框粘贴脚本文本后生成。</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {videoTaskType === 'viral-analysis' && importedTranscriptMeta && (
             <div className="rounded-xl border border-sky-400/20 bg-sky-500/5 px-3 py-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
@@ -684,12 +760,12 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           }}
           rows={1}
           className="min-h-16 max-h-[220px] resize-none overflow-y-auto rounded-xl border-0 bg-transparent shadow-none focus-visible:ring-0"
-          placeholder={mode === 'videoScript' && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，或导入 txt/md/srt/vtt/json 转录文本后回车发送分析' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
+          placeholder={mode === 'videoScript' && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，或导入 txt/md/srt/vtt/json 转录文本后回车发送分析' : mode === 'videoScript' && videoTaskType === 'editing-idea' ? '可补充剪辑重点；若当前没有脚本结果，也可直接粘贴脚本文本后生成剪辑思路' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
           onKeyDown={(e) => {
             if (e.key !== 'Enter' || isComposing || e.shiftKey) return;
-            if (!value.trim() && !attachments.length && !canSendVideoScriptFromPreset) return;
+            if (!value.trim() && !attachments.length && !canSendVideoScriptFromPreset && !canSendEditingIdea) return;
             e.preventDefault();
             onSend();
           }}
@@ -714,7 +790,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             <Square size={16} />
           </Button>
         ) : (
-          <Button className="rounded-xl" disabled={mode === 'training' || (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset)} onClick={onSend}>
+          <Button className="rounded-xl" disabled={mode === 'training' || (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset && !canSendEditingIdea)} onClick={onSend}>
             <SendHorizontal size={16} />
           </Button>
         )}

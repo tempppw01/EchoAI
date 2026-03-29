@@ -184,6 +184,36 @@ const parseVideoScriptVersions = (content: string) => {
   return blocks.length >= 2 ? blocks : null;
 };
 
+
+const parseEditingIdeaSections = (content: string) => {
+  const normalized = content.replace(/\r\n/g, '\n');
+  const markers = [
+    { key: 'storyboard', label: '分镜建议', regex: /^#{1,3}\s*分镜建议[:：]?/im },
+    { key: 'subtitle', label: '字幕重点', regex: /^#{1,3}\s*字幕重点[:：]?/im },
+    { key: 'rhythm', label: '节奏建议', regex: /^#{1,3}\s*节奏建议[:：]?/im },
+    { key: 'music', label: '音乐/音效建议', regex: /^#{1,3}\s*音乐\/音效建议[:：]?/im },
+    { key: 'notes', label: '执行备注', regex: /^#{1,3}\s*执行备注[:：]?/im },
+  ] as const;
+
+  const matches = markers
+    .map((item) => {
+      const match = normalized.match(item.regex);
+      return match?.index !== undefined ? { ...item, index: match.index, matchText: match[0] } : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .sort((a, b) => a.index - b.index);
+
+  if (matches.length < 2) return null;
+
+  return matches
+    .map((item, idx) => {
+      const start = item.index + item.matchText.length;
+      const end = idx + 1 < matches.length ? matches[idx + 1].index : normalized.length;
+      const body = normalized.slice(start, end).trim();
+      return { key: item.key, label: item.label, body };
+    })
+    .filter((item) => item.body);
+};
 const parseViralAnalysisSections = (content: string) => {
   const normalized = content.replace(/\r\n/g, '\n');
   const markers = [
@@ -429,6 +459,7 @@ const MessageItem = memo(function MessageItem({
   }, [cleanedContent, isUser, msg.status]);
   const structuredSections = useMemo(() => (!isUser ? parseVideoScriptSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
   const viralAnalysisSections = useMemo(() => (!isUser ? parseViralAnalysisSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
+  const editingIdeaSections = useMemo(() => (!isUser ? parseEditingIdeaSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
   const versionCards = useMemo(() => (!isUser ? parseVideoScriptVersions(cleanedContent) : null), [cleanedContent, isUser]);
   const showDualCards = !isUser && versionCards && versionCards.length >= 2;
   const preferredCandidate = session.preferredCandidate;
@@ -534,6 +565,17 @@ const MessageItem = memo(function MessageItem({
                     </button>
                   )}
                 </div>
+                <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>{section.body}</ReactMarkdown>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : editingIdeaSections && editingIdeaSections.length > 0 ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {editingIdeaSections.map((section) => (
+              <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="mb-2 text-sm font-semibold">{section.label}</p>
                 <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
                   <ReactMarkdown>{section.body}</ReactMarkdown>
                 </div>
