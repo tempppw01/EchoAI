@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Bot, ChevronDown, ChevronUp, Copy, Download, Heart, Pencil, RefreshCcw, RotateCw, Trash2, UserRound } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, Copy, Download, Heart, Pencil, RefreshCcw, RotateCw, Trash2, UserRound, Wand2 } from 'lucide-react';
 import { VideoScriptStateCard } from '@/components/chat/video-script-state-card';
 import { Button } from '@/components/ui/button';
 import { ChatMode, ChatSession } from '@/lib/types';
@@ -218,7 +218,7 @@ const parseViralAnalysisSections = (content: string) => {
 };
 
 export function MessageList({ session }: { session?: ChatSession }) {
-  const { retryMessage, regenerateLastAssistant, deleteMessage, editUserMessage, answerTrainingQuestion, setPreferredCandidate } = useChatStore();
+  const { retryMessage, regenerateLastAssistant, deleteMessage, editUserMessage, answerTrainingQuestion, setPreferredCandidate, applyViralStructureToNewVideoSession } = useChatStore();
   const [editingId, setEditingId] = useState<string>();
   const [editingText, setEditingText] = useState('');
   const trainingQuestionRef = useRef<HTMLDivElement>(null);
@@ -347,6 +347,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
             onRetry={() => retryMessage(session.id, msg.id)}
             onDelete={() => deleteMessage(session.id, msg.id)}
             onSelectPreferredCandidate={(candidate) => setPreferredCandidate(session.id, candidate)}
+            onApplyViralStructureToNewVideoSession={applyViralStructureToNewVideoSession}
           />
         );
       })}
@@ -409,6 +410,7 @@ const MessageItem = memo(function MessageItem({
   onRetry,
   onDelete,
   onSelectPreferredCandidate,
+  onApplyViralStructureToNewVideoSession,
 }: {
   session: ChatSession;
   msg: ChatSession['messages'][number];
@@ -416,6 +418,7 @@ const MessageItem = memo(function MessageItem({
   onRetry: () => void;
   onDelete: () => void;
   onSelectPreferredCandidate: (candidate?: ChatSession['preferredCandidate']) => void;
+  onApplyViralStructureToNewVideoSession: (reference: NonNullable<ChatSession['viralStructureReference']>) => string;
 }) {
   const isUser = msg.role === 'user';
   const isError = msg.status === 'error';
@@ -510,7 +513,27 @@ const MessageItem = memo(function MessageItem({
           <div className="grid gap-3 md:grid-cols-2">
             {viralAnalysisSections.map((section) => (
               <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <p className="mb-2 text-sm font-semibold">{section.label}</p>
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <p className="text-sm font-semibold">{section.label}</p>
+                  {section.key === 'template' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onApplyViralStructureToNewVideoSession({
+                          sourceMessageId: msg.id,
+                          sectionKey: section.key,
+                          label: section.label,
+                          content: section.body,
+                          savedAt: new Date().toISOString(),
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-300 transition hover:border-emerald-300/40 hover:text-emerald-200"
+                    >
+                      <Wand2 size={12} />
+                      一键套用到新的选题生成
+                    </button>
+                  )}
+                </div>
                 <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
                   <ReactMarkdown>{section.body}</ReactMarkdown>
                 </div>

@@ -131,11 +131,22 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
       ]
     : [];
 
+  const viralReferenceBlock = preset.viralStructureReference?.content?.trim()
+    ? [
+        '【已选择的爆款结构参考】',
+        `参考标签：${preset.viralStructureReference.label}`,
+        preset.viralStructureReference.content.trim(),
+        '请优先借鉴这份结构模板来组织本次脚本，但不要照抄原文，要结合当前主题、产品、人群重新生成。',
+        '',
+      ]
+    : [];
+
   return [
     '【视频脚本预设信息】',
     ...lines,
     '',
     ...sampleBlock,
+    ...viralReferenceBlock,
     '【用户本次需求】',
     userInput || '请基于以上预设，先给出一版可直接拍摄的脚本。',
     '',
@@ -194,6 +205,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
   const isGenerating = !!activeSession?.id && generatingSessionIds.includes(activeSession.id);
+  const viralStructureReference = activeSession?.viralStructureReference;
   const hasVideoPresetInput = useMemo(() => {
     const p = videoPreset;
     return Boolean(
@@ -204,9 +216,10 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       p.toneStyle?.trim() ||
       p.platform?.trim() ||
       p.mustInclude?.trim() ||
-      p.avoid?.trim(),
+      p.avoid?.trim() ||
+      viralStructureReference?.content?.trim(),
     );
-  }, [videoPreset]);
+  }, [videoPreset, viralStructureReference]);
   const canSendVideoScriptFromPreset = mode === 'videoScript' && videoTaskType === 'script' && hasVideoPresetInput;
 
   useEffect(() => {
@@ -426,19 +439,20 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         value.trim(),
       ].join('\n');
     } else if (mode === 'videoScript' && hasVideoPresetInput) {
-      updateSession(sid, { videoScriptPreset: { ...videoPreset } });
+      updateSession(sid, { videoScriptPreset: { ...videoPreset, viralStructureReference } });
       const recallQuery = [
         videoPreset.topic || '',
         videoPreset.productName || '',
         videoPreset.targetAudience || '',
         videoPreset.coreSellingPoints || '',
+        viralStructureReference?.content || '',
         contentToSend,
       ].filter(Boolean).join('\n');
       const recalledSamples = (await getRelevantSamples(recallQuery, settings.sampleRecallTopK)).map((item) => ({
         title: item.title,
         content: item.textContent.slice(0, 1500),
       }));
-      contentToSend = buildVideoScriptPromptWithPreset(videoPreset, contentToSend, recalledSamples);
+      contentToSend = buildVideoScriptPromptWithPreset({ ...videoPreset, viralStructureReference }, contentToSend, recalledSamples);
     }
 
     const finalContent = [contentToSend, attachmentText].filter(Boolean).join('\n\n');
@@ -500,6 +514,28 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                   {showVideoPreset ? '收起' : '展开'}
                 </button>
               </div>
+              {viralStructureReference && (
+                <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/5 px-3 py-2 text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <span className="font-medium text-foreground">已套用爆款结构：</span>
+                      {viralStructureReference.label}
+                    </div>
+                    {!videoPreset.topic?.trim() && (
+                      <Button
+                        type="button"
+                        className="h-7 rounded-lg px-2 text-[11px]"
+                        onClick={generatePresetTopic}
+                        disabled={isGeneratingTopic}
+                      >
+                        <Sparkles size={12} className={isGeneratingTopic ? 'animate-pulse' : ''} />
+                        自动生成选题
+                      </Button>
+                    )}
+                  </div>
+                  {!videoPreset.topic?.trim() && <p className="mt-1">可直接点右侧按钮，根据这份结构先生成一个新的选题。</p>}
+                </div>
+              )}
               {showVideoPreset && (
                 <div className="mt-3 grid gap-2 md:grid-cols-2">
                   <label className="grid gap-1 md:col-span-2">

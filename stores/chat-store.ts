@@ -1,11 +1,25 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AppSnapshot, ChatMessage, ChatMode, ChatSession, PreferredCandidateContext, TrainingQuestion, TrainingRecord } from '@/lib/types';
+import { AppSnapshot, ChatMessage, ChatMode, ChatSession, PreferredCandidateContext, TrainingQuestion, TrainingRecord, ViralStructureReference } from '@/lib/types';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
 import { defaultSettings, sanitizeSettingsForExport, useSettingsStore } from '@/stores/settings-store';
 
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+const defaultVideoScriptPreset = {
+  topic: '',
+  productName: '',
+  targetAudience: '',
+  contentType: '口播',
+  versionCount: 1,
+  coreSellingPoints: '',
+  toneStyle: '',
+  platform: '',
+  durationSec: 60,
+  mustInclude: '',
+  avoid: '',
+};
 
 const getDefaultModelByMode = (mode: ChatMode) => {
   const settings = useSettingsStore.getState().settings;
@@ -19,6 +33,7 @@ const getDefaultModelByMode = (mode: ChatMode) => {
 
   return settings.modelCatalog.includes(configuredModel) ? configuredModel : fallbackModel;
 };
+
 
 const getDefaultTitleByMode = (mode: ChatMode) => {
   if (mode === 'chat') return '新建工作台对话';
@@ -137,6 +152,8 @@ interface ChatState {
   selectSession: (id: string) => void;
   sendMessage: (content: string, targetSessionId?: string) => Promise<void>;
   setPreferredCandidate: (sessionId: string, candidate?: PreferredCandidateContext) => void;
+  setViralStructureReference: (sessionId: string, reference?: ViralStructureReference) => void;
+  applyViralStructureToNewVideoSession: (reference: ViralStructureReference) => string;
   startTraining: (sessionId: string, topic: string) => Promise<void>;
   answerTrainingQuestion: (sessionId: string, optionId: string) => Promise<void>;
   stopMessage: (sessionId: string) => void;
@@ -375,6 +392,37 @@ export const useChatStore = create<ChatState>()(
             ),
           ),
         })),
+      setViralStructureReference: (sessionId, reference) =>
+        set((state) => ({
+          sessions: sortedSessions(
+            state.sessions.map((session) =>
+              session.id === sessionId
+                ? {
+                    ...session,
+                    viralStructureReference: reference,
+                    updatedAt: now(),
+                  }
+                : session,
+            ),
+          ),
+        })),
+      applyViralStructureToNewVideoSession: (reference) => {
+        const session = {
+          ...newSession('videoScript'),
+          summary: `已套用${reference.label}`,
+          viralStructureReference: reference,
+          videoScriptPreset: {
+            ...defaultVideoScriptPreset,
+            topic: '',
+            viralStructureReference: reference,
+          },
+        };
+        set((state) => ({
+          sessions: sortedSessions([session, ...state.sessions]),
+          activeSessionId: session.id,
+        }));
+        return session.id;
+      },
       clearContext: (sessionId) =>
         set((state) => ({
           sessions: state.sessions.map((session) =>
@@ -386,6 +434,7 @@ export const useChatStore = create<ChatState>()(
                   memorySummary: '',
                   pinnedMemory: '',
                   preferredCandidate: undefined,
+                  viralStructureReference: undefined,
                   trainingCurrentQuestion: undefined,
                   trainingRound: 0,
                   trainingRecentRecords: [],

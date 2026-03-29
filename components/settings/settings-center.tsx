@@ -38,6 +38,14 @@ const preferredCandidateSchema = z.object({
   savedAt: z.string().min(1).max(64),
 });
 
+const viralStructureReferenceSchema = z.object({
+  sourceMessageId: z.string().min(1).max(128),
+  sectionKey: z.string().min(1).max(128),
+  label: z.string().min(1).max(256),
+  content: z.string().max(20000),
+  savedAt: z.string().min(1).max(64),
+});
+
 const trainingQuestionSchema = z.object({
   stem: z.string().min(1).max(5000),
   options: z.array(z.object({ id: z.string().min(1).max(16), text: z.string().min(1).max(1000) })).min(2).max(8),
@@ -66,6 +74,7 @@ const videoScriptPresetSchema = z.object({
   durationSec: z.number().int().min(1).max(3600).optional(),
   mustInclude: z.string().max(2000).optional(),
   avoid: z.string().max(2000).optional(),
+  viralStructureReference: viralStructureReferenceSchema.optional(),
 });
 
 const chatSessionSchema = z.object({
@@ -78,6 +87,7 @@ const chatSessionSchema = z.object({
   pinnedMemory: z.string().max(20000).optional(),
   memorySummary: z.string().max(10000).optional(),
   preferredCandidate: preferredCandidateSchema.optional(),
+  viralStructureReference: viralStructureReferenceSchema.optional(),
   pinned: z.boolean(),
   updatedAt: z.string().min(1).max(64),
   summary: z.string().max(1000),

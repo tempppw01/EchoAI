@@ -22,11 +22,20 @@ export interface VideoScriptPreset {
   durationSec?: number;
   mustInclude?: string;
   avoid?: string;
+  viralStructureReference?: ViralStructureReference;
 }
 
 export interface PreferredCandidateContext {
   sourceMessageId: string;
   versionKey: string;
+  label: string;
+  content: string;
+  savedAt: string;
+}
+
+export interface ViralStructureReference {
+  sourceMessageId: string;
+  sectionKey: string;
   label: string;
   content: string;
   savedAt: string;
@@ -42,6 +51,7 @@ export interface ChatSession {
   pinnedMemory?: string;
   memorySummary?: string;
   preferredCandidate?: PreferredCandidateContext;
+  viralStructureReference?: ViralStructureReference;
   pinned: boolean;
   updatedAt: string;
   summary: string;
