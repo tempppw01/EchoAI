@@ -20,6 +20,12 @@ type PendingAttachment = {
   previewUrl?: string;
 };
 
+type ImportedTranscript = {
+  fileName: string;
+  text: string;
+  fileSize: number;
+};
+
 const uid = () => Math.random().toString(36).slice(2, 10);
 const MAX_INPUT_CHARS = 6000;
 const TEXT_IMPORT_EXTENSIONS = ['txt', 'md', 'srt', 'vtt', 'json'];
@@ -166,7 +172,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [videoPreset, setVideoPreset] = useState<VideoScriptPreset>(defaultVideoScriptPreset);
   const [videoTaskType, setVideoTaskType] = useState<'script' | 'viral-analysis'>('script');
   const [isGeneratingTopic, setIsGeneratingTopic] = useState(false);
-  const [importedTranscriptMeta, setImportedTranscriptMeta] = useState<{ name: string; size: number } | null>(null);
+  const [importedTranscriptMeta, setImportedTranscriptMeta] = useState<{ name: string; fileSize: number; charCount: number } | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -221,42 +227,55 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     }
   }, [videoTaskType]);
 
-  const appendTranscriptContent = (fileName: string, text: string) => {
-    const trimmed = text.trim();
+  const applyTranscriptContent = (transcript: ImportedTranscript) => {
+    const trimmed = transcript.text.trim();
     if (!trimmed) {
-      setInputHint(`文件 ${fileName} 为空，未导入。`);
-      return;
+      setImportedTranscriptMeta(null);
+      return `文件 ${transcript.fileName} 为空，未导入。`;
     }
 
-    const nextValue = [
-      value.trim(),
-      value.trim() ? '' : '',
-      `【导入转录文本：${fileName}】`,
-      trimmed,
-    ].filter((item, index, arr) => !(item === '' && arr[index - 1] === '')).join('\n');
+    let clipped = false;
+    setValue((prev) => {
+      const base = prev.trim();
+      const header = `【导入转录文本：${transcript.fileName}】`;
+      const addition = [header, trimmed].join('\n');
+      const separator = base ? '\n\n' : '';
+      const available = MAX_INPUT_CHARS - base.length - separator.length;
 
-    if (nextValue.length > MAX_INPUT_CHARS) {
-      const reserved = Math.max(MAX_INPUT_CHARS - value.length - 120, 0);
-      const clippedText = trimmed.slice(0, reserved);
-      const merged = [value.trim(), value.trim() ? '' : '', `【导入转录文本：${fileName}】`, clippedText].filter(Boolean).join('\n');
-      setValue(merged.slice(0, MAX_INPUT_CHARS));
-      setInputHint(`已导入 ${fileName}，但内容过长，已截断到 ${MAX_INPUT_CHARS} 字以内。`);
-    } else {
-      setValue(nextValue);
-      setInputHint(`已导入转录文本：${fileName}`);
-    }
+      if (available <= 0) {
+        clipped = true;
+        return base.slice(0, MAX_INPUT_CHARS);
+      }
 
-    setImportedTranscriptMeta({ name: fileName, size: text.length });
+      const content = addition.length > available ? addition.slice(0, available) : addition;
+      clipped = addition.length > available;
+      return `${base}${separator}${content}`.slice(0, MAX_INPUT_CHARS);
+    });
+
+    setImportedTranscriptMeta({
+      name: transcript.fileName,
+      fileSize: transcript.fileSize,
+      charCount: trimmed.length,
+    });
+
+    return clipped
+      ? `已导入 ${transcript.fileName}，但内容过长，已截断到 ${MAX_INPUT_CHARS} 字以内。`
+      : `已导入转录文本：${transcript.fileName}`;
   };
 
   const parseFiles = async (files: File[]) => {
-    const transcriptImports: string[] = [];
     const parsedResults = await Promise.allSettled(
       files.map(async (file) => {
         if (mode === 'videoScript' && videoTaskType === 'viral-analysis' && isTranscriptTextFile(file)) {
           const text = await readAsText(file);
-          transcriptImports.push(text ? `${file.name}::${text}` : '');
-          return null;
+          return {
+            kind: 'transcript' as const,
+            transcript: {
+              fileName: file.name,
+              text,
+              fileSize: file.size,
+            },
+          };
         }
 
         const item: PendingAttachment = {
@@ -266,32 +285,50 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           size: file.size,
         };
         if (file.type.startsWith('image/')) item.previewUrl = await readAsDataUrl(file);
-        return item;
+        return {
+          kind: 'attachment' as const,
+          attachment: item,
+        };
       }),
     );
 
-    const parsed = parsedResults
-      .filter((result): result is PromiseFulfilledResult<PendingAttachment | null> => result.status === 'fulfilled')
-      .map((result) => result.value)
-      .filter((item): item is PendingAttachment => Boolean(item));
+    const nextAttachments: PendingAttachment[] = [];
+    const importedTranscripts: ImportedTranscript[] = [];
+    let failedCount = 0;
 
-    if (parsed.length) {
-      setAttachments((prev) => [...prev, ...parsed]);
+    parsedResults.forEach((result) => {
+      if (result.status === 'rejected') {
+        failedCount += 1;
+        return;
+      }
+
+      if (result.value.kind === 'attachment') {
+        nextAttachments.push(result.value.attachment);
+        return;
+      }
+
+      importedTranscripts.push(result.value.transcript);
+    });
+
+    if (nextAttachments.length) {
+      setAttachments((prev) => [...prev, ...nextAttachments]);
     }
 
-    const importedEntries = transcriptImports.filter(Boolean);
-    if (importedEntries.length > 0) {
-      const [first] = importedEntries;
-      const [fileName, text] = first.split('::');
-      appendTranscriptContent(fileName, text || '');
-      if (importedEntries.length > 1) {
-        setInputHint(`已导入 ${importedEntries.length} 个转录文件，当前先合并第一个进行分析。`);
+    const hints: string[] = [];
+
+    if (importedTranscripts.length > 0) {
+      hints.push(applyTranscriptContent(importedTranscripts[0]));
+      if (importedTranscripts.length > 1) {
+        hints.push(`检测到 ${importedTranscripts.length} 个转录文件，当前仅载入第 1 个文件。`);
       }
     }
 
-    const failedCount = parsedResults.filter((result) => result.status === 'rejected').length;
     if (failedCount > 0) {
-      setInputHint(`有 ${failedCount} 个文件读取失败，已跳过。`);
+      hints.push(`有 ${failedCount} 个文件读取失败，已跳过。`);
+    }
+
+    if (hints.length > 0) {
+      setInputHint(hints.join(' '));
     }
   };
 
