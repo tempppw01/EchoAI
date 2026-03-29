@@ -184,6 +184,35 @@ const parseVideoScriptVersions = (content: string) => {
   return blocks.length >= 2 ? blocks : null;
 };
 
+const parseViralAnalysisSections = (content: string) => {
+  const normalized = content.replace(/\r\n/g, '\n');
+  const markers = [
+    { key: 'hook', label: '钩子结构', regex: /^#{1,3}\s*钩子结构[:：]?/im },
+    { key: 'conflict', label: '冲突设计', regex: /^#{1,3}\s*冲突设计[:：]?/im },
+    { key: 'progression', label: '观点推进', regex: /^#{1,3}\s*观点推进[:：]?/im },
+    { key: 'conversion', label: '结尾转化', regex: /^#{1,3}\s*结尾转化[:：]?/im },
+  ] as const;
+
+  const matches = markers
+    .map((item) => {
+      const match = normalized.match(item.regex);
+      return match?.index !== undefined ? { ...item, index: match.index, matchText: match[0] } : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .sort((a, b) => a.index - b.index);
+
+  if (matches.length < 3) return null;
+
+  return matches
+    .map((item, idx) => {
+      const start = item.index + item.matchText.length;
+      const end = idx + 1 < matches.length ? matches[idx + 1].index : normalized.length;
+      const body = normalized.slice(start, end).trim();
+      return { key: item.key, label: item.label, body };
+    })
+    .filter((item) => item.body);
+};
+
 export function MessageList({ session }: { session?: ChatSession }) {
   const { retryMessage, regenerateLastAssistant, deleteMessage, editUserMessage, answerTrainingQuestion, setPreferredCandidate } = useChatStore();
   const [editingId, setEditingId] = useState<string>();
@@ -392,6 +421,7 @@ const MessageItem = memo(function MessageItem({
     return !isUser ? formatStructuredVideoScript(content) : content;
   }, [cleanedContent, isUser, msg.status]);
   const structuredSections = useMemo(() => (!isUser ? parseVideoScriptSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
+  const viralAnalysisSections = useMemo(() => (!isUser ? parseViralAnalysisSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
   const versionCards = useMemo(() => (!isUser ? parseVideoScriptVersions(cleanedContent) : null), [cleanedContent, isUser]);
   const showDualCards = !isUser && versionCards && versionCards.length >= 2;
   const preferredCandidate = session.preferredCandidate;
@@ -471,6 +501,17 @@ const MessageItem = memo(function MessageItem({
                 </div>
               </div>
             );})}
+          </div>
+        ) : viralAnalysisSections && viralAnalysisSections.length > 0 ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {viralAnalysisSections.map((section) => (
+              <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="mb-2 text-sm font-semibold">{section.label}</p>
+                <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>{section.body}</ReactMarkdown>
+                </div>
+              </div>
+            ))}
           </div>
         ) : structuredSections && structuredSections.length > 0 ? (
           <div className="space-y-3">
