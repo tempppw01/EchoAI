@@ -191,6 +191,9 @@ const parseViralAnalysisSections = (content: string) => {
     { key: 'conflict', label: '冲突设计', regex: /^#{1,3}\s*冲突设计[:：]?/im },
     { key: 'progression', label: '观点推进', regex: /^#{1,3}\s*观点推进[:：]?/im },
     { key: 'conversion', label: '结尾转化', regex: /^#{1,3}\s*结尾转化[:：]?/im },
+    { key: 'patterns', label: '高频句式', regex: /^#{1,3}\s*高频句式[:：]?/im },
+    { key: 'quotes', label: '金句', regex: /^#{1,3}\s*金句[:：]?/im },
+    { key: 'emotion', label: '情绪词与节奏词', regex: /^#{1,3}\s*情绪词与节奏词[:：]?/im },
   ] as const;
 
   const matches = markers
@@ -201,7 +204,7 @@ const parseViralAnalysisSections = (content: string) => {
     .filter((item): item is NonNullable<typeof item> => Boolean(item))
     .sort((a, b) => a.index - b.index);
 
-  if (matches.length < 3) return null;
+  if (matches.length < 4) return null;
 
   return matches
     .map((item, idx) => {
