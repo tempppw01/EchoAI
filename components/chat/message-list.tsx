@@ -194,6 +194,12 @@ type StoryboardRow = {
   duration: string;
 };
 
+type MusicCueRow = {
+  trigger: string;
+  effect: string;
+  purpose: string;
+};
+
 const parseStoryboardTable = (content: string): StoryboardRow[] | null => {
   const normalized = content.replace(/\r\n/g, '\n');
   const sectionMatch = normalized.match(/^#{1,3}\s*分镜表[:：]?\s*\n([\s\S]*?)(?=\n#{1,3}\s*|$)/im);
@@ -221,6 +227,28 @@ const parseStoryboardTable = (content: string): StoryboardRow[] | null => {
     .filter((row) => row.segment || row.voiceover || row.shot || row.subtitle || row.duration);
 
   return dataRows.length >= 2 ? dataRows : null;
+};
+
+const parseMusicCueRows = (content: string): MusicCueRow[] | null => {
+  const normalized = content.replace(/\r\n/g, '\n');
+  const sectionMatch = normalized.match(/^#{1,3}\s*音乐\/音效建议[:：]?\s*\n([\s\S]*?)(?=\n#{1,3}\s*|$)/im);
+  if (!sectionMatch) return null;
+
+  const block = sectionMatch[1].trim();
+  const rows = block
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => /^[-*]\s*/.test(line) && line.includes('｜'))
+    .map((line) => line.replace(/^[-*]\s*/, '').split('｜').map((cell) => cell.trim()))
+    .filter((cells) => cells.length >= 3)
+    .map((cells) => ({
+      trigger: cells[0] || '',
+      effect: cells[1] || '',
+      purpose: cells.slice(2).join('｜') || '',
+    }))
+    .filter((row) => row.trigger || row.effect || row.purpose);
+
+  return rows.length > 0 ? rows : null;
 };
 
 const parseEditingIdeaSections = (content: string) => {
@@ -501,6 +529,7 @@ const MessageItem = memo(function MessageItem({
   const viralAnalysisSections = useMemo(() => (!isUser ? parseViralAnalysisSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
   const editingIdeaSections = useMemo(() => (!isUser ? parseEditingIdeaSections(renderedMarkdown) : null), [isUser, renderedMarkdown]);
   const storyboardRows = useMemo(() => (!isUser ? parseStoryboardTable(renderedMarkdown) : null), [isUser, renderedMarkdown]);
+  const musicCueRows = useMemo(() => (!isUser ? parseMusicCueRows(renderedMarkdown) : null), [isUser, renderedMarkdown]);
   const versionCards = useMemo(() => (!isUser ? parseVideoScriptVersions(cleanedContent) : null), [cleanedContent, isUser]);
   const showDualCards = !isUser && versionCards && versionCards.length >= 2;
   const preferredCandidate = session.preferredCandidate;
@@ -649,9 +678,39 @@ const MessageItem = memo(function MessageItem({
               {editingIdeaSections.filter((section) => section.key !== 'storyboardTable').map((section) => (
                 <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                   <p className="mb-2 text-sm font-semibold">{section.label}</p>
-                  <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
-                    <ReactMarkdown>{section.body}</ReactMarkdown>
-                  </div>
+                  {section.key === 'music' && musicCueRows && musicCueRows.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown>{section.body}</ReactMarkdown>
+                      </div>
+                      <div className="overflow-hidden rounded-lg border border-white/10 bg-background/30">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-left text-xs md:text-sm">
+                            <thead className="bg-white/[0.04] text-muted-foreground">
+                              <tr>
+                                <th className="px-3 py-2 font-medium">触发位置</th>
+                                <th className="px-3 py-2 font-medium">建议音效</th>
+                                <th className="px-3 py-2 font-medium">作用</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {musicCueRows.map((row, index) => (
+                                <tr key={`${row.trigger}-${index}`} className="border-t border-white/10 align-top">
+                                  <td className="px-3 py-2 whitespace-pre-wrap">{row.trigger}</td>
+                                  <td className="px-3 py-2 whitespace-pre-wrap">{row.effect}</td>
+                                  <td className="px-3 py-2 whitespace-pre-wrap">{row.purpose}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                      <ReactMarkdown>{section.body}</ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
