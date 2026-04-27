@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerOpenAIConfig, readUpstreamError } from '@/lib/server/openai-proxy';
+import { OpenAIConfigOverride } from '@/lib/types';
+import { readUpstreamError, resolveOpenAIProxyConfig } from '@/lib/server/openai-proxy';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+const requestModels = async (config?: OpenAIConfigOverride) => {
   try {
-    const { apiKey, baseUrl } = getServerOpenAIConfig();
+    const { apiKey, baseUrl } = resolveOpenAIProxyConfig(config);
 
     const upstream = await fetch(`${baseUrl}/models`, {
       method: 'GET',
@@ -29,4 +30,13 @@ export async function GET() {
     const message = error instanceof Error ? error.message : '服务器错误';
     return NextResponse.json({ error: message }, { status: 500 });
   }
+};
+
+export async function GET() {
+  return requestModels();
+}
+
+export async function POST(request: Request) {
+  const payload = (await request.json().catch(() => ({}))) as { config?: OpenAIConfigOverride };
+  return requestModels(payload.config);
 }

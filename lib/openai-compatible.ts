@@ -1,3 +1,4 @@
+import { getOpenAIConfigOverride } from '@/lib/openai-config';
 import { AppSettings, ChatMessage } from '@/lib/types';
 
 type OpenAICompatibleMessage = {
@@ -70,6 +71,7 @@ export async function requestOpenAICompatible(params: {
         temperature: settings.temperature,
         max_tokens: settings.maxTokens,
         stream: false,
+        config: getOpenAIConfigOverride(settings),
       }),
     });
   } catch (error) {
@@ -95,7 +97,7 @@ export async function requestEmbeddingVector(params: {
   model: string;
   input: string;
 }) {
-  const { model, input } = params;
+  const { settings, model, input } = params;
 
   let response: Response;
   try {
@@ -107,6 +109,7 @@ export async function requestEmbeddingVector(params: {
       body: JSON.stringify({
         model,
         input,
+        config: getOpenAIConfigOverride(settings),
       }),
     });
   } catch (error) {

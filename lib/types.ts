@@ -126,6 +126,12 @@ export interface AppSettings {
   modelCatalog: string[];
 }
 
+export interface OpenAIConfigOverride {
+  provider?: string;
+  apiKey?: string;
+  baseUrl?: string;
+}
+
 export interface SampleLibraryItem {
   id: string;
   title: string;

@@ -12,7 +12,7 @@ export const defaultSettings: AppSettings = {
   temperature: 0.7,
   maxTokens: 2048,
   stream: true,
-  provider: 'OpenAI',
+  provider: 'OpenAI Compatible',
   apiKey: '',
   baseUrl: 'https://ai.shuaihong.fun/v1',
   webdavUrl: '',
@@ -50,24 +50,24 @@ export const useSettingsStore = create<{
           ) as Partial<AppSettings>;
 
           return {
-            settings: sanitizeSettingsForExport({
+            settings: {
               ...state.settings,
               ...sanitizedIncoming,
-            }),
+            },
           };
         }),
-      replaceSettings: (settings) => set({ settings: sanitizeSettingsForExport({ ...defaultSettings, ...settings }) }),
+      replaceSettings: (settings) => set({ settings: { ...defaultSettings, ...settings } }),
     }),
     {
       name: 'echoai-settings',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ settings: sanitizeSettingsForExport(state.settings) }),
+      partialize: (state) => ({ settings: state.settings }),
       merge: (persistedState, currentState) => {
         const persistedSettings = ((persistedState as { settings?: Partial<AppSettings> } | undefined)?.settings ?? {}) as Partial<AppSettings>;
-        const mergedSettings = sanitizeSettingsForExport({
+        const mergedSettings = {
           ...defaultSettings,
           ...persistedSettings,
-        });
+        };
 
         if (isLegacyPresetModels(mergedSettings.modelCatalog)) {
           mergedSettings.modelCatalog = [];
