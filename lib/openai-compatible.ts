@@ -1,9 +1,16 @@
 import { getOpenAIConfigOverride } from '@/lib/openai-config';
 import { AppSettings, ChatMessage } from '@/lib/types';
 
+type OpenAICompatibleContent =
+  | string
+  | Array<
+      | { type: 'text'; text: string }
+      | { type: 'image_url'; image_url: { url: string } }
+    >;
+
 type OpenAICompatibleMessage = {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: OpenAICompatibleContent;
 };
 
 type ChatCompletionChoice = {
@@ -57,6 +64,10 @@ export async function requestOpenAICompatible(params: {
   messages: OpenAICompatibleMessage[];
 }) {
   const { settings, model, messages } = params;
+  const normalizedMessages = messages.map((message) => ({
+    ...message,
+    content: message.role === 'user' && typeof message.content === 'string' ? toOpenAIContent(message.content) : message.content,
+  }));
 
   let response: Response;
   try {
@@ -67,7 +78,7 @@ export async function requestOpenAICompatible(params: {
       },
       body: JSON.stringify({
         model,
-        messages,
+        messages: normalizedMessages,
         temperature: settings.temperature,
         max_tokens: settings.maxTokens,
         stream: false,
@@ -130,5 +141,18 @@ export async function requestEmbeddingVector(params: {
   return embedding;
 }
 
+const imageMarkdownPattern = /!\[([^\]]*)\]\((data:image\/[^)\s]+)\)/g;
+
+const toOpenAIContent = (content: string): OpenAICompatibleContent => {
+  const images = [...content.matchAll(imageMarkdownPattern)].map((match) => match[2]).filter(Boolean);
+  if (images.length === 0) return content;
+
+  const text = content.replace(imageMarkdownPattern, '').trim();
+  return [
+    ...(text ? [{ type: 'text' as const, text }] : []),
+    ...images.map((url) => ({ type: 'image_url' as const, image_url: { url } })),
+  ];
+};
+
 export const toOpenAIMessages = (messages: ChatMessage[]): OpenAICompatibleMessage[] =>
-  messages.map((item) => ({ role: item.role, content: item.content }));
+  messages.map((item) => ({ role: item.role, content: item.role === 'user' ? toOpenAIContent(item.content) : item.content }));

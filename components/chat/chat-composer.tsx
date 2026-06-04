@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type ChangeEvent, type ClipboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Eraser, FileText, Paperclip, SendHorizontal, Settings, SlidersHorizontal, Sparkles, Square, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,21 @@ const isTranscriptTextFile = (file: File) => {
   const filename = file.name.toLowerCase();
   const ext = filename.includes('.') ? filename.split('.').pop() || '' : '';
   return file.type.startsWith('text/') || TEXT_IMPORT_EXTENSIONS.includes(ext);
+};
+
+const clipboardImageExtension = (type: string) => {
+  const subtype = type.split('/')[1]?.split(';')[0]?.trim().toLowerCase();
+  if (!subtype) return 'png';
+  return subtype === 'jpeg' ? 'jpg' : subtype;
+};
+
+const normalizeClipboardImageFile = (file: File, index: number) => {
+  if (file.name && file.name !== 'image.png') return file;
+  const timestamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
+  return new File([file], `粘贴图片-${timestamp}-${index + 1}.${clipboardImageExtension(file.type)}`, {
+    type: file.type || 'image/png',
+    lastModified: file.lastModified,
+  });
 };
 
 const defaultVideoScriptPreset: VideoScriptPreset = {
@@ -402,6 +417,21 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     if (hints.length > 0) {
       setInputHint(hints.join(' '));
     }
+  };
+
+  const handlePaste = async (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const itemFiles = Array.from(event.clipboardData.items || [])
+      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => Boolean(file));
+    const fallbackFiles = Array.from(event.clipboardData.files || []).filter((file) => file.type.startsWith('image/'));
+    const imageFiles = itemFiles.length > 0 ? itemFiles : fallbackFiles;
+
+    if (imageFiles.length === 0) return;
+
+    event.preventDefault();
+    await parseFiles(imageFiles.map(normalizeClipboardImageFile));
+    setInputHint(`已从剪贴板添加 ${imageFiles.length} 张图片，可继续输入说明后发送。`);
   };
 
   const generatePresetTopic = async () => {
@@ -780,9 +810,18 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       {attachments.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2 text-xs">
           {attachments.map((item) => (
-            <div key={item.id} className="inline-flex items-center gap-1 rounded-full border px-2 py-1">
-              <Paperclip size={12} />
-              <span>{item.name}</span>
+            <div key={item.id} className="inline-flex max-w-full items-center gap-2 rounded-xl border bg-background/65 px-2 py-1">
+              {item.previewUrl ? (
+                <span
+                  role="img"
+                  aria-label={item.name}
+                  className="h-8 w-8 shrink-0 rounded-lg border bg-cover bg-center"
+                  style={{ backgroundImage: `url(${item.previewUrl})` }}
+                />
+              ) : (
+                <Paperclip size={12} />
+              )}
+              <span className="max-w-[180px] truncate">{item.name}</span>
               <button className="ui-icon-button h-6 w-6 rounded-full border-transparent bg-transparent" onClick={() => setAttachments((prev) => prev.filter((entry) => entry.id !== item.id))} aria-label="删除附件">
                 <X size={12} />
               </button>
@@ -819,6 +858,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           placeholder={mode === 'videoScript' && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，或导入 txt/md/srt/vtt/json 转录文本后回车发送分析' : mode === 'videoScript' && videoTaskType === 'editing-idea' ? '可补充剪辑重点；若当前没有脚本结果，也可直接粘贴脚本文本后生成剪辑思路' : mode === 'image' || mode === 'proImage' ? '描述你想生成的图片内容，发送后会把图片工作流记录保留在本页。' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
+          onPaste={handlePaste}
           onKeyDown={(e) => {
             if (e.key !== 'Enter' || isComposing || e.shiftKey) return;
             if (!value.trim() && !attachments.length && !canSendVideoScriptFromPreset && !canSendEditingIdea) return;
@@ -892,7 +932,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       )}
 
       <div className="mt-1 flex items-center px-2 text-xs text-muted-foreground">
-        <span>{inputHint || (mode === 'image' || mode === 'proImage' ? '图片模式会在上方工作区中保留最近的提示词与结果轨迹。' : '支持文件内容随消息发送。')}</span>
+        <span>{inputHint || (mode === 'image' || mode === 'proImage' ? '图片模式会在上方工作区中保留最近的提示词与结果轨迹，也支持直接粘贴图片。' : '支持文件内容随消息发送，可直接从剪贴板粘贴图片。')}</span>
       </div>
     </div>
   );
