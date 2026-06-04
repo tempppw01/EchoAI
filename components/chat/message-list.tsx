@@ -2,19 +2,11 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Bot, ChevronDown, ChevronUp, Copy, Download, Heart, Pencil, RefreshCcw, RotateCw, Sparkles, Trash2, UserRound, Wand2 } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, Copy, Download, Heart, Pencil, RefreshCcw, RotateCw, Trash2, UserRound, Wand2 } from 'lucide-react';
 import { VideoScriptStateCard } from '@/components/chat/video-script-state-card';
 import { Button } from '@/components/ui/button';
-import { ChatMode, ChatSession } from '@/lib/types';
+import { ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
-
-const modeStarterMap: Record<Exclude<ChatMode, 'image' | 'proImage'>, { title: string; hint: string }> = {
-  chat: { title: '通用对话工作台', hint: '从任意问题开始，系统会保留上下文。' },
-  copywriting: { title: '文案生成中心', hint: '支持广告文案、社媒口播等。' },
-  videoScript: { title: '视频脚本工坊', hint: '可快速生成分镜和口播结构。' },
-  roleplay: { title: '角色扮演模式', hint: '让 AI 扮演特定身份进行陪练。' },
-  training: { title: '学习型聊天窗口', hint: '专注做题、讲解、批改与进度跟踪。' },
-};
 
 const stabilizeMarkdownForStreaming = (content: string) => {
   let stabilized = content;
@@ -390,31 +382,6 @@ export function MessageList({ session }: { session?: ChatSession }) {
             '结果会按标题、开头钩子、正文、结尾 CTA 结构化展示。',
           ]}
         />
-      )}
-
-      {session.messages.length === 0 && session.mode !== 'image' && session.mode !== 'proImage' && !showVideoScriptEmptyState && (
-        <div className="chat-panel mx-auto max-w-3xl overflow-hidden">
-          <div className="flex flex-col gap-4 p-5 md:p-6">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-              <Sparkles size={12} className="text-primary" />
-              开始一段新对话
-            </div>
-            <div>
-              <h3 className="text-2xl font-semibold tracking-tight text-foreground">{modeStarterMap[session.mode].title}</h3>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{modeStarterMap[session.mode].hint}</p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {[
-                '直接问问题，也可以让它帮你整理思路。',
-                '支持 Markdown、代码块、附件和长文本。',
-              ].map((tip) => (
-                <div key={tip} className="rounded-2xl border border-border/70 bg-background/70 px-3 py-3 text-sm text-muted-foreground">
-                  {tip}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       )}
 
       {showVideoScriptLoadingState && (
