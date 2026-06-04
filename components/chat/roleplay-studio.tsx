@@ -609,7 +609,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         </AnimatePresence>
       </div>
 
-      <Button type="button" className="h-11 rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15" onClick={createStyledCharacter}>
+      <Button type="button" variant="ghost" className="roleplay-glass-button h-10" onClick={createStyledCharacter}>
         <Plus size={15} className="mr-2" /> 新角色
       </Button>
     </div>
@@ -788,16 +788,16 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           <h3 className="font-semibold">快捷动作</h3>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Button type="button" className="h-11 rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15" onClick={startRoleplaySession}>
+          <Button type="button" variant="ghost" className="roleplay-glass-button h-10" onClick={startRoleplaySession}>
             <Play size={15} className="mr-2" /> 新戏
           </Button>
-          <Button type="button" className="h-11 rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15" onClick={() => openLeftPanel('director')}>
+          <Button type="button" variant="ghost" className="roleplay-glass-button h-10" onClick={() => openLeftPanel('director')}>
             <PenSquare size={15} className="mr-2" /> 导演台
           </Button>
-          <Button type="button" className="h-11 rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15" onClick={() => openLeftPanel('cast')}>
+          <Button type="button" variant="ghost" className="roleplay-glass-button h-10" onClick={() => openLeftPanel('cast')}>
             <UserRound size={15} className="mr-2" /> 角色池
           </Button>
-          <Button type="button" className="h-11 rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15" onClick={() => openRightPanel('memory')}>
+          <Button type="button" variant="ghost" className="roleplay-glass-button h-10" onClick={() => openRightPanel('memory')}>
             <Brain size={15} className="mr-2" /> 记忆
           </Button>
         </div>
@@ -940,7 +940,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                     type="button"
                     onClick={() => setLeftPanelView(tab.key)}
                     className={cn(
-                      'flex flex-1 items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs transition',
+                      'roleplay-segmented-button flex-1',
                       active ? 'border-white/20 bg-white text-slate-900 shadow-lg' : 'border-white/10 bg-white/[0.05] text-white/65 hover:text-white',
                     )}
                   >
@@ -966,7 +966,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                     type="button"
                     onClick={() => setRightPanelView(tab.key)}
                     className={cn(
-                      'flex flex-1 items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs transition',
+                      'roleplay-segmented-button flex-1',
                       active ? 'border-white/20 bg-white text-slate-900 shadow-lg' : 'border-white/10 bg-white/[0.05] text-white/65 hover:text-white',
                     )}
                   >
@@ -1026,7 +1026,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               key={item.label}
               type="button"
               onClick={() => injectPrompt(item.value)}
-              className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] text-white/70 transition hover:bg-white/10 hover:text-white"
+              className="roleplay-chip-button"
             >
               {item.label}
             </button>
@@ -1048,9 +1048,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 e.preventDefault();
                 onSend();
               }}
-              className="min-h-[84px] rounded-[18px] border-white/10 bg-white/5 text-base text-white placeholder:text-white/30 sm:min-h-[96px] sm:rounded-[20px] sm:text-sm"
+              className="min-h-[72px] rounded-[18px] border-white/10 bg-white/5 text-base text-white placeholder:text-white/30 sm:min-h-[84px] sm:rounded-[20px] sm:text-sm"
             />
-            <Button type="button" className="h-11 w-full rounded-[16px] px-4 sm:h-12 sm:w-auto sm:rounded-[18px]" onClick={onSend}>
+            <Button type="button" className="h-10 w-full rounded-[16px] px-4 sm:h-11 sm:w-auto sm:rounded-[18px]" onClick={onSend}>
               <SendHorizontal size={17} className="mr-2 sm:mr-0" />
               <span className="sm:hidden">发送</span>
             </Button>
@@ -1068,7 +1068,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             key={item.label}
             type="button"
             onClick={() => injectPrompt(item.value)}
-            className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] text-white/70 transition hover:bg-white/10 hover:text-white"
+            className="roleplay-chip-button"
           >
             {item.label}
           </button>
@@ -1126,9 +1126,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               e.preventDefault();
               onSend();
             }}
-            className="min-h-[76px] rounded-[16px] border-white/10 bg-white/5 text-base text-white placeholder:text-white/30 sm:min-h-[88px] sm:rounded-[20px] sm:text-sm"
+              className="min-h-[68px] rounded-[16px] border-white/10 bg-white/5 text-base text-white placeholder:text-white/30 sm:min-h-[80px] sm:rounded-[20px] sm:text-sm"
           />
-          <Button type="button" className="h-11 w-full rounded-[16px] px-4 sm:h-12 sm:w-auto sm:rounded-[18px]" onClick={onSend}>
+          <Button type="button" className="h-10 w-full rounded-[16px] px-4 sm:h-11 sm:w-auto sm:rounded-[18px]" onClick={onSend}>
             <SendHorizontal size={17} className="mr-2 sm:mr-0" />
             <span className="sm:hidden">发送</span>
           </Button>
@@ -1174,7 +1174,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                         type="button"
                         onClick={() => setLeftPanelView(tab.key)}
                         className={cn(
-                          'flex flex-1 items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs transition',
+                      'roleplay-segmented-button flex-1',
                           active ? 'border-white/20 bg-white text-slate-900 shadow-lg' : 'border-white/10 bg-white/[0.05] text-white/65 hover:text-white',
                         )}
                       >
@@ -1217,13 +1217,13 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             </div>
 
             <div className="mt-3 hidden flex-wrap gap-2 xl:mt-0 xl:justify-end lg:flex">
-              <Button type="button" className="h-11 rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15" onClick={() => openLeftPanel('director')}>
+              <Button type="button" variant="ghost" className="roleplay-glass-button h-10" onClick={() => openLeftPanel('director')}>
                 <PenSquare size={15} className="mr-2" /> 设定
               </Button>
-              <Button type="button" className="h-11 rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15" onClick={() => openRightPanel('memory')}>
+              <Button type="button" variant="ghost" className="roleplay-glass-button h-10" onClick={() => openRightPanel('memory')}>
                 <Brain size={15} className="mr-2" /> 记忆
               </Button>
-              <Button type="button" className="h-11 rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15" disabled={!session || session.messages.length === 0} onClick={handleClearContext}>
+              <Button type="button" variant="ghost" className="roleplay-glass-button h-10" disabled={!session || session.messages.length === 0} onClick={handleClearContext}>
                 <RotateCcw size={15} className="mr-2" /> 清空
               </Button>
             </div>
@@ -1232,7 +1232,8 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           <div className="mb-3 flex flex-wrap gap-2 lg:hidden">
             <Button
               type="button"
-              className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15"
+              variant="ghost"
+              className="roleplay-glass-button"
               onClick={() => {
                 setRightPanelOpen(false);
                 setLeftPanelView('cast');
@@ -1243,7 +1244,8 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             </Button>
             <Button
               type="button"
-              className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15"
+              variant="ghost"
+              className="roleplay-glass-button"
               onClick={() => {
                 setLeftPanelOpen(false);
                 setRightPanelView('memory');
@@ -1252,7 +1254,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             >
               <ChevronRight size={15} className={cn('mr-2 transition', rightPanelOpen && 'rotate-90')} /> 记忆
             </Button>
-            <Button type="button" className="h-10 rounded-2xl border border-white/10 bg-white/10 px-3 text-white hover:bg-white/15" disabled={!session || session.messages.length === 0} onClick={handleClearContext}>
+            <Button type="button" variant="ghost" className="roleplay-glass-button" disabled={!session || session.messages.length === 0} onClick={handleClearContext}>
               <RotateCcw size={14} className="mr-2" /> 清空
             </Button>
           </div>
@@ -1271,7 +1273,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                         type="button"
                         onClick={() => switchRoleplayModel(model)}
                         className={cn(
-                          'whitespace-nowrap rounded-full border px-3 py-2 text-xs transition',
+                          'roleplay-segmented-button whitespace-nowrap',
                           activeRoleplayModel === model
                             ? 'border-white/20 bg-white text-slate-900 shadow-lg'
                             : 'border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/10 hover:text-white',
@@ -1325,7 +1327,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                         type="button"
                         onClick={() => setRightPanelView(tab.key)}
                         className={cn(
-                          'flex flex-1 items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs transition',
+                      'roleplay-segmented-button flex-1',
                           active ? 'border-white/20 bg-white text-slate-900 shadow-lg' : 'border-white/10 bg-white/[0.05] text-white/65 hover:text-white',
                         )}
                       >

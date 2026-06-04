@@ -370,10 +370,10 @@ export function MessageList({ session }: { session?: ChatSession }) {
 
       {session.messages.length > 0 && (
         <div className="flex justify-end gap-2">
-          <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={() => regenerateLastAssistant(session.id)}>
+          <button className="ui-inline-action" onClick={() => regenerateLastAssistant(session.id)}>
             <RotateCw size={13} />重新生成
           </button>
-          <button className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" onClick={exportContent}>
+          <button className="ui-inline-action" onClick={exportContent}>
             <Download size={13} />导出内容
           </button>
         </div>
@@ -418,13 +418,13 @@ export function MessageList({ session }: { session?: ChatSession }) {
             <div key={msg.id} className="chat-bubble-user ml-auto max-w-[90%] p-4">
               <textarea className="w-full rounded border bg-background p-2 text-sm" rows={4} value={editingText} onChange={(e) => setEditingText(e.target.value)} />
               <div className="mt-2 flex justify-end gap-2 text-xs">
-                <button onClick={() => setEditingId(undefined)} className="rounded border px-2 py-1">取消</button>
+                <Button variant="secondary" size="sm" onClick={() => setEditingId(undefined)}>取消</Button>
                 <button
                   onClick={() => {
                     editUserMessage(session.id, msg.id, editingText);
                     setEditingId(undefined);
                   }}
-                  className="rounded border px-2 py-1"
+                  className="inline-flex h-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 px-3 text-xs font-medium text-primary transition hover:bg-primary/15"
                 >
                   保存
                 </button>
@@ -478,7 +478,7 @@ const RecallSamplesPreview = memo(function RecallSamplesPreview({ samples }: { s
 
   return (
     <div className="mb-3 rounded-xl border border-dashed border-white/15 bg-background/35 p-3">
-      <button type="button" className="flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpen((prev) => !prev)}>
+      <button type="button" className="flex w-full items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition hover:bg-background/40" onClick={() => setOpen((prev) => !prev)}>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">召回样本</p>
           <p className="mt-1 text-sm text-muted-foreground">已折叠 {samples.length} 条参考样本，不占用正文阅读区。</p>
@@ -558,7 +558,7 @@ const MessageItem = memo(function MessageItem({
               '如果是配置问题，先检查模型、Key 或 Base URL。',
             ]}
             compact
-            action={<Button className="h-8 rounded-lg px-3 text-xs" onClick={onRetry}><RefreshCcw size={13} className="mr-1" />重新生成</Button>}
+            action={<Button variant="secondary" size="sm" onClick={onRetry}><RefreshCcw size={13} className="mr-1" />重新生成</Button>}
           />
         ) : showDualCards ? (
           <div className="grid gap-4 md:grid-cols-2">
@@ -601,7 +601,7 @@ const MessageItem = memo(function MessageItem({
                       content: version.body,
                       savedAt: new Date().toISOString(),
                     })}
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition ${isPreferred ? 'border-rose-400/40 bg-rose-500/10 text-rose-300' : 'border-white/10 bg-background/40 text-muted-foreground hover:border-primary/30 hover:text-foreground'}`}
+                    className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition ${isPreferred ? 'border-rose-400/40 bg-rose-500/10 text-rose-300' : 'border-white/10 bg-background/40 text-muted-foreground hover:border-primary/30 hover:text-foreground'}`}
                   >
                     <Heart size={14} className={isPreferred ? 'fill-current' : ''} />
                     {isPreferred ? '已作为下一轮参考' : '点赞为下一轮参考'}
@@ -628,7 +628,7 @@ const MessageItem = memo(function MessageItem({
                           savedAt: new Date().toISOString(),
                         });
                       }}
-                      className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-300 transition hover:border-emerald-300/40 hover:text-emerald-200"
+                      className="inline-flex h-7 items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 text-[11px] font-medium text-emerald-300 transition hover:border-emerald-300/40 hover:text-emerald-200"
                     >
                       <Wand2 size={12} />
                       一键套用到新的选题生成
@@ -732,12 +732,12 @@ const MessageItem = memo(function MessageItem({
           </div>
         )}
 
-        <div className="mt-3 flex gap-2 text-xs opacity-70">
-          <button onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
-          {isUser && <button onClick={onEdit}><Pencil size={14} /></button>}
-          {isUser && <button onClick={onRetry}><RefreshCcw size={14} /></button>}
-          {!isUser && isError && <button onClick={onRetry}><RefreshCcw size={14} /></button>}
-          <button onClick={onDelete}><Trash2 size={14} /></button>
+        <div className="mt-3 flex gap-1.5 text-xs opacity-90">
+          <button className="ui-icon-button h-7 w-7 bg-transparent" onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
+          {isUser && <button className="ui-icon-button h-7 w-7 bg-transparent" onClick={onEdit}><Pencil size={14} /></button>}
+          {isUser && <button className="ui-icon-button h-7 w-7 bg-transparent" onClick={onRetry}><RefreshCcw size={14} /></button>}
+          {!isUser && isError && <button className="ui-icon-button h-7 w-7 bg-transparent" onClick={onRetry}><RefreshCcw size={14} /></button>}
+          <button className="ui-icon-button h-7 w-7 bg-transparent" onClick={onDelete}><Trash2 size={14} /></button>
         </div>
       </div>
       {isUser && <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary"><UserRound size={15} /></div>}

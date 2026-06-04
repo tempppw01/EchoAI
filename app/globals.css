@@ -29,6 +29,51 @@
 body { @apply bg-background text-foreground antialiased; }
 * { @apply border-border; }
 
+.ui-icon-button {
+  @apply inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/70 transition;
+  background: hsl(var(--background) / 0.82);
+  color: hsl(var(--muted-foreground));
+}
+
+.ui-inline-action {
+  @apply inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border/70 px-2.5 text-xs font-medium transition;
+  background: hsl(var(--background) / 0.82);
+  color: hsl(var(--muted-foreground));
+}
+
+.ui-segmented-trigger {
+  @apply inline-flex items-center justify-center rounded-full border border-border/70 px-3 py-1.5 text-xs font-medium transition;
+  background: hsl(var(--background) / 0.82);
+  color: hsl(var(--muted-foreground));
+}
+
+.ui-icon-button:hover,
+.ui-inline-action:hover,
+.ui-segmented-trigger:hover {
+  background: hsl(var(--muted) / 0.65);
+  color: hsl(var(--foreground));
+}
+
+.ui-segmented-trigger[data-state='active'] {
+  @apply border-primary/20 bg-primary/10 text-primary;
+}
+
+.roleplay-glass-button {
+  @apply inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 text-sm font-medium text-white transition hover:bg-white/15;
+}
+
+.roleplay-chip-button {
+  @apply inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] text-white/70 transition hover:bg-white/10 hover:text-white;
+}
+
+.roleplay-segmented-button {
+  @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs text-white/65 transition hover:text-white;
+}
+
+.roleplay-segmented-button[data-state='active'] {
+  @apply border-white/20 bg-white text-slate-900 shadow-lg;
+}
+
 .chat-panel {
   @apply rounded-2xl border shadow-sm;
   background: hsl(var(--surface) / 0.9);

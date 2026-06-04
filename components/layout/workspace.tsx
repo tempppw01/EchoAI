@@ -1,9 +1,24 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Brush, ChevronDown, ChevronUp, Menu, Moon, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sparkles, Sun, Swords, Video, PenSquare } from 'lucide-react';
+import {
+  Brush,
+  ChevronDown,
+  ChevronUp,
+  Menu,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PenSquare,
+  Plus,
+  Settings,
+  Sparkles,
+  Sun,
+  Swords,
+  Video,
+} from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatList } from '@/components/chat/chat-list';
 import { MessageList } from '@/components/chat/message-list';
@@ -19,14 +34,20 @@ import { useUIStore } from '@/stores/ui-store';
 
 type SectionKey = 'chat' | 'copywriting' | 'videoScript' | 'roleplay' | 'training' | 'image';
 
-type Section = { key: SectionKey; label: string; mode: ChatMode; icon: typeof Sparkles; accent: string };
+type Section = {
+  key: SectionKey;
+  label: string;
+  mode: ChatMode;
+  icon: typeof Sparkles;
+  accent: string;
+};
 
 const sections: Section[] = [
   { key: 'chat', label: '通用对话', mode: 'chat', icon: Sparkles, accent: 'bg-blue-50 dark:bg-blue-500/10' },
   { key: 'copywriting', label: '文案生成', mode: 'copywriting', icon: PenSquare, accent: 'bg-indigo-50 dark:bg-indigo-500/10' },
   { key: 'videoScript', label: '视频脚本', mode: 'videoScript', icon: Video, accent: 'bg-pink-50 dark:bg-pink-500/10' },
   { key: 'roleplay', label: '角色扮演', mode: 'roleplay', icon: Swords, accent: 'bg-teal-50 dark:bg-teal-500/10' },
-  { key: 'training', label: '学习型聊天', mode: 'training', icon: Sparkles, accent: 'bg-amber-50 dark:bg-amber-500/10' },
+  { key: 'training', label: '学习对练', mode: 'training', icon: Sparkles, accent: 'bg-amber-50 dark:bg-amber-500/10' },
   { key: 'image', label: '专业绘图', mode: 'proImage', icon: Brush, accent: 'bg-purple-50 dark:bg-purple-500/10' },
 ];
 
@@ -43,7 +64,14 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const { theme, setTheme } = useTheme();
   const [search, setSearch] = useState('');
   const [section, setSection] = useState<SectionKey>(modeToSection(mode));
-  const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({ chat: true, copywriting: true, videoScript: true, roleplay: true, training: true, image: true });
+  const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({
+    chat: true,
+    copywriting: true,
+    videoScript: true,
+    roleplay: true,
+    training: true,
+    image: true,
+  });
   const [moduleCollapsed, setModuleCollapsed] = useState(false);
   const [trainingTopicDialog, setTrainingTopicDialog] = useState<{ open: boolean; sessionId?: string }>({ open: false });
   const [trainingTopicInput, setTrainingTopicInput] = useState('');
@@ -53,7 +81,51 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const { sessions, activeSessionId, createSession, selectSession, startTraining } = useChatStore();
   const { recentCharacterId, activeCharacterId, activeWorldId } = useRoleplayStore();
 
-  const active = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
+  const active = useMemo(
+    () => sessions.find((sessionItem) => sessionItem.id === (activeSessionId ?? sessions[0]?.id)),
+    [sessions, activeSessionId],
+  );
+  const lastRouteSectionRef = useRef<SectionKey | null>(null);
+
+  useEffect(() => {
+    const targetSection = modeToSection(mode);
+    if (lastRouteSectionRef.current === targetSection) return;
+    lastRouteSectionRef.current = targetSection;
+    setSection(targetSection);
+
+    if (active && modeToSection(active.mode) === targetSection) return;
+
+    const existing = sessions.find((item) => modeToSection(item.mode) === targetSection);
+    if (existing) {
+      selectSession(existing.id);
+      return;
+    }
+
+    const targetMode = sections.find((item) => item.key === targetSection)?.mode;
+    if (!targetMode) return;
+
+    if (targetMode === 'roleplay') {
+      createSession('roleplay', undefined, undefined, {
+        characterId: recentCharacterId ?? activeCharacterId,
+        worldId: activeWorldId,
+      });
+      return;
+    }
+
+    if (targetMode === 'training') {
+      const sessionId = createSession('training');
+      setTrainingTopicDialog({ open: true, sessionId });
+      return;
+    }
+
+    createSession(targetMode);
+  }, [mode, active, sessions, selectSession, createSession, recentCharacterId, activeCharacterId, activeWorldId]);
+
+  useEffect(() => {
+    if (!active) return;
+    const activeSection = modeToSection(active.mode);
+    setSection((current) => (current === activeSection ? current : activeSection));
+  }, [active]);
 
   const openSection = (target: SectionKey) => {
     setSearch('');
@@ -61,18 +133,26 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     const targetMode = sections.find((item) => item.key === target)?.mode;
     if (!targetMode) return;
 
-    const existing = sessions.find((item) => item.mode === targetMode);
-    if (existing) return selectSession(existing.id);
+    const existing = sessions.find((item) => modeToSection(item.mode) === target);
+    if (existing) {
+      selectSession(existing.id);
+      return;
+    }
 
     if (targetMode === 'roleplay') {
-      createSession('roleplay', undefined, undefined, { characterId: recentCharacterId ?? activeCharacterId, worldId: activeWorldId });
+      createSession('roleplay', undefined, undefined, {
+        characterId: recentCharacterId ?? activeCharacterId,
+        worldId: activeWorldId,
+      });
       return;
     }
+
     if (targetMode === 'training') {
-      const sid = createSession('training');
-      setTrainingTopicDialog({ open: true, sessionId: sid });
+      const sessionId = createSession('training');
+      setTrainingTopicDialog({ open: true, sessionId });
       return;
     }
+
     createSession(targetMode);
   };
 
@@ -81,15 +161,21 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     setSection(target);
     const targetMode = sections.find((item) => item.key === target)?.mode;
     if (!targetMode) return;
+
     if (targetMode === 'roleplay') {
-      createSession('roleplay', undefined, undefined, { characterId: recentCharacterId ?? activeCharacterId, worldId: activeWorldId });
+      createSession('roleplay', undefined, undefined, {
+        characterId: recentCharacterId ?? activeCharacterId,
+        worldId: activeWorldId,
+      });
       return;
     }
+
     if (targetMode === 'training') {
-      const sid = createSession('training');
-      setTrainingTopicDialog({ open: true, sessionId: sid });
+      const sessionId = createSession('training');
+      setTrainingTopicDialog({ open: true, sessionId });
       return;
     }
+
     createSession(targetMode);
   };
 
@@ -100,20 +186,26 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     <div className="h-screen overflow-hidden bg-[#f6f6f8] dark:bg-background">
       <header className="relative z-20 flex h-14 shrink-0 items-center justify-between border-b bg-card/85 px-4 backdrop-blur">
         <div className="flex items-center gap-2">
-          <Button className="bg-transparent text-foreground md:hidden" onClick={() => setSidebarOpen(true)}><Menu size={16} /></Button>
+          <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => setSidebarOpen(true)}>
+            <Menu size={16} />
+          </Button>
           <span className="text-sm font-medium">EchoAI 工作区</span>
         </div>
         <div className="flex items-center gap-2">
           <Button
-            className="hidden bg-transparent text-foreground md:inline-flex"
+            variant="ghost"
+            size="icon-sm"
+            className="hidden md:inline-flex"
             onClick={() => setWorkspaceCollapsed((prev) => !prev)}
             aria-label={workspaceCollapsed ? '展开工作区侧栏' : '折叠工作区侧栏'}
           >
             {workspaceCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           </Button>
-          <ThemeIconButton active={theme === 'light'} onClick={() => setTheme('light')} icon={<Sun size={16} />} />
-          <ThemeIconButton active={theme === 'dark'} onClick={() => setTheme('dark')} icon={<Moon size={16} />} />
-          <Button className="bg-transparent text-foreground" onClick={() => setSettingsOpen(true)}><Settings size={16} /></Button>
+          <ThemeIconButton active={theme === 'light'} label="切换到浅色主题" onClick={() => setTheme('light')} icon={<Sun size={16} />} />
+          <ThemeIconButton active={theme === 'dark'} label="切换到深色主题" onClick={() => setTheme('dark')} icon={<Moon size={16} />} />
+          <Button variant="ghost" size="icon-sm" aria-label="打开设置中心" title="打开设置中心" onClick={() => setSettingsOpen(true)}>
+            <Settings size={16} />
+          </Button>
         </div>
       </header>
 
@@ -140,16 +232,32 @@ export function Workspace({ mode }: { mode: ChatMode }) {
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {workspaceCollapsed && (
             <div className="px-3 pt-3 md:px-6">
-              <Button className="h-8 bg-transparent text-foreground" onClick={() => setWorkspaceCollapsed(false)}>
-                <PanelLeftOpen size={14} className="mr-1" />展开工作区
+              <Button variant="secondary" size="sm" onClick={() => setWorkspaceCollapsed(false)}>
+                <PanelLeftOpen size={14} className="mr-1" />
+                展开工作区
               </Button>
             </div>
           )}
           <AnimatePresence mode="wait">
-            <motion.div key={section + (active?.id ?? '')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <motion.div
+              key={section + (active?.id ?? '')}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
               <div className={cn('min-h-0 flex-1 overflow-hidden', isRoleplayMode ? 'overscroll-none p-2 md:p-3' : 'overflow-y-auto p-3 md:p-6')}>
                 <div className={cn('mx-auto w-full', isRoleplayMode ? 'h-full max-w-none overflow-hidden' : 'max-w-6xl')}>
-                  {contentMode === 'proImage' || contentMode === 'image' ? <ProImagePanel /> : contentMode === 'roleplay' ? <RoleplayStudio session={active} /> : <MessageList session={active} />}
+                  {contentMode === 'proImage' || contentMode === 'image' ? (
+                    <div className="space-y-6">
+                      <ProImagePanel session={active} />
+                      <MessageList session={active} />
+                    </div>
+                  ) : contentMode === 'roleplay' ? (
+                    <RoleplayStudio session={active} />
+                  ) : (
+                    <MessageList session={active} />
+                  )}
                 </div>
               </div>
               {contentMode !== 'roleplay' && <ChatComposer mode={contentMode} />}
@@ -194,17 +302,20 @@ export function Workspace({ mode }: { mode: ChatMode }) {
       {trainingTopicDialog.open && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4">
           <div className="w-full max-w-lg rounded-2xl border bg-background p-5 shadow-2xl">
-            <h3 className="text-lg font-semibold">开始学习型聊天</h3>
-            <p className="mt-1 text-sm text-muted-foreground">请输入你想学习/测验的主题，确认后将持续无限出题。</p>
+            <h3 className="text-lg font-semibold">开始学习对练</h3>
+            <p className="mt-1 text-sm text-muted-foreground">输入一个你想持续练习的主题，确认后系统会自动连续出题。</p>
             <input
               value={trainingTopicInput}
-              onChange={(e) => setTrainingTopicInput(e.target.value)}
+              onChange={(event) => setTrainingTopicInput(event.target.value)}
               placeholder="例如：Python 基础、英语语法、产品经理面试"
               className="mt-4 w-full rounded-xl border bg-background px-3 py-2 text-sm"
             />
             <div className="mt-4 flex justify-end gap-2">
-              <Button className="bg-transparent text-foreground" onClick={() => setTrainingTopicDialog({ open: false })}>取消</Button>
+              <Button variant="secondary" size="sm" onClick={() => setTrainingTopicDialog({ open: false })}>
+                取消
+              </Button>
               <Button
+                size="sm"
                 onClick={async () => {
                   if (!trainingTopicDialog.sessionId || !trainingTopicInput.trim()) return;
                   await startTraining(trainingTopicDialog.sessionId, trainingTopicInput.trim());
@@ -224,11 +335,43 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   );
 }
 
-function ThemeIconButton({ active, onClick, icon }: { active: boolean; onClick: () => void; icon: ReactNode }) {
-  return <button type="button" onClick={onClick} className={`flex h-8 w-8 items-center justify-center rounded-full ${active ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>{icon}</button>;
+function ThemeIconButton({ active, label, onClick, icon }: { active: boolean; label: string; onClick: () => void; icon: ReactNode }) {
+  return (
+    <Button
+      type="button"
+      variant={active ? 'tint' : 'ghost'}
+      size="icon-sm"
+      className="rounded-full"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+    >
+      {icon}
+    </Button>
+  );
 }
 
-function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModule, onToggle, onSelect, onSelectSession, onCreate }: { section: SectionKey; sessions: ReturnType<typeof useChatStore.getState>['sessions']; expanded: Record<SectionKey, boolean>; moduleCollapsed: boolean; onToggleModule: () => void; onToggle: (key: SectionKey) => void; onSelect: (key: SectionKey) => void; onSelectSession: (id: string) => void; onCreate: (key: SectionKey) => void }) {
+function SidebarNav({
+  section,
+  sessions,
+  expanded,
+  moduleCollapsed,
+  onToggleModule,
+  onToggle,
+  onSelect,
+  onSelectSession,
+  onCreate,
+}: {
+  section: SectionKey;
+  sessions: ReturnType<typeof useChatStore.getState>['sessions'];
+  expanded: Record<SectionKey, boolean>;
+  moduleCollapsed: boolean;
+  onToggleModule: () => void;
+  onToggle: (key: SectionKey) => void;
+  onSelect: (key: SectionKey) => void;
+  onSelectSession: (id: string) => void;
+  onCreate: (key: SectionKey) => void;
+}) {
   const { deleteSession, regenerateSessionTitle } = useChatStore();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; session: ChatSession } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
@@ -237,64 +380,87 @@ function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModu
     <>
       <div className="space-y-3" onClick={() => setContextMenu(null)}>
         <div className="flex items-center justify-between px-2">
-          <p className="text-sm">工作区模块</p>
-          <button onClick={onToggleModule} className="rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label={moduleCollapsed ? '展开工作区模块' : '折叠工作区模块'}>
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">工作区模块</p>
+          <button
+            onClick={onToggleModule}
+            className="ui-icon-button h-7 w-7 rounded-md border-transparent bg-transparent"
+            aria-label={moduleCollapsed ? '展开工作区模块' : '折叠工作区模块'}
+          >
             {moduleCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
           </button>
         </div>
         {moduleCollapsed && <p className="px-2 text-xs text-muted-foreground">模块列表已折叠</p>}
-        {!moduleCollapsed && sections.map((item) => {
-          const recentSessions = sessions.filter((session) => modeToSection(session.mode) === item.key).slice(0, 3);
-          const Icon = item.icon;
-          const isOpen = expanded[item.key];
-          return (
-            <div key={item.key} className="rounded-xl border bg-card p-2">
-              <button onClick={() => onSelect(item.key)} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm ${item.accent} ${section === item.key ? 'ring-1 ring-primary/40' : ''}`}>
-                <Icon size={15} />
-                <span className="flex-1 text-left">{item.label}</span>
-                <span className="rounded p-1" onClick={(e) => { e.stopPropagation(); onToggle(item.key); }}>
-                  <ChevronDown size={14} className={`transition ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
-                </span>
-              </button>
-              {isOpen && (
-                <div className="mt-2 space-y-2 px-1">
-                  <Button className="h-8 w-full text-xs" onClick={() => onCreate(item.key)}><Plus size={12} className="mr-1" />新建</Button>
-                  {recentSessions.length > 0 && (
-                    <div className="space-y-2">
-                      {recentSessions.map((sessionItem) => (
-                        <button
-                          key={sessionItem.id}
-                          onClick={() => onSelectSession(sessionItem.id)}
-                          onContextMenu={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
-                          }}
-                          className="block w-full rounded-2xl border border-border/70 bg-background/70 px-3 py-2.5 text-left transition hover:border-primary/30 hover:bg-muted/40"
-                          title={sessionItem.title}
-                        >
-                          <div className="line-clamp-1 text-sm font-medium text-foreground">{sessionItem.title}</div>
-                          <div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{sessionItem.summary || '开始你的第一条消息'}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {!moduleCollapsed &&
+          sections.map((item) => {
+            const recentSessions = sessions.filter((sessionItem) => modeToSection(sessionItem.mode) === item.key).slice(0, 3);
+            const Icon = item.icon;
+            const isOpen = expanded[item.key];
+
+            return (
+              <div key={item.key} className="rounded-2xl border bg-card/90 p-2.5 shadow-sm">
+                <button
+                  onClick={() => onSelect(item.key)}
+                  className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition ${item.accent} ${
+                    section === item.key ? 'ring-1 ring-primary/40 shadow-sm' : 'hover:ring-1 hover:ring-border/70'
+                  }`}
+                >
+                  <Icon size={15} />
+                  <span className="flex-1 text-left">{item.label}</span>
+                  <span
+                    className="ui-icon-button h-7 w-7 rounded-lg border-transparent bg-white/55 dark:bg-white/5"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onToggle(item.key);
+                    }}
+                  >
+                    <ChevronDown size={14} className={`transition ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
+                  </span>
+                </button>
+
+                {isOpen && (
+                  <div className="mt-2 space-y-2 px-1">
+                    <Button variant="secondary" size="sm" className="w-full justify-center" onClick={() => onCreate(item.key)}>
+                      <Plus size={12} className="mr-1" />
+                      新建
+                    </Button>
+                    {recentSessions.length > 0 && (
+                      <div className="space-y-2">
+                        {recentSessions.map((sessionItem) => (
+                          <button
+                            key={sessionItem.id}
+                            onClick={() => onSelectSession(sessionItem.id)}
+                            onContextMenu={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
+                            }}
+                            className="block w-full rounded-2xl border border-border/70 bg-background/70 px-3 py-2 text-left transition hover:border-primary/30 hover:bg-muted/40"
+                            title={sessionItem.title}
+                          >
+                            <div className="line-clamp-1 text-sm font-medium text-foreground">{sessionItem.title}</div>
+                            <div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                              {sessionItem.summary || '开始你的第一条消息'}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
       </div>
 
       {contextMenu && (
         <>
           <button className="fixed inset-0 z-40 cursor-default bg-transparent" onClick={() => setContextMenu(null)} aria-label="关闭会话菜单" />
           <div
-            className="fixed z-50 min-w-[180px] rounded-xl border border-border bg-card/100 p-1 shadow-2xl backdrop-blur-0"
+            className="fixed z-50 min-w-[180px] rounded-xl border border-border bg-card p-1 shadow-2xl"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
             <button
-              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-foreground hover:bg-muted"
+              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-muted"
               onClick={async () => {
                 const sessionId = contextMenu.session.id;
                 setContextMenu(null);
@@ -304,7 +470,7 @@ function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModu
               重新生成标题
             </button>
             <button
-              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-red-500 hover:bg-muted"
+              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-red-500 transition hover:bg-muted"
               onClick={() => {
                 setDeleteTarget(contextMenu.session);
                 setContextMenu(null);
@@ -320,11 +486,14 @@ function SidebarNav({ section, sessions, expanded, moduleCollapsed, onToggleModu
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="w-full max-w-sm rounded-2xl border bg-background p-5 shadow-2xl">
             <h3 className="text-base font-semibold">确认删除会话</h3>
-            <p className="mt-2 text-sm text-muted-foreground">确认删除「{deleteTarget.title}」吗？删除后将无法恢复。</p>
+            <p className="mt-2 text-sm text-muted-foreground">确认删除“{deleteTarget.title}”吗？删除后将无法恢复。</p>
             <div className="mt-4 flex justify-end gap-2">
-              <Button className="bg-transparent text-foreground" onClick={() => setDeleteTarget(null)}>取消</Button>
+              <Button variant="secondary" size="sm" onClick={() => setDeleteTarget(null)}>
+                取消
+              </Button>
               <Button
-                className="bg-red-500 text-white hover:opacity-90"
+                variant="danger"
+                size="sm"
                 onClick={() => {
                   deleteSession(deleteTarget.id);
                   setDeleteTarget(null);

@@ -257,6 +257,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
   const isGenerating = !!activeSession?.id && generatingSessionIds.includes(activeSession.id);
+  const isImageMode = mode === 'image' || mode === 'proImage';
   const viralStructureReference = activeSession?.viralStructureReference;
   const hasVideoPresetInput = useMemo(() => {
     const p = videoPreset;
@@ -545,21 +546,24 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             <div className="inline-flex rounded-full border border-white/10 bg-background/70 p-1 shadow-sm">
               <button
                 type="button"
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${videoTaskType === 'script' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                data-state={videoTaskType === 'script' ? 'active' : 'inactive'}
+                className="ui-segmented-trigger min-w-[92px]"
                 onClick={() => setVideoTaskType('script')}
               >
                 脚本生成
               </button>
               <button
                 type="button"
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${videoTaskType === 'viral-analysis' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                data-state={videoTaskType === 'viral-analysis' ? 'active' : 'inactive'}
+                className="ui-segmented-trigger min-w-[92px]"
                 onClick={() => setVideoTaskType('viral-analysis')}
               >
                 爆款文案分析
               </button>
               <button
                 type="button"
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${videoTaskType === 'editing-idea' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                data-state={videoTaskType === 'editing-idea' ? 'active' : 'inactive'}
+                className="ui-segmented-trigger min-w-[92px]"
                 onClick={() => setVideoTaskType('editing-idea')}
               >
                 剪辑思路
@@ -578,7 +582,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             <div className="rounded-xl border bg-background/70 p-3 text-xs">
               <div className="flex items-center justify-between">
                 <span className="font-medium">视频脚本预设</span>
-                <button className="text-muted-foreground" onClick={() => setShowVideoPreset((prev) => !prev)}>
+                <button className="ui-inline-action h-7 px-2.5" onClick={() => setShowVideoPreset((prev) => !prev)}>
                   {showVideoPreset ? '收起' : '展开'}
                 </button>
               </div>
@@ -592,7 +596,9 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                     {!videoPreset.topic?.trim() && (
                       <Button
                         type="button"
-                        className="h-7 rounded-lg px-2 text-[11px]"
+                        variant="secondary"
+                        size="sm"
+                        className="text-[11px]"
                         onClick={generatePresetTopic}
                         disabled={isGeneratingTopic}
                       >
@@ -612,7 +618,8 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                       <Input value={videoPreset.topic || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, topic: e.target.value }))} placeholder="例如：为什么越来越多工厂改用金属卡板？" />
                       <Button
                         type="button"
-                        className="h-10 rounded-xl px-3"
+                        variant="secondary"
+                        size="icon"
                         onClick={generatePresetTopic}
                         disabled={isGeneratingTopic}
                         title="自动生成标题"
@@ -739,7 +746,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             <div key={item.id} className="inline-flex items-center gap-1 rounded-full border px-2 py-1">
               <Paperclip size={12} />
               <span>{item.name}</span>
-              <button onClick={() => setAttachments((prev) => prev.filter((entry) => entry.id !== item.id))} aria-label="删除附件">
+              <button className="ui-icon-button h-6 w-6 rounded-full border-transparent bg-transparent" onClick={() => setAttachments((prev) => prev.filter((entry) => entry.id !== item.id))} aria-label="删除附件">
                 <X size={12} />
               </button>
             </div>
@@ -747,13 +754,13 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         </div>
       )}
 
-      <div className="chat-panel flex items-end gap-2 p-2">
+      <div className={`chat-panel flex gap-2 p-1.5 ${isImageMode ? 'items-center' : 'items-end'}`}>
         {mode === 'training' && (
           <div className="flex-1 rounded-xl border border-dashed border-primary/30 bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 px-3 py-4 text-sm text-muted-foreground">
             训练模式请在上方点击大卡片选项作答，系统会自动连续出题并更新分数。
           </div>
         )}
-        <Button className="rounded-xl bg-transparent text-foreground" disabled={mode === 'training'} onClick={() => fileRef.current?.click()}>
+        <Button variant="ghost" size="icon" disabled={mode === 'training'} onClick={() => fileRef.current?.click()}>
           <Upload size={16} />
         </Button>
 
@@ -771,8 +778,8 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             if (inputHint) setInputHint('');
           }}
           rows={1}
-          className="min-h-16 max-h-[220px] resize-none overflow-y-auto rounded-xl border-0 bg-transparent shadow-none focus-visible:ring-0"
-          placeholder={mode === 'videoScript' && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，或导入 txt/md/srt/vtt/json 转录文本后回车发送分析' : mode === 'videoScript' && videoTaskType === 'editing-idea' ? '可补充剪辑重点；若当前没有脚本结果，也可直接粘贴脚本文本后生成剪辑思路' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
+          className={`${isImageMode ? 'min-h-10' : 'min-h-[54px]'} max-h-[220px] resize-none overflow-y-auto rounded-xl border-0 bg-transparent py-2.5 shadow-none focus-visible:ring-0`}
+          placeholder={mode === 'videoScript' && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，或导入 txt/md/srt/vtt/json 转录文本后回车发送分析' : mode === 'videoScript' && videoTaskType === 'editing-idea' ? '可补充剪辑重点；若当前没有脚本结果，也可直接粘贴脚本文本后生成剪辑思路' : mode === 'image' || mode === 'proImage' ? '描述你想生成的图片内容，发送后会把图片工作流记录保留在本页。' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
           onKeyDown={(e) => {
@@ -785,7 +792,8 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
         {activeSession?.id && mode !== 'training' && (
           <Button
-            className="rounded-xl bg-transparent text-foreground"
+            variant="ghost"
+            size="icon"
             title="清空当前会话上下文"
             onClick={() => {
               clearContext(activeSession.id);
@@ -798,16 +806,16 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         )}
 
         {isGenerating && activeSession?.id ? (
-          <Button className="rounded-xl bg-transparent text-foreground" onClick={() => stopMessage(activeSession.id)}>
+          <Button variant="ghost" size="icon" onClick={() => stopMessage(activeSession.id)}>
             <Square size={16} />
           </Button>
         ) : (
-          <Button className="rounded-xl" disabled={mode === 'training' || (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset && !canSendEditingIdea)} onClick={onSend}>
+          <Button size="icon" disabled={mode === 'training' || (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset && !canSendEditingIdea)} onClick={onSend}>
             <SendHorizontal size={16} />
           </Button>
         )}
 
-        <Button className="rounded-xl bg-transparent text-foreground" onClick={() => setShowOptions((prev) => !prev)}>
+        <Button variant="ghost" size="icon" onClick={() => setShowOptions((prev) => !prev)}>
           <SlidersHorizontal size={16} />
         </Button>
       </div>
@@ -847,7 +855,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       )}
 
       <div className="mt-1 flex items-center px-2 text-xs text-muted-foreground">
-        <span>{inputHint || '支持文件内容随消息发送。'}</span>
+        <span>{inputHint || (mode === 'image' || mode === 'proImage' ? '图片模式会在上方工作区中保留最近的提示词与结果轨迹。' : '支持文件内容随消息发送。')}</span>
       </div>
     </div>
   );

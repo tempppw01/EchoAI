@@ -68,7 +68,7 @@ export function SampleLibraryPanel() {
           <Input placeholder="样本标题，例如：机床采购口播样本" value={title} onChange={(e) => setTitle(e.target.value)} />
           <div className="flex gap-2">
             <input ref={fileRef} type="file" className="hidden" accept=".txt,.md,.json,.csv" onChange={onUploadFile} />
-            <Button type="button" className="bg-transparent text-foreground" onClick={() => fileRef.current?.click()}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
               <Upload size={14} className="mr-1" /> 上传文本文件
             </Button>
           </div>
@@ -82,6 +82,7 @@ export function SampleLibraryPanel() {
         <div className="mt-2 flex justify-end">
           <Button
             type="button"
+            size="sm"
             onClick={() => {
               if (!textContent.trim()) {
                 showNotice('请先输入样本文本');
@@ -141,15 +142,10 @@ export function SampleLibraryPanel() {
                     <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">{item.summary || '暂无摘要'}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      className="bg-transparent text-foreground"
-                      onClick={() => refreshEmbedding(item.id)}
-                      disabled={refreshingId === item.id}
-                    >
+                    <Button type="button" variant="ghost" size="icon-sm" onClick={() => refreshEmbedding(item.id)} disabled={refreshingId === item.id}>
                       <RefreshCcw size={14} className={refreshingId === item.id ? 'animate-spin' : ''} />
                     </Button>
-                    <Button type="button" className="bg-transparent text-foreground" onClick={() => deleteSample(item.id)}>
+                    <Button type="button" variant="ghost" size="icon-sm" onClick={() => deleteSample(item.id)}>
                       <Trash2 size={14} />
                     </Button>
                   </div>
