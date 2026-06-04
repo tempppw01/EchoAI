@@ -528,7 +528,15 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   };
 
   return (
-    <div className="border-t bg-card/95 p-3 backdrop-blur md:p-4">
+    <div className="relative overflow-hidden border-t border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.94),hsl(var(--surface)/0.98))] px-3 py-3 shadow-[0_-16px_40px_-28px_rgba(15,23,42,0.42)] backdrop-blur md:px-4 md:py-4">
+      <div className="mb-3 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+        <span className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3 py-1 font-medium text-primary">
+          <Sparkles size={12} />
+          智能输入区
+        </span>
+        <span className="hidden sm:inline">支持 Markdown、附件、长文本和即时对话</span>
+      </div>
+
       <input
         ref={fileRef}
         type="file"
