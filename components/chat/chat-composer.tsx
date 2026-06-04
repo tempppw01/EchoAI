@@ -254,6 +254,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   );
   const { settings, setSettings } = useSettingsStore();
   const getRelevantSamples = useSampleLibraryStore((state) => state.getRelevantSamples);
+  const hasApiKey = Boolean(settings.apiKey?.trim());
 
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
   const isGenerating = !!activeSession?.id && generatingSessionIds.includes(activeSession.id);
@@ -536,6 +537,20 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         </span>
         <span className="hidden sm:inline">支持 Markdown、附件、长文本和即时对话</span>
       </div>
+
+      {!hasApiKey && (
+        <div className="mb-3 rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-xs text-amber-900 dark:text-amber-100">
+          <div className="flex items-start gap-2">
+            <Sparkles size={14} className="mt-0.5 shrink-0 text-amber-500" />
+            <div className="min-w-0">
+              <p className="font-medium">当前还没有配置 API Key</p>
+              <p className="mt-1 leading-5 text-amber-900/80 dark:text-amber-100/80">
+                你仍然可以继续聊天，系统会优先尝试服务端回退配置；如果服务端也没有可用密钥，发送消息时会提示你先去设置中心补上。
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <input
         ref={fileRef}

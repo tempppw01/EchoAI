@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { ChatMode, ChatSession } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/stores/chat-store';
+import { useSettingsStore } from '@/stores/settings-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 import { useUIStore } from '@/stores/ui-store';
 
@@ -374,6 +375,7 @@ function WorkspaceIntro({
   sessions: ChatSession[];
   onOpenSection: (key: SectionKey) => void;
 }) {
+  const hasApiKey = useSettingsStore((state) => Boolean(state.settings.apiKey?.trim()));
   const currentSection = sections.find((item) => item.key === section);
   const sectionSessionCount = sessions.filter((item) => modeToSection(item.mode) === section).length;
   const messageCount = session?.messages.length ?? 0;
@@ -393,6 +395,18 @@ function WorkspaceIntro({
 
   return (
     <div className="overflow-hidden rounded-[28px] border border-border/70 bg-card/90 shadow-[0_18px_60px_-34px_rgba(15,23,42,0.45)] backdrop-blur">
+      {!hasApiKey && (
+        <div className="border-b border-amber-400/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-900 dark:text-amber-100 md:px-5">
+          <span className="inline-flex items-center gap-2 font-medium">
+            <Sparkles size={12} />
+            还没有配置 API Key
+          </span>
+          <p className="mt-1 leading-5 text-amber-900/80 dark:text-amber-100/80">
+            你可以继续浏览和编辑页面，但真正发送消息前建议先去设置中心补上；如果服务端已有回退密钥，这里也会自动继续工作。
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-4 px-4 py-4 md:grid-cols-[1.2fr_0.8fr] md:px-5 md:py-5">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
