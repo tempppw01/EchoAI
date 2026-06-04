@@ -324,8 +324,8 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
     <>
       <Dialog.Root open={open} onOpenChange={onOpenChange}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[min(94vw,880px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border border-border/70 bg-card/98 p-5 shadow-2xl">
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[min(94vw,880px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border border-border bg-[hsl(var(--card))] p-5 shadow-2xl ring-1 ring-black/5">
             <div className="mb-4 flex shrink-0 items-start justify-between gap-4">
               <div>
                 <Dialog.Title className="text-lg font-semibold text-foreground">设置中心</Dialog.Title>
@@ -366,7 +366,7 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
       </Dialog.Root>
 
       {notice && (
-        <div className="pointer-events-none fixed bottom-4 right-4 z-[70] rounded-2xl border border-border/70 bg-card/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
+        <div className="pointer-events-none fixed bottom-4 right-4 z-[70] rounded-2xl border border-border bg-[hsl(var(--card))] px-4 py-2 text-sm shadow-lg">
           {notice}
         </div>
       )}

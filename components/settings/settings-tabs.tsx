@@ -25,10 +25,10 @@ type FetchStatus =
   | { type: 'success'; message: string }
   | { type: 'error'; message: string };
 
-const sectionClassName = 'rounded-3xl border border-border/70 bg-background/55 p-4 shadow-sm';
+const sectionClassName = 'rounded-3xl border border-border/70 bg-[hsl(var(--background))] p-4 shadow-sm';
 const modelStatusMeta = {
   idle: {
-    className: 'border-border/70 bg-background/75 text-muted-foreground',
+    className: 'border-border/70 bg-[hsl(var(--background))] text-muted-foreground',
     icon: Server,
   },
   loading: {
@@ -163,7 +163,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
           <Tabs.Trigger
             key={tab.value}
             value={tab.value}
-            className="inline-flex items-center justify-center rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted/65 hover:text-foreground data-[state=active]:border-primary/20 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+            className="inline-flex items-center justify-center rounded-full border border-border/70 bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted/65 hover:text-foreground data-[state=active]:border-primary/20 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
           >
             {tab.label}
           </Tabs.Trigger>
@@ -236,12 +236,12 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
             </Button>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-border/70 bg-background/70 p-3">
+          <div className="mt-4 rounded-2xl border border-border/70 bg-[hsl(var(--background))] p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-foreground">已持久化模型</p>
               <span className="rounded-full border border-border/70 px-2.5 py-1 text-xs text-muted-foreground">{modelCatalog.length} 个</span>
             </div>
-            <div className="mt-3 max-h-28 overflow-y-auto rounded-2xl border border-dashed border-border/70 bg-background/70 p-3 text-xs text-muted-foreground">
+            <div className="mt-3 max-h-28 overflow-y-auto rounded-2xl border border-dashed border-border/70 bg-[hsl(var(--background))] p-3 text-xs text-muted-foreground">
               {modelCatalog.length > 0 ? modelCatalog.join('、') : '暂无模型列表，可保留当前配置后点击右侧按钮重试。'}
             </div>
           </div>
@@ -316,7 +316,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
 
         <section className={sectionClassName}>
           <div className="grid gap-3 xl:grid-cols-[1.1fr,1.4fr]">
-            <label className="grid gap-2 rounded-2xl border border-border/70 bg-background/70 p-4 text-xs text-muted-foreground">
+            <label className="grid gap-2 rounded-2xl border border-border/70 bg-[hsl(var(--background))] p-4 text-xs text-muted-foreground">
               <span className="text-sm font-semibold text-foreground">样本召回 TopK</span>
               <span>控制样本库初始召回数量，建议与重排阈值搭配使用，避免一次召回过多噪声内容。</span>
               <Input
@@ -328,7 +328,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
               />
             </label>
 
-            <div className="rounded-2xl border border-border/70 bg-background/70 p-4 text-xs text-muted-foreground">
+            <div className="rounded-2xl border border-border/70 bg-[hsl(var(--background))] p-4 text-xs text-muted-foreground">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-foreground">召回重排</p>
@@ -388,7 +388,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
 
       <Tabs.Content value="samples" className="space-y-3">
         <SampleLibraryPanel />
-        <div className="rounded-3xl border border-dashed border-border/70 bg-background/50 p-4 text-xs text-muted-foreground">
+        <div className="rounded-3xl border border-dashed border-border/70 bg-[hsl(var(--background))] p-4 text-xs text-muted-foreground">
           样本内容当前仍存储在本地浏览器中。嵌入刷新会直接复用当前设置中心里的默认嵌入模型与凭据优先级，不需要额外重复配置。
         </div>
       </Tabs.Content>
