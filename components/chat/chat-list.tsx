@@ -7,6 +7,16 @@ import { Input } from '@/components/ui/input';
 import { useChatStore } from '@/stores/chat-store';
 import { useShallow } from 'zustand/react/shallow';
 
+const modeLabelMap: Record<string, string> = {
+  chat: '对话',
+  copywriting: '文案',
+  videoScript: '脚本',
+  roleplay: '角色',
+  training: '对练',
+  image: '绘图',
+  proImage: '绘图',
+};
+
 export function ChatList({
   search,
   setSearch,
@@ -37,7 +47,7 @@ export function ChatList({
   );
 
   return (
-    <div className="chat-panel flex h-full min-h-0 flex-col gap-3 p-3">
+    <div className="flex h-full min-h-0 flex-col gap-2 rounded-2xl border bg-card/60 p-2">
       <div className="flex items-center gap-2">
         <Search size={15} className="text-muted-foreground" />
         <Input
@@ -48,7 +58,7 @@ export function ChatList({
         />
       </div>
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">没有匹配的会话。</p>
         ) : (
@@ -56,8 +66,10 @@ export function ChatList({
             <motion.button
               layout
               key={item.id}
-              className={`group w-full rounded-2xl border px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${
-                item.id === (activeSessionId ?? sessions[0]?.id) ? 'border-primary bg-primary/10 shadow-sm' : 'bg-background/72'
+              className={`group w-full rounded-xl border px-2.5 py-2 text-left transition ${
+                item.id === (activeSessionId ?? sessions[0]?.id)
+                  ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
+                  : 'border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/70 hover:text-foreground'
               }`}
               onClick={() => {
                 selectSession(item.id);
@@ -76,11 +88,13 @@ export function ChatList({
                   <span className="line-clamp-1">{item.pinned ? '置顶 · ' : ''}{item.title}</span>
                 )}
                 <span className="rounded-full border border-border/70 bg-background/70 px-2 py-1 text-[10px] uppercase text-muted-foreground">
-                  {item.mode}
+                  {modeLabelMap[item.mode] ?? item.mode}
                 </span>
               </div>
 
-              <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{item.summary || '暂时还没有摘要。'}</p>
+              <p className="mt-1 line-clamp-1 text-xs leading-5 text-muted-foreground">
+                {item.summary && item.summary !== '开始你的第一条消息' ? item.summary : '点击切换到这个会话'}
+              </p>
 
               <div className="mt-2 flex gap-1 opacity-90 md:opacity-0 md:group-hover:opacity-100">
                 {editingId === item.id ? (

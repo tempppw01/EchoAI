@@ -44,12 +44,12 @@ type Section = {
 };
 
 const sections: Section[] = [
-  { key: 'chat', label: '通用对话', mode: 'chat', icon: Sparkles, accent: 'bg-blue-50 dark:bg-blue-500/10' },
-  { key: 'copywriting', label: '文案生成', mode: 'copywriting', icon: PenSquare, accent: 'bg-sky-50 dark:bg-sky-500/10' },
-  { key: 'videoScript', label: '视频脚本', mode: 'videoScript', icon: Video, accent: 'bg-pink-50 dark:bg-pink-500/10' },
-  { key: 'roleplay', label: '角色扮演', mode: 'roleplay', icon: Swords, accent: 'bg-teal-50 dark:bg-teal-500/10' },
-  { key: 'training', label: '学习对练', mode: 'training', icon: Sparkles, accent: 'bg-amber-50 dark:bg-amber-500/10' },
-  { key: 'image', label: '专业绘图', mode: 'proImage', icon: Brush, accent: 'bg-slate-50 dark:bg-slate-500/10' },
+  { key: 'chat', label: '通用对话', mode: 'chat', icon: Sparkles, accent: 'bg-blue-500/10 text-blue-600 dark:text-blue-300' },
+  { key: 'copywriting', label: '文案生成', mode: 'copywriting', icon: PenSquare, accent: 'bg-sky-500/10 text-sky-600 dark:text-sky-300' },
+  { key: 'videoScript', label: '视频脚本', mode: 'videoScript', icon: Video, accent: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-300' },
+  { key: 'roleplay', label: '角色扮演', mode: 'roleplay', icon: Swords, accent: 'bg-teal-500/10 text-teal-600 dark:text-teal-300' },
+  { key: 'training', label: '学习对练', mode: 'training', icon: Sparkles, accent: 'bg-amber-500/10 text-amber-600 dark:text-amber-300' },
+  { key: 'image', label: '专业绘图', mode: 'proImage', icon: Brush, accent: 'bg-slate-500/10 text-slate-600 dark:text-slate-300' },
 ];
 
 const modeToSection = (mode: ChatMode): SectionKey => {
@@ -220,6 +220,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             <SidebarNav
               section={section}
               sessions={sessions}
+              activeSessionId={active?.id ?? activeSessionId}
               expanded={expanded}
               moduleCollapsed={moduleCollapsed}
               onToggleModule={() => setModuleCollapsed((prev) => !prev)}
@@ -288,6 +289,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               <SidebarNav
                 section={section}
                 sessions={sessions}
+                activeSessionId={active?.id ?? activeSessionId}
                 expanded={expanded}
                 moduleCollapsed={moduleCollapsed}
                 onToggleModule={() => setModuleCollapsed((prev) => !prev)}
@@ -476,6 +478,7 @@ function WorkspaceIntro({
 function SidebarNav({
   section,
   sessions,
+  activeSessionId,
   expanded,
   moduleCollapsed,
   onToggleModule,
@@ -486,6 +489,7 @@ function SidebarNav({
 }: {
   section: SectionKey;
   sessions: ReturnType<typeof useChatStore.getState>['sessions'];
+  activeSessionId?: string;
   expanded: Record<SectionKey, boolean>;
   moduleCollapsed: boolean;
   onToggleModule: () => void;
@@ -519,52 +523,81 @@ function SidebarNav({
             const isOpen = expanded[item.key];
 
             return (
-              <div key={item.key} className="rounded-2xl border bg-card/90 p-2.5 shadow-sm">
-                <button
-                  onClick={() => onSelect(item.key)}
-                  className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition ${item.accent} ${
-                    section === item.key ? 'ring-1 ring-primary/40 shadow-sm' : 'hover:ring-1 hover:ring-border/70'
-                  }`}
-                >
-                  <Icon size={15} />
-                  <span className="flex-1 text-left">{item.label}</span>
-                  <span
-                    className="ui-icon-button h-7 w-7 rounded-lg border-transparent bg-white/55 dark:bg-white/5"
+              <div
+                key={item.key}
+                className={cn(
+                  'group rounded-2xl border p-1.5 transition',
+                  section === item.key ? 'border-primary/20 bg-primary/[0.045]' : 'border-transparent hover:border-border/70 hover:bg-card/55',
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => onSelect(item.key)}
+                    className={cn(
+                      'flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-medium transition',
+                      section === item.key ? 'bg-background/90 text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground',
+                    )}
+                    title={`进入${item.label}`}
+                  >
+                    <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-lg', item.accent)}>
+                      <Icon size={15} />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                    <span className="rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {recentSessions.length}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="ui-icon-button h-8 w-8 shrink-0 rounded-xl border-transparent bg-transparent"
                     onClick={(event) => {
                       event.stopPropagation();
                       onToggle(item.key);
                     }}
+                    aria-label={isOpen ? `收起${item.label}` : `展开${item.label}`}
                   >
                     <ChevronDown size={14} className={`transition ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
-                  </span>
-                </button>
+                  </button>
+                </div>
 
                 {isOpen && (
-                  <div className="mt-2 space-y-2 px-1">
-                    <Button variant="secondary" size="sm" className="w-full justify-center" onClick={() => onCreate(item.key)}>
-                      <Plus size={12} className="mr-1" />
-                      新建
-                    </Button>
+                  <div className="mt-1.5 space-y-1 pl-10 pr-1">
+                    <button
+                      type="button"
+                      className="flex h-8 w-full items-center gap-2 rounded-xl border border-dashed border-border/80 bg-background/35 px-2.5 text-left text-xs font-medium text-muted-foreground transition hover:border-primary/35 hover:bg-primary/10 hover:text-primary"
+                      onClick={() => onCreate(item.key)}
+                      title={`新建${item.label}会话`}
+                    >
+                      <Plus size={12} />
+                      新建{item.label}
+                    </button>
                     {recentSessions.length > 0 && (
-                      <div className="space-y-2">
-                        {recentSessions.map((sessionItem) => (
-                          <button
-                            key={sessionItem.id}
-                            onClick={() => onSelectSession(sessionItem.id)}
-                            onContextMenu={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
-                            }}
-                            className="block w-full rounded-2xl border border-border/70 bg-background/70 px-3 py-2 text-left transition hover:border-primary/30 hover:bg-muted/40"
-                            title={sessionItem.title}
-                          >
-                            <div className="line-clamp-1 text-sm font-medium text-foreground">{sessionItem.title}</div>
-                            <div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                              {sessionItem.summary || '开始你的第一条消息'}
-                            </div>
-                          </button>
-                        ))}
+                      <div className="space-y-1">
+                        {recentSessions.map((sessionItem) => {
+                          const isActiveSession = sessionItem.id === activeSessionId;
+                          return (
+                            <button
+                              key={sessionItem.id}
+                              onClick={() => onSelectSession(sessionItem.id)}
+                              onContextMenu={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
+                              }}
+                              className={cn(
+                                'flex w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-left text-sm transition',
+                                isActiveSession
+                                  ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
+                                  : 'border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/70 hover:text-foreground',
+                              )}
+                              title={`${sessionItem.title}（点击切换，右键管理）`}
+                            >
+                              <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', isActiveSession ? 'bg-primary' : 'bg-muted-foreground/35')} />
+                              <span className="min-w-0 flex-1 truncate font-medium">{sessionItem.title}</span>
+                              <span className="shrink-0 text-[10px] font-medium text-muted-foreground">{isActiveSession ? '当前' : '进入'}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
