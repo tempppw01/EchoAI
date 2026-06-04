@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Bot, ChevronDown, ChevronUp, Copy, Download, Heart, Pencil, RefreshCcw, RotateCw, Trash2, UserRound, Wand2 } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, Copy, Download, Eraser, Heart, Pencil, RefreshCcw, RotateCw, Trash2, UserRound, Wand2 } from 'lucide-react';
 import { VideoScriptStateCard } from '@/components/chat/video-script-state-card';
 import { Button } from '@/components/ui/button';
 import { ChatSession } from '@/lib/types';
@@ -308,7 +308,7 @@ const parseViralAnalysisSections = (content: string) => {
 };
 
 export function MessageList({ session }: { session?: ChatSession }) {
-  const { retryMessage, regenerateLastAssistant, deleteMessage, editUserMessage, answerTrainingQuestion, setPreferredCandidate, applyViralStructureToNewVideoSession } = useChatStore();
+  const { retryMessage, regenerateLastAssistant, clearContext, deleteMessage, editUserMessage, answerTrainingQuestion, setPreferredCandidate, applyViralStructureToNewVideoSession } = useChatStore();
   const [editingId, setEditingId] = useState<string>();
   const [editingText, setEditingText] = useState('');
   const trainingQuestionRef = useRef<HTMLDivElement>(null);
@@ -362,6 +362,17 @@ export function MessageList({ session }: { session?: ChatSession }) {
 
       {session.messages.length > 0 && (
         <div className="flex justify-end gap-2">
+          <button
+            className="ui-inline-action"
+            title="清空当前会话上下文"
+            onClick={() => {
+              if (window.confirm('确定清空当前会话上下文吗？')) {
+                clearContext(session.id);
+              }
+            }}
+          >
+            <Eraser size={13} />清空上下文
+          </button>
           <button className="ui-inline-action" onClick={() => regenerateLastAssistant(session.id)}>
             <RotateCw size={13} />重新生成
           </button>
