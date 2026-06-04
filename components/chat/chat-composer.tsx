@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Eraser, FileText, Paperclip, SendHorizontal, SlidersHorizontal, Sparkles, Square, Upload, X } from 'lucide-react';
+import { Eraser, FileText, Paperclip, SendHorizontal, Settings, SlidersHorizontal, Sparkles, Square, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,7 @@ import { ChatMode, VideoScriptPreset } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSampleLibraryStore } from '@/stores/sample-library-store';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useUIStore } from '@/stores/ui-store';
 import { useShallow } from 'zustand/react/shallow';
 
 type PendingAttachment = {
@@ -253,6 +254,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     })),
   );
   const { settings, setSettings } = useSettingsStore();
+  const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
   const getRelevantSamples = useSampleLibraryStore((state) => state.getRelevantSamples);
   const hasApiKey = Boolean(settings.apiKey?.trim());
 
@@ -540,14 +542,26 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
       {!hasApiKey && (
         <div className="mb-3 rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-xs text-amber-900 dark:text-amber-100">
-          <div className="flex items-start gap-2">
-            <Sparkles size={14} className="mt-0.5 shrink-0 text-amber-500" />
-            <div className="min-w-0">
-              <p className="font-medium">当前还没有配置 API Key</p>
-              <p className="mt-1 leading-5 text-amber-900/80 dark:text-amber-100/80">
-                你仍然可以继续聊天，系统会优先尝试服务端回退配置；如果服务端也没有可用密钥，发送消息时会提示你先去设置中心补上。
-              </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-2">
+              <Sparkles size={14} className="mt-0.5 shrink-0 text-amber-500" />
+              <div className="min-w-0">
+                <p className="font-medium">当前还没有配置 API Key</p>
+                <p className="mt-1 leading-5 text-amber-900/80 dark:text-amber-100/80">
+                  你仍然可以继续聊天，系统会优先尝试服务端回退配置；如果服务端也没有可用密钥，发送消息时会提示你先去设置中心补上。
+                </p>
+              </div>
             </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="shrink-0 border-amber-400/30 bg-amber-50/80 text-amber-950 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-50 dark:hover:bg-amber-500/15"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings size={13} />
+              去设置
+            </Button>
           </div>
         </div>
       )}
