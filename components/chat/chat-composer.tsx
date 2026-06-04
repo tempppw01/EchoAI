@@ -522,11 +522,12 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     setIsFetchingTrends(true);
     try {
       const response = await fetch('/api/trends/douyin', { method: 'GET', cache: 'no-store' });
-      const data = (await response.json()) as { items?: DouyinTrendItem[]; error?: string };
+      const data = (await response.json()) as { items?: DouyinTrendItem[]; error?: string; sourceLabel?: string };
       if (!response.ok) throw new Error(data.error || '拉取抖音热搜失败');
       const items = (data.items || []).slice(0, 12);
       setDouyinTrends(items);
-      setInputHint(items.length > 0 ? '已拉取抖音热搜，点击词条可加入趋势关键词。' : '暂时没有拉取到热搜词条。');
+      const sourceLabel = data.sourceLabel || '抖音热搜';
+      setInputHint(items.length > 0 ? `已从${sourceLabel}拉取热搜，点击词条可加入趋势关键词。` : '暂时没有拉取到热搜词条。');
     } catch (error) {
       const message = error instanceof Error ? error.message : '拉取抖音热搜失败';
       setInputHint(message);
