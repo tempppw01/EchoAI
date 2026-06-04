@@ -9,8 +9,8 @@ import { useShallow } from 'zustand/react/shallow';
 
 const modeLabelMap: Record<string, string> = {
   chat: '对话',
-  copywriting: '文案',
-  videoScript: '脚本',
+  copywriting: '内容',
+  videoScript: '内容',
   roleplay: '角色',
   training: '对练',
   image: '绘图',

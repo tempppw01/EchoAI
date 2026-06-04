@@ -11,7 +11,9 @@ export interface ChatMessage {
 }
 
 export interface VideoScriptPreset {
+  outputType?: 'copy' | 'script';
   topic?: string;
+  businessType?: string;
   productName?: string;
   targetAudience?: string;
   contentType?: string;
@@ -20,6 +22,9 @@ export interface VideoScriptPreset {
   toneStyle?: string;
   platform?: string;
   durationSec?: number;
+  contentGoal?: string;
+  referenceSamples?: string;
+  trendKeywords?: string;
   mustInclude?: string;
   avoid?: string;
   viralStructureReference?: ViralStructureReference;

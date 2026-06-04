@@ -9,7 +9,6 @@ import {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
-  PenSquare,
   Plus,
   Settings,
   Sparkles,
@@ -33,7 +32,7 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 import { useUIStore } from '@/stores/ui-store';
 
-type SectionKey = 'chat' | 'copywriting' | 'videoScript' | 'roleplay' | 'training' | 'image';
+type SectionKey = 'chat' | 'videoScript' | 'roleplay' | 'training' | 'image';
 
 type Section = {
   key: SectionKey;
@@ -45,16 +44,14 @@ type Section = {
 
 const sections: Section[] = [
   { key: 'chat', label: '通用对话', mode: 'chat', icon: Sparkles, accent: 'bg-blue-500/10 text-blue-600 dark:text-blue-300' },
-  { key: 'copywriting', label: '文案生成', mode: 'copywriting', icon: PenSquare, accent: 'bg-sky-500/10 text-sky-600 dark:text-sky-300' },
-  { key: 'videoScript', label: '视频脚本', mode: 'videoScript', icon: Video, accent: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-300' },
+  { key: 'videoScript', label: '内容创作', mode: 'videoScript', icon: Video, accent: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-300' },
   { key: 'roleplay', label: '角色扮演', mode: 'roleplay', icon: Swords, accent: 'bg-teal-500/10 text-teal-600 dark:text-teal-300' },
   { key: 'training', label: '学习对练', mode: 'training', icon: Sparkles, accent: 'bg-amber-500/10 text-amber-600 dark:text-amber-300' },
   { key: 'image', label: '专业绘图', mode: 'proImage', icon: Brush, accent: 'bg-slate-500/10 text-slate-600 dark:text-slate-300' },
 ];
 
 const modeToSection = (mode: ChatMode): SectionKey => {
-  if (mode === 'copywriting') return 'copywriting';
-  if (mode === 'videoScript') return 'videoScript';
+  if (mode === 'copywriting' || mode === 'videoScript') return 'videoScript';
   if (mode === 'roleplay') return 'roleplay';
   if (mode === 'training') return 'training';
   if (mode === 'image' || mode === 'proImage') return 'image';
@@ -67,7 +64,6 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const [section, setSection] = useState<SectionKey>(modeToSection(mode));
   const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({
     chat: true,
-    copywriting: true,
     videoScript: true,
     roleplay: true,
     training: true,
@@ -385,8 +381,7 @@ function WorkspaceIntro({
   const lastTitle = session?.title || '准备开始新的会话';
   const quickActions: Array<{ key: SectionKey; label: string; hint: string }> = [
     { key: 'chat', label: '通用对话', hint: '问答与思路整理' },
-    { key: 'copywriting', label: '文案生成', hint: '海报 / 广告 / 社媒' },
-    { key: 'videoScript', label: '视频脚本', hint: '分镜 / 口播 / 爆款拆解' },
+    { key: 'videoScript', label: '内容创作', hint: '文案 / 脚本 / 热点' },
     { key: 'roleplay', label: '角色扮演', hint: '带角色的连续对话' },
     { key: 'image', label: '专业绘图', hint: '提示词与出图工作流' },
   ];

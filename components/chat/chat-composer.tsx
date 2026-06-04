@@ -69,7 +69,9 @@ const normalizeClipboardImageFile = (file: File, index: number) => {
 };
 
 const defaultVideoScriptPreset: VideoScriptPreset = {
+  outputType: 'script',
   topic: '',
+  businessType: '',
   productName: '',
   targetAudience: '',
   contentType: '口播',
@@ -78,18 +80,33 @@ const defaultVideoScriptPreset: VideoScriptPreset = {
   toneStyle: '',
   platform: '',
   durationSec: 60,
+  contentGoal: '',
+  referenceSamples: '',
+  trendKeywords: '',
   mustInclude: '',
   avoid: '',
 };
 
+type DouyinTrendItem = {
+  title: string;
+  hot?: string;
+  label?: string;
+  url?: string;
+  desc?: string;
+};
+
+const outputTypeLabel = (outputType?: VideoScriptPreset['outputType']) => (outputType === 'copy' ? '营销文案' : '短视频脚本');
+
 const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: string, recalledSamples: Array<{ title: string; content: string }> = []) => {
   const normalizedPlatform = (preset.platform || '').trim();
+  const outputType = preset.outputType || 'script';
+  const outputLabel = outputTypeLabel(outputType);
   const platformStrategy =
     normalizedPlatform === '抖音'
-      ? '平台策略：按抖音风格输出，强调前3秒钩子、快节奏、强情绪推进、短句表达和更直接的行动号召。'
+      ? '平台策略：按抖音风格输出，强调前3秒钩子、快节奏、强情绪推进、短句表达和更直接的行动号召；若有热搜关键词，只借势切入，不硬蹭。'
       : normalizedPlatform === '视频号'
         ? '平台策略：按视频号风格输出，强调可信、稳重、节奏适中、信息完整和更自然的转化表达。'
-        : '平台策略：若未明确平台，请输出兼顾传播效率与可信度的通用短视频脚本。';
+        : '平台策略：若未明确平台，请输出兼顾传播效率与可信度的通用内容。';
 
   const duration = preset.durationSec || 60;
   const durationStrategy =
@@ -113,19 +130,23 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
 
   const versionCount = Math.min(Math.max(preset.versionCount || 1, 1), 3);
   const versionStrategy = versionCount > 1
-    ? `版本策略：请一次输出 ${versionCount} 个不同角度的脚本版本。必须严格使用“版本1 / 版本2 / 版本3”作为每个版本的起始标题，每个版本下都要完整包含标题、开头钩子、正文、结尾 CTA。`
-    : '版本策略：先输出 1 个最稳妥的脚本版本。';
+    ? `版本策略：请一次输出 ${versionCount} 个不同角度的${outputLabel}版本。必须严格使用“版本1 / 版本2 / 版本3”作为每个版本的起始标题。`
+    : `版本策略：先输出 1 个最稳妥的${outputLabel}版本。`;
 
   const lines = [
+    `输出类型：${outputLabel}`,
     `主题/选题：${preset.topic || '未填写'}`,
+    `我是做什么的/业务类型：${preset.businessType || '未填写'}`,
     `产品/服务：${preset.productName || '未填写'}`,
     `目标人群：${preset.targetAudience || '未填写'}`,
     `内容类型：${contentType}`,
-    `脚本版本数：${versionCount}`,
+    `版本数：${versionCount}`,
     `核心卖点：${preset.coreSellingPoints || '未填写'}`,
     `语气风格：${preset.toneStyle || '未填写'}`,
     `发布平台：${preset.platform || '未填写'}`,
     `时长（秒）：${duration}`,
+    `内容目标：${preset.contentGoal || '未填写'}`,
+    `抖音热搜/趋势关键词：${preset.trendKeywords || '无'}`,
     `必须包含：${preset.mustInclude || '无'}`,
     `避免内容：${preset.avoid || '无'}`,
     platformStrategy,
@@ -157,22 +178,34 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
       ]
     : [];
 
+  const manualSampleBlock = preset.referenceSamples?.trim()
+    ? [
+        '【用户提供的参考样本】',
+        preset.referenceSamples.trim(),
+        '请提炼这些样本的结构、语气、节奏和高频表达，不要照抄，不要复述明显不属于当前产品的事实。',
+        '',
+      ]
+    : [];
+
   return [
-    '【视频脚本预设信息】',
+    '【内容创作参数】',
     ...lines,
     '',
     ...sampleBlock,
+    ...manualSampleBlock,
     ...viralReferenceBlock,
     '【用户本次需求】',
-    userInput || '请基于以上预设，先给出一版可直接拍摄的脚本。',
+    userInput || `请基于以上参数，先给出一版可直接使用的${outputLabel}。`,
     '',
     '【输出格式要求】',
-    '请严格按以下四段结构输出，不要合并：',
-    '当脚本版本数大于 1 时，必须按如下格式输出：',
+    outputType === 'copy'
+      ? '请输出：标题/开头钩子/正文文案/行动引导/可替换短句。适合直接发布或二次改写。'
+      : '请严格按以下四段结构输出，不要合并：标题、开头钩子、正文、结尾CTA。',
+    '当版本数大于 1 时，必须按如下格式输出：',
     '版本1',
     '标题：...',
     '开头钩子：...',
-    '正文：...',
+    outputType === 'copy' ? '正文文案：...' : '正文：...',
     '结尾CTA：...',
     '版本2',
     '标题：...',
@@ -181,11 +214,11 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
     '结尾CTA：...',
     '不要把多个版本写进同一个“标题/正文”区块里。',
     '1. 标题：给出 3 个可选标题',
-    '2. 开头钩子：给出 1 段适合开场前 3 秒的钩子',
-    '3. 正文：给出完整脚本正文，按自然口播/叙事节奏展开',
+    '2. 开头钩子：给出 1 段适合开场或首屏的钩子',
+    outputType === 'copy' ? '3. 正文文案：给出可直接发布的完整文案' : '3. 正文：给出完整脚本正文，按自然口播/叙事节奏展开',
     '4. 结尾CTA：给出 1 段明确的收口与行动引导',
     '',
-    '要求：严格基于预设，不要擅自编造产品事实；若关键信息缺失，先列出缺失项再给保守版脚本。',
+    '要求：严格基于参数，不要擅自编造产品事实；若关键信息缺失，先列出缺失项再给保守版本。',
   ].join('\n');
 };
 
@@ -247,10 +280,12 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [inputHint, setInputHint] = useState('');
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [showOptions, setShowOptions] = useState(false);
-  const [showVideoPreset, setShowVideoPreset] = useState(false);
+  const [showVideoPreset, setShowVideoPreset] = useState(true);
   const [videoPreset, setVideoPreset] = useState<VideoScriptPreset>(defaultVideoScriptPreset);
   const [videoTaskType, setVideoTaskType] = useState<'script' | 'viral-analysis' | 'editing-idea'>('script');
   const [isGeneratingTopic, setIsGeneratingTopic] = useState(false);
+  const [isFetchingTrends, setIsFetchingTrends] = useState(false);
+  const [douyinTrends, setDouyinTrends] = useState<DouyinTrendItem[]>([]);
   const [importedTranscriptMeta, setImportedTranscriptMeta] = useState<{ name: string; fileSize: number; charCount: number } | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -276,11 +311,13 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
   const isGenerating = !!activeSession?.id && generatingSessionIds.includes(activeSession.id);
   const isImageMode = mode === 'image' || mode === 'proImage';
+  const isContentMode = mode === 'videoScript' || mode === 'copywriting';
   const viralStructureReference = activeSession?.viralStructureReference;
   const hasVideoPresetInput = useMemo(() => {
     const p = videoPreset;
     return Boolean(
       p.topic?.trim() ||
+      p.businessType?.trim() ||
       p.productName?.trim() ||
       p.targetAudience?.trim() ||
       p.coreSellingPoints?.trim() ||
@@ -288,13 +325,16 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       p.platform?.trim() ||
       p.mustInclude?.trim() ||
       p.avoid?.trim() ||
+      p.contentGoal?.trim() ||
+      p.referenceSamples?.trim() ||
+      p.trendKeywords?.trim() ||
       viralStructureReference?.content?.trim(),
     );
   }, [videoPreset, viralStructureReference]);
-  const canSendVideoScriptFromPreset = mode === 'videoScript' && videoTaskType === 'script' && hasVideoPresetInput;
+  const canSendVideoScriptFromPreset = isContentMode && videoTaskType === 'script' && hasVideoPresetInput;
   const latestAssistantMessage = [...(activeSession?.messages || [])].reverse().find((message) => message.role === 'assistant' && message.status !== 'error');
   const editingIdeaSource = (activeSession?.preferredCandidate?.content || latestAssistantMessage?.content || '').trim();
-  const canSendEditingIdea = mode === 'videoScript' && videoTaskType === 'editing-idea' && Boolean(editingIdeaSource || value.trim() || attachments.length > 0);
+  const canSendEditingIdea = isContentMode && videoTaskType === 'editing-idea' && Boolean(editingIdeaSource || value.trim() || attachments.length > 0);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -304,7 +344,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   }, [value]);
 
   useEffect(() => {
-    if (activeSession?.mode !== 'videoScript') return;
+    if (activeSession?.mode !== 'videoScript' && activeSession?.mode !== 'copywriting') return;
     setVideoPreset({ ...defaultVideoScriptPreset, ...(activeSession.videoScriptPreset || {}) });
   }, [activeSession?.id, activeSession?.mode, activeSession?.videoScriptPreset]);
 
@@ -353,7 +393,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const parseFiles = async (files: File[]) => {
     const parsedResults = await Promise.allSettled(
       files.map(async (file) => {
-        if (mode === 'videoScript' && videoTaskType === 'viral-analysis' && isTranscriptTextFile(file)) {
+        if (isContentMode && videoTaskType === 'viral-analysis' && isTranscriptTextFile(file)) {
           const text = await readAsText(file);
           return {
             kind: 'transcript' as const,
@@ -439,10 +479,11 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     setIsGeneratingTopic(true);
     try {
       const prompt = [
-        '请根据以下视频脚本预设，生成 1 个适合直接放进“主题 / 选题”输入框的中文标题。',
+        `请根据以下内容创作参数，生成 1 个适合直接放进“主题 / 选题”输入框的中文标题。输出类型：${outputTypeLabel(videoPreset.outputType)}`,
         '要求：',
         '1. 只返回标题本身，不要解释，不要序号，不要引号。',
-        '2. 标题适合短视频选题，不要太长，尽量控制在 12-28 个字。',
+        '2. 标题适合内容创作选题，不要太长，尽量控制在 12-28 个字。',
+        `我是做什么的/业务类型：${videoPreset.businessType || '未填写'}`,
         `产品/服务：${videoPreset.productName || '未填写'}`,
         `目标人群：${videoPreset.targetAudience || '未填写'}`,
         `核心卖点：${videoPreset.coreSellingPoints || '未填写'}`,
@@ -450,6 +491,8 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         `发布平台：${videoPreset.platform || '未填写'}`,
         `内容类型：${videoPreset.contentType || '口播'}`,
         `时长（秒）：${videoPreset.durationSec || 60}`,
+        `内容目标：${videoPreset.contentGoal || '未填写'}`,
+        `抖音热搜/趋势关键词：${videoPreset.trendKeywords || '无'}`,
         `必须包含：${videoPreset.mustInclude || '无'}`,
         `避免内容：${videoPreset.avoid || '无'}`,
       ].join('\n');
@@ -458,7 +501,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         settings,
         model: settings.defaultTextModel || settings.modelCatalog[0],
         messages: [
-          { role: 'system', content: '你是短视频选题助手。只输出一个可直接使用的中文标题。' },
+          { role: 'system', content: '你是内容选题助手。只输出一个可直接使用的中文标题。' },
           { role: 'user', content: prompt },
         ],
       });
@@ -474,6 +517,32 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     }
   };
 
+  const fetchDouyinTrends = async () => {
+    if (isFetchingTrends) return;
+    setIsFetchingTrends(true);
+    try {
+      const response = await fetch('/api/trends/douyin', { method: 'GET', cache: 'no-store' });
+      const data = (await response.json()) as { items?: DouyinTrendItem[]; error?: string };
+      if (!response.ok) throw new Error(data.error || '拉取抖音热搜失败');
+      const items = (data.items || []).slice(0, 12);
+      setDouyinTrends(items);
+      setInputHint(items.length > 0 ? '已拉取抖音热搜，点击词条可加入趋势关键词。' : '暂时没有拉取到热搜词条。');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '拉取抖音热搜失败';
+      setInputHint(message);
+    } finally {
+      setIsFetchingTrends(false);
+    }
+  };
+
+  const applyTrendKeyword = (title: string) => {
+    setVideoPreset((prev) => {
+      const existing = (prev.trendKeywords || '').split(/[、,\n]/).map((item) => item.trim()).filter(Boolean);
+      if (existing.includes(title)) return prev;
+      return { ...prev, trendKeywords: [...existing, title].slice(0, 8).join('、') };
+    });
+  };
+
   const onSend = async () => {
     if (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset && !canSendEditingIdea) return;
 
@@ -486,7 +555,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
     let contentToSend = value.trim();
 
-    if (mode === 'videoScript' && videoTaskType === 'viral-analysis') {
+    if (isContentMode && videoTaskType === 'viral-analysis') {
       contentToSend = [
         '【爆款文案分析任务】',
         '请分析下面这段爆款文案，并严格按以下结构输出，不要合并栏目，不要遗漏标题：',
@@ -527,19 +596,22 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         '',
         value.trim(),
       ].join('\n');
-    } else if (mode === 'videoScript' && videoTaskType === 'editing-idea') {
+    } else if (isContentMode && videoTaskType === 'editing-idea') {
       const scriptContent = editingIdeaSource || value.trim();
       contentToSend = buildEditingIdeaPrompt(scriptContent, videoPreset, value.trim());
       if (!editingIdeaSource && value.trim()) {
         setInputHint('本次使用你手动输入的脚本文本生成剪辑思路。');
       }
-    } else if (mode === 'videoScript' && hasVideoPresetInput) {
+    } else if (isContentMode && hasVideoPresetInput) {
       updateSession(sid, { videoScriptPreset: { ...videoPreset, viralStructureReference } });
       const recallQuery = [
         videoPreset.topic || '',
+        videoPreset.businessType || '',
         videoPreset.productName || '',
         videoPreset.targetAudience || '',
         videoPreset.coreSellingPoints || '',
+        videoPreset.referenceSamples || '',
+        videoPreset.trendKeywords || '',
         viralStructureReference?.content || '',
         contentToSend,
       ].filter(Boolean).join('\n');
@@ -607,7 +679,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         }}
       />
 
-      {mode === 'videoScript' && (
+      {isContentMode && (
         <div className="mb-3 space-y-3">
           <div className="flex justify-center">
             <div className="inline-flex rounded-full border border-white/10 bg-background/70 p-1 shadow-sm">
@@ -617,7 +689,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                 className="ui-segmented-trigger min-w-[92px]"
                 onClick={() => setVideoTaskType('script')}
               >
-                脚本生成
+                内容生成
               </button>
               <button
                 type="button"
@@ -625,7 +697,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                 className="ui-segmented-trigger min-w-[92px]"
                 onClick={() => setVideoTaskType('viral-analysis')}
               >
-                爆款文案分析
+                爆款拆解
               </button>
               <button
                 type="button"
@@ -648,7 +720,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           {videoTaskType === 'script' && (
             <div className="rounded-xl border bg-background/70 p-3 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-medium">视频脚本预设</span>
+                <span className="font-medium">内容创作参数</span>
                 <button className="ui-inline-action h-7 px-2.5" onClick={() => setShowVideoPreset((prev) => !prev)}>
                   {showVideoPreset ? '收起' : '展开'}
                 </button>
@@ -678,7 +750,22 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                 </div>
               )}
               {showVideoPreset && (
-                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                <div className="mt-3 grid max-h-[42vh] gap-2 overflow-y-auto pr-1 md:grid-cols-2">
+                  <label className="grid gap-1">
+                    <span className="text-muted-foreground">输出类型</span>
+                    <select
+                      className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
+                      value={videoPreset.outputType || 'script'}
+                      onChange={(e) => setVideoPreset((prev) => ({ ...prev, outputType: e.target.value as VideoScriptPreset['outputType'] }))}
+                    >
+                      <option value="script">视频脚本</option>
+                      <option value="copy">营销文案</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-muted-foreground">我是做什么的</span>
+                    <Input value={videoPreset.businessType || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, businessType: e.target.value }))} placeholder="例如：工业仓储设备厂家" />
+                  </label>
                   <label className="grid gap-1 md:col-span-2">
                     <span className="text-muted-foreground">主题 / 选题</span>
                     <div className="flex gap-2">
@@ -749,6 +836,10 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                     </select>
                   </label>
                   <label className="grid gap-1">
+                    <span className="text-muted-foreground">内容目标</span>
+                    <Input value={videoPreset.contentGoal || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, contentGoal: e.target.value }))} placeholder="例如：引导私信、提升完播、种草转化" />
+                  </label>
+                  <label className="grid gap-1">
                     <span className="text-muted-foreground">时长（秒）</span>
                     <select
                       className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
@@ -762,8 +853,38 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                     </select>
                   </label>
                   <label className="grid gap-1 md:col-span-2">
+                    <span className="text-muted-foreground">抖音热搜 / 趋势关键词</span>
+                    <div className="flex gap-2">
+                      <Input value={videoPreset.trendKeywords || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, trendKeywords: e.target.value }))} placeholder="可手动填写，或点击右侧拉取热搜后选择" />
+                      <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={fetchDouyinTrends} disabled={isFetchingTrends}>
+                        <Sparkles size={13} className={isFetchingTrends ? 'animate-pulse' : ''} />
+                        热搜
+                      </Button>
+                    </div>
+                    {douyinTrends.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {douyinTrends.map((trend) => (
+                          <button
+                            key={`${trend.title}-${trend.hot || ''}`}
+                            type="button"
+                            className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                            title={trend.desc || trend.hot || trend.title}
+                            onClick={() => applyTrendKeyword(trend.title)}
+                          >
+                            {trend.title}
+                            {trend.hot ? <span className="ml-1 opacity-70">{trend.hot}</span> : null}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </label>
+                  <label className="grid gap-1 md:col-span-2">
                     <span className="text-muted-foreground">必须包含</span>
                     <Input value={videoPreset.mustInclude || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, mustInclude: e.target.value }))} placeholder="例如：运镜、成本对比、行动号召" />
+                  </label>
+                  <label className="grid gap-1 md:col-span-2">
+                    <span className="text-muted-foreground">参考样本</span>
+                    <Textarea value={videoPreset.referenceSamples || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, referenceSamples: e.target.value }))} rows={3} className="min-h-24 resize-y" placeholder="粘贴你喜欢的文案、脚本、竞品样本或历史高转化内容，系统会学习结构和语气，不会照抄。" />
                   </label>
                   <label className="grid gap-1 md:col-span-2">
                     <span className="text-muted-foreground">避免内容</span>
@@ -855,7 +976,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           }}
           rows={1}
           className={`${isImageMode ? 'min-h-10' : 'min-h-[54px]'} max-h-[220px] resize-none overflow-y-auto rounded-xl border-0 bg-transparent py-2.5 shadow-none focus-visible:ring-0`}
-          placeholder={mode === 'videoScript' && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，或导入 txt/md/srt/vtt/json 转录文本后回车发送分析' : mode === 'videoScript' && videoTaskType === 'editing-idea' ? '可补充剪辑重点；若当前没有脚本结果，也可直接粘贴脚本文本后生成剪辑思路' : mode === 'image' || mode === 'proImage' ? '描述你想生成的图片内容，发送后会把图片工作流记录保留在本页。' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
+          placeholder={isContentMode && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，或导入 txt/md/srt/vtt/json 转录文本后回车发送分析' : isContentMode && videoTaskType === 'editing-idea' ? '可补充剪辑重点；若当前没有脚本结果，也可直接粘贴脚本文本后生成剪辑思路' : mode === 'image' || mode === 'proImage' ? '描述你想生成的图片内容，发送后会把图片工作流记录保留在本页。' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
           onPaste={handlePaste}

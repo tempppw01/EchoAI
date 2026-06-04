@@ -386,7 +386,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
         <VideoScriptStateCard
           variant="empty"
           title="短视频功能区已就绪，先给我一份素材或需求"
-          description="这里支持两种常用工作流：一类是直接生成视频脚本，另一类是粘贴爆款文案做结构拆解。"
+          description="这里支持内容创作工作流：既可以生成营销文案或视频脚本，也可以粘贴爆款内容做结构拆解。"
           tips={[
             '脚本生成：先填主题、产品、人群、平台和时长，再发送需求。',
             '爆款分析：切到“爆款文案分析”，直接粘贴转录稿或现成文案。',

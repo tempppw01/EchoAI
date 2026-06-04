@@ -8,7 +8,9 @@ const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 const defaultVideoScriptPreset = {
+  outputType: 'script' as const,
   topic: '',
+  businessType: '',
   productName: '',
   targetAudience: '',
   contentType: '口播',
@@ -17,6 +19,9 @@ const defaultVideoScriptPreset = {
   toneStyle: '',
   platform: '',
   durationSec: 60,
+  contentGoal: '',
+  referenceSamples: '',
+  trendKeywords: '',
   mustInclude: '',
   avoid: '',
 };
@@ -38,8 +43,7 @@ const getDefaultModelByMode = (mode: ChatMode) => {
 const getDefaultTitleByMode = (mode: ChatMode) => {
   if (mode === 'chat') return '新建工作台对话';
   if (mode === 'image' || mode === 'proImage') return '新建绘图项目';
-  if (mode === 'copywriting') return '新建文案任务';
-  if (mode === 'videoScript') return '新建视频脚本';
+  if (mode === 'copywriting' || mode === 'videoScript') return '新建内容创作';
   if (mode === 'roleplay') return '新建角色扮演';
   return '新建学习型聊天窗口';
 };
@@ -110,8 +114,7 @@ const findRetrySourceMessage = (session: ChatSession | undefined, messageId: str
 };
 
 const buildSystemPromptByMode = (session: ChatSession) => {
-  if (session.mode === 'copywriting') return '你是一名资深中文营销文案专家。输出可直接投放的文案，并给出多版本。';
-  if (session.mode === 'videoScript') return '你是一名短视频脚本策划。输出结构化脚本，包含开场钩子、节奏、镜头建议与CTA。若用户消息中包含“视频脚本预设信息”，必须优先严格依据预设写作；对未提供的关键信息不要臆测，先明确列出缺失项并给出可选补充。';
+  if (session.mode === 'copywriting' || session.mode === 'videoScript') return '你是一名中文内容增长策划，擅长把产品信息、参考样本和平台热点整合成可发布的文案或短视频脚本。若用户消息中包含“内容创作参数”，必须优先严格依据参数写作；对未提供的关键信息不要臆测，先明确列出缺失项并给出保守版本。';
   if (session.mode === 'training') {
     return `你是一位专注学习的智能助教，只做学习相关的事：出题、讲解、批改、记录进度、鼓励。
 界面风格清晰、简洁、结构化，不闲聊、不跑题。

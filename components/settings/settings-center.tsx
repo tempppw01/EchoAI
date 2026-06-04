@@ -76,7 +76,9 @@ const trainingRecordSchema = z.object({
 });
 
 const videoScriptPresetSchema = z.object({
+  outputType: z.enum(['copy', 'script']).optional(),
   topic: z.string().max(500).optional(),
+  businessType: z.string().max(500).optional(),
   productName: z.string().max(500).optional(),
   targetAudience: z.string().max(500).optional(),
   contentType: z.string().max(100).optional(),
@@ -85,6 +87,9 @@ const videoScriptPresetSchema = z.object({
   toneStyle: z.string().max(500).optional(),
   platform: z.string().max(100).optional(),
   durationSec: z.number().int().min(1).max(3600).optional(),
+  contentGoal: z.string().max(1000).optional(),
+  referenceSamples: z.string().max(12000).optional(),
+  trendKeywords: z.string().max(2000).optional(),
   mustInclude: z.string().max(2000).optional(),
   avoid: z.string().max(2000).optional(),
   viralStructureReference: viralStructureReferenceSchema.optional(),
