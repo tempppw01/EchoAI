@@ -779,7 +779,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
       <div className={`chat-panel flex gap-2 p-1.5 ${isImageMode ? 'items-center' : 'items-end'}`}>
         {mode === 'training' && (
-          <div className="flex-1 rounded-xl border border-dashed border-primary/30 bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 px-3 py-4 text-sm text-muted-foreground">
+          <div className="flex-1 rounded-xl border border-dashed border-primary/30 bg-gradient-to-r from-sky-500/10 to-cyan-500/10 px-3 py-4 text-sm text-muted-foreground">
             训练模式请在上方点击大卡片选项作答，系统会自动连续出题并更新分数。
           </div>
         )}

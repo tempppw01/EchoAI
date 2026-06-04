@@ -2,13 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'MiSans';
+  src: url('https://cloudreve-bei.oss-cn-guangzhou.aliyuncs.com/ledgerflow/fonts/MiSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MiSans';
+  src: url('https://cloudreve-bei.oss-cn-guangzhou.aliyuncs.com/ledgerflow/fonts/MiSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MiSans';
+  src: url('https://cloudreve-bei.oss-cn-guangzhou.aliyuncs.com/ledgerflow/fonts/MiSans-Semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MiSans';
+  src: url('https://cloudreve-bei.oss-cn-guangzhou.aliyuncs.com/ledgerflow/fonts/MiSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('https://cloudreve-bei.oss-cn-guangzhou.aliyuncs.com/ledgerflow/fonts/GeistMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('https://cloudreve-bei.oss-cn-guangzhou.aliyuncs.com/ledgerflow/fonts/GeistMono-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
+  --font-sans: 'MiSans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'GeistMono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, monospace;
   --background: 0 0% 100%;
   --foreground: 222 47% 11%;
   --muted: 220 14% 96%;
   --border: 220 13% 91%;
   --card: 0 0% 100%;
-  --primary: 250 84% 60%;
+  --primary: 214 90% 52%;
   --surface: 0 0% 100%;
   --surface-soft: 220 33% 98%;
   --muted-foreground: 215 16% 47%;
@@ -20,13 +70,16 @@
   --muted: 222 34% 16%;
   --border: 217 33% 20%;
   --card: 222 44% 10%;
-  --primary: 258 90% 66%;
+  --primary: 212 92% 58%;
   --surface: 222 40% 11%;
   --surface-soft: 223 31% 14%;
   --muted-foreground: 215 20% 70%;
 }
 
-body { @apply bg-background text-foreground antialiased; }
+body {
+  @apply bg-background text-foreground antialiased;
+  font-family: var(--font-sans);
+}
 * { @apply border-border; }
 
 .ui-icon-button {
@@ -76,29 +129,23 @@ body { @apply bg-background text-foreground antialiased; }
 
 .chat-panel {
   @apply rounded-[28px] border shadow-sm;
-  background:
-    radial-gradient(circle at top right, hsl(var(--primary) / 0.12), transparent 36%),
-    linear-gradient(180deg, hsl(var(--surface) / 0.94), hsl(var(--surface-soft) / 0.9));
+  background: linear-gradient(180deg, hsl(var(--surface) / 0.96), hsl(var(--surface-soft) / 0.92));
   backdrop-filter: blur(18px);
 }
 
 .chat-bubble-user {
-  @apply rounded-2xl border border-primary/25 shadow-sm;
-  background: linear-gradient(180deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.08));
+  @apply rounded-2xl border border-primary/20 shadow-sm;
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.06));
 }
 
 .chat-bubble-assistant {
-  @apply rounded-2xl border border-emerald-400/25 shadow-sm;
-  background:
-    radial-gradient(circle at top right, hsl(165 70% 55% / 0.16), transparent 32%),
-    linear-gradient(180deg, hsl(var(--surface-soft) / 0.96), hsl(155 45% 96% / 0.92));
+  @apply rounded-2xl border border-slate-300/70 shadow-sm;
+  background: linear-gradient(180deg, hsl(var(--surface-soft) / 0.98), hsl(210 30% 98% / 0.92));
 }
 
 .dark .chat-bubble-assistant {
-  @apply rounded-2xl border border-emerald-400/20 shadow-sm;
-  background:
-    radial-gradient(circle at top right, hsl(165 70% 55% / 0.15), transparent 32%),
-    linear-gradient(180deg, hsl(var(--surface-soft) / 0.94), hsl(165 35% 18% / 0.9));
+  @apply rounded-2xl border border-slate-700/70 shadow-sm;
+  background: linear-gradient(180deg, hsl(var(--surface-soft) / 0.98), hsl(222 35% 16% / 0.92));
 }
 
 .message-markdown {
@@ -154,9 +201,17 @@ body { @apply bg-background text-foreground antialiased; }
 }
 
 .message-markdown code {
+  font-family: var(--font-mono);
   @apply rounded bg-black/5 px-1.5 py-0.5 text-[13px];
 }
 
 .dark .message-markdown code {
   @apply bg-white/10;
+}
+
+pre,
+code,
+kbd,
+.font-mono {
+  font-family: var(--font-mono);
 }

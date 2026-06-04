@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Bot, ChevronDown, ChevronUp, Copy, Download, FileText, Heart, Pencil, RefreshCcw, RotateCw, Sparkles, Trash2, UserRound, Wand2 } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, Copy, Download, Heart, Pencil, RefreshCcw, RotateCw, Sparkles, Trash2, UserRound, Wand2 } from 'lucide-react';
 import { VideoScriptStateCard } from '@/components/chat/video-script-state-card';
 import { Button } from '@/components/ui/button';
 import { ChatMode, ChatSession } from '@/lib/types';
@@ -356,13 +356,13 @@ export function MessageList({ session }: { session?: ChatSession }) {
   return (
     <div className="space-y-5">
       {session.mode === 'training' && (
-        <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-indigo-500/10 via-cyan-500/10 to-emerald-500/10 p-4">
+        <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-emerald-500/10 p-4">
           <div className="mb-2 flex items-center justify-between text-sm">
             <span>当前水平分数</span>
             <span className="text-lg font-semibold">{session.trainingScore ?? 60} / 100</span>
           </div>
           <div className="h-3 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 transition-all" style={{ width: `${session.trainingScore ?? 60}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 transition-all" style={{ width: `${session.trainingScore ?? 60}%` }} />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">主题：{session.trainingTopic || '尚未设置'} · 已完成 {session.trainingRound ?? 0} 题</p>
         </div>
@@ -393,45 +393,26 @@ export function MessageList({ session }: { session?: ChatSession }) {
       )}
 
       {session.messages.length === 0 && session.mode !== 'image' && session.mode !== 'proImage' && !showVideoScriptEmptyState && (
-        <div className="chat-panel overflow-hidden">
-          <div className="grid gap-4 p-5 md:grid-cols-[1.15fr_0.85fr] md:p-6">
+        <div className="chat-panel mx-auto max-w-3xl overflow-hidden">
+          <div className="flex flex-col gap-4 p-5 md:p-6">
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+              <Sparkles size={12} className="text-primary" />
+              开始一段新对话
+            </div>
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
-                <Sparkles size={12} />
-                从这里开始
-              </div>
-              <h3 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">{modeStarterMap[session.mode].title}</h3>
+              <h3 className="text-2xl font-semibold tracking-tight text-foreground">{modeStarterMap[session.mode].title}</h3>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{modeStarterMap[session.mode].hint}</p>
-
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <span className="rounded-full border border-border/70 bg-background/80 px-3 py-1">Markdown</span>
-                <span className="rounded-full border border-border/70 bg-background/80 px-3 py-1">附件上传</span>
-                <span className="rounded-full border border-border/70 bg-background/80 px-3 py-1">上下文保留</span>
-                <span className="rounded-full border border-border/70 bg-background/80 px-3 py-1">Enter 发送</span>
-              </div>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1 xl:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2">
               {[
-                { icon: FileText, title: '文本接力', desc: '同一会话会持续保留上下文' },
-                { icon: Sparkles, title: '结构化输出', desc: '更适合表格、分点和步骤' },
-                { icon: Bot, title: '多模式工作台', desc: '文案、脚本和角色扮演随时切换' },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div key={item.title} className="rounded-2xl border border-border/70 bg-background/70 p-3 shadow-sm">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
-                      <Icon size={16} />
-                    </div>
-                    <p className="mt-3 text-sm font-semibold text-foreground">{item.title}</p>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.desc}</p>
-                  </div>
-                );
-              })}
+                '直接问问题，也可以让它帮你整理思路。',
+                '支持 Markdown、代码块、附件和长文本。',
+              ].map((tip) => (
+                <div key={tip} className="rounded-2xl border border-border/70 bg-background/70 px-3 py-3 text-sm text-muted-foreground">
+                  {tip}
+                </div>
+              ))}
             </div>
-          </div>
-          <div className="border-t border-border/60 bg-background/65 px-5 py-3 text-xs text-muted-foreground md:px-6">
-            你可以直接输入问题，也可以贴入长文本、代码块或文件后继续追问，系统会把它们放在同一条对话链里。
           </div>
         </div>
       )}
@@ -493,7 +474,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
             {session.trainingCurrentQuestion.options.map((option) => (
               <button
                 key={option.id}
-                className="min-h-24 rounded-2xl border border-primary/20 bg-gradient-to-br from-indigo-500/20 via-blue-500/10 to-cyan-500/20 p-4 text-left text-base font-medium transition hover:scale-[1.01] hover:border-primary/40"
+                className="min-h-24 rounded-2xl border border-primary/20 bg-gradient-to-br from-sky-500/20 via-blue-500/10 to-cyan-500/20 p-4 text-left text-base font-medium transition hover:scale-[1.01] hover:border-primary/40"
                 onClick={() => answerTrainingQuestion(session.id, option.id)}
               >
                 <p className="text-xs text-muted-foreground">选项 {option.id}</p>

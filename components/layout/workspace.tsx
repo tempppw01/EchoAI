@@ -45,11 +45,11 @@ type Section = {
 
 const sections: Section[] = [
   { key: 'chat', label: '通用对话', mode: 'chat', icon: Sparkles, accent: 'bg-blue-50 dark:bg-blue-500/10' },
-  { key: 'copywriting', label: '文案生成', mode: 'copywriting', icon: PenSquare, accent: 'bg-indigo-50 dark:bg-indigo-500/10' },
+  { key: 'copywriting', label: '文案生成', mode: 'copywriting', icon: PenSquare, accent: 'bg-sky-50 dark:bg-sky-500/10' },
   { key: 'videoScript', label: '视频脚本', mode: 'videoScript', icon: Video, accent: 'bg-pink-50 dark:bg-pink-500/10' },
   { key: 'roleplay', label: '角色扮演', mode: 'roleplay', icon: Swords, accent: 'bg-teal-50 dark:bg-teal-500/10' },
   { key: 'training', label: '学习对练', mode: 'training', icon: Sparkles, accent: 'bg-amber-50 dark:bg-amber-500/10' },
-  { key: 'image', label: '专业绘图', mode: 'proImage', icon: Brush, accent: 'bg-purple-50 dark:bg-purple-500/10' },
+  { key: 'image', label: '专业绘图', mode: 'proImage', icon: Brush, accent: 'bg-slate-50 dark:bg-slate-500/10' },
 ];
 
 const modeToSection = (mode: ChatMode): SectionKey => {
@@ -184,7 +184,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const isRoleplayMode = contentMode === 'roleplay';
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.14),transparent_26%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_24%),linear-gradient(180deg,rgba(246,247,251,0.98),rgba(240,242,247,0.96))] dark:bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.16),transparent_26%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_24%),linear-gradient(180deg,hsl(222_47%_7%),hsl(222_47%_5%))]">
+    <div className="relative h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(15,23,42,0.04),transparent_32%),linear-gradient(180deg,rgba(249,250,251,1),rgba(243,246,248,1))] dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_32%),linear-gradient(180deg,hsl(222_47%_7%),hsl(222_47%_5%))]">
       <header className="relative z-20 flex h-14 shrink-0 items-center justify-between border-b bg-card/85 px-4 backdrop-blur">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => setSidebarOpen(true)}>
@@ -211,10 +211,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
       </header>
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-28 top-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-fuchsia-400/10 blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.24)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] bg-[size:44px_44px] opacity-[0.12] dark:opacity-[0.06]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:48px_48px] opacity-[0.08] dark:opacity-[0.04]" />
       </div>
 
       <div className="relative z-10 flex h-[calc(100vh-56px)] overflow-hidden">
@@ -246,7 +243,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               </Button>
             </div>
           )}
-          {contentMode !== 'roleplay' && (
+          {contentMode !== 'roleplay' && section !== 'chat' && (
             <div className="px-3 pt-3 md:px-6 md:pt-6">
               <WorkspaceIntro section={section} session={active} sessions={sessions} onOpenSection={openSection} />
             </div>
@@ -259,8 +256,8 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               exit={{ opacity: 0 }}
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
-              <div className={cn('min-h-0 flex-1 overflow-hidden', isRoleplayMode ? 'overscroll-none p-2 md:p-3' : 'overflow-y-auto p-3 md:p-6')}>
-                <div className={cn('mx-auto w-full', isRoleplayMode ? 'h-full max-w-none overflow-hidden' : 'max-w-6xl')}>
+              <div className={cn('min-h-0 flex-1 overflow-hidden', isRoleplayMode ? 'overscroll-none p-2 md:p-3' : 'overflow-y-auto p-3 md:p-4')}>
+                <div className={cn('mx-auto w-full', isRoleplayMode ? 'h-full max-w-none overflow-hidden' : section === 'chat' ? 'max-w-4xl' : 'max-w-5xl')}>
                   {contentMode === 'proImage' || contentMode === 'image' ? (
                     <div className="space-y-6">
                       <ProImagePanel session={active} />
@@ -273,7 +270,11 @@ export function Workspace({ mode }: { mode: ChatMode }) {
                   )}
                 </div>
               </div>
-              {contentMode !== 'roleplay' && <ChatComposer mode={contentMode} />}
+              {contentMode !== 'roleplay' && (
+                <div className={cn('mx-auto w-full', section === 'chat' ? 'max-w-4xl' : 'max-w-5xl')}>
+                  <ChatComposer mode={contentMode} />
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </main>
