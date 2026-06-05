@@ -277,15 +277,6 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           <span className="text-sm font-medium">EchoAI</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="hidden md:inline-flex"
-            onClick={() => setWorkspaceCollapsed((prev) => !prev)}
-            aria-label={workspaceCollapsed ? '展开工作区侧栏' : '折叠工作区侧栏'}
-          >
-            {workspaceCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          </Button>
           <ThemeToggleButton isDark={isDarkTheme} onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')} />
           <Link
             href="/trends"
@@ -306,32 +297,50 @@ export function Workspace({ mode }: { mode: ChatMode }) {
       </div>
 
       <div className="relative z-10 flex h-[calc(100vh-56px)] overflow-hidden">
-        <aside className={`hidden min-w-0 overflow-hidden border-r p-3 md:flex md:flex-col ${workspaceCollapsed ? 'md:hidden' : 'md:w-80'}`}>
-          <div className="min-h-0 overflow-y-auto">
-            <SidebarNav
-              section={section}
-              activeGroup={activeGroup}
-              sessions={sessions}
-              activeSessionId={visibleSession?.id ?? activeSessionId}
-              onSelectGroup={openGroup}
-              onSelectFeature={openFeature}
-              onSelectSession={selectSession}
-              onCreate={createInFeature}
-            />
-          </div>
-          <div className="mt-3 min-h-0 flex-1 border-t pt-3">
-            <ChatList search={search} setSearch={setSearch} />
-          </div>
-        </aside>
-
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {workspaceCollapsed && (
-            <div className="px-3 pt-3 md:px-6">
-              <Button variant="secondary" size="sm" onClick={() => setWorkspaceCollapsed(false)}>
-                <PanelLeftOpen size={14} className="mr-1" />
-                展开工作区
-              </Button>
+        {!workspaceCollapsed && (
+          <aside className="relative hidden min-w-0 overflow-visible border-r p-3 md:flex md:w-80 md:flex-col">
+            <Button
+              variant="secondary"
+              size="icon-sm"
+              className="absolute -right-4 top-4 z-20 rounded-full border-primary/20 bg-card shadow-lg shadow-slate-900/10"
+              onClick={() => setWorkspaceCollapsed(true)}
+              aria-label="折叠工作区侧栏"
+              title="折叠工作区侧栏"
+              aria-expanded={!workspaceCollapsed}
+            >
+              <PanelLeftClose size={15} />
+            </Button>
+            <div className="min-h-0 overflow-y-auto">
+              <SidebarNav
+                section={section}
+                activeGroup={activeGroup}
+                sessions={sessions}
+                activeSessionId={visibleSession?.id ?? activeSessionId}
+                onSelectGroup={openGroup}
+                onSelectFeature={openFeature}
+                onSelectSession={selectSession}
+                onCreate={createInFeature}
+              />
             </div>
+            <div className="mt-3 min-h-0 flex-1 border-t pt-3">
+              <ChatList search={search} setSearch={setSearch} />
+            </div>
+          </aside>
+        )}
+
+        <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          {workspaceCollapsed && (
+            <Button
+              variant="secondary"
+              size="icon-sm"
+              className="absolute left-3 top-3 z-20 rounded-full border-primary/20 bg-card shadow-lg shadow-slate-900/10 md:left-4"
+              onClick={() => setWorkspaceCollapsed(false)}
+              aria-label="展开工作区侧栏"
+              title="展开工作区侧栏"
+              aria-expanded={!workspaceCollapsed}
+            >
+              <PanelLeftOpen size={15} />
+            </Button>
           )}
           <AnimatePresence mode="wait">
             <motion.div
