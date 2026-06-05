@@ -2,11 +2,12 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Bot, ChevronDown, ChevronUp, Copy, Download, Eraser, Heart, Pencil, RefreshCcw, RotateCw, Trash2, UserRound, Wand2 } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, Copy, Download, Eraser, Heart, Pencil, RefreshCcw, RotateCw, Save, Trash2, UserRound, Wand2 } from 'lucide-react';
 import { VideoScriptStateCard } from '@/components/chat/video-script-state-card';
 import { Button } from '@/components/ui/button';
 import { ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
+import { useSampleLibraryStore } from '@/stores/sample-library-store';
 
 const stabilizeMarkdownForStreaming = (content: string) => {
   let stabilized = content;
@@ -40,6 +41,15 @@ const formatStructuredVideoScript = (content: string) => {
       return line;
     })
     .join('\n');
+};
+
+const extractSampleTitle = (content: string, fallback: string) => {
+  const titleLine = content
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => /^#+\s*标题|^标题[:：]/.test(line));
+  const title = titleLine?.replace(/^#+\s*/, '').replace(/^标题[:：]\s*/, '').trim();
+  return (title || fallback || '内容创作脚本').slice(0, 40);
 };
 
 const extractRecallSamples = (content: string) => {
@@ -515,6 +525,23 @@ const MessageItem = memo(function MessageItem({
   const versionCards = useMemo(() => (!isUser ? parseVideoScriptVersions(cleanedContent) : null), [cleanedContent, isUser]);
   const showDualCards = !isUser && versionCards && versionCards.length >= 2;
   const preferredCandidate = session.preferredCandidate;
+  const addTextSample = useSampleLibraryStore((state) => state.addTextSample);
+  const [sampleSaveState, setSampleSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const canSaveToScriptLibrary = !isUser && !isError && msg.status !== 'streaming' && (session.mode === 'videoScript' || session.mode === 'copywriting') && cleanedContent.trim().length > 0;
+
+  const saveToScriptLibrary = async () => {
+    if (!canSaveToScriptLibrary || sampleSaveState === 'saving') return;
+    setSampleSaveState('saving');
+    try {
+      await addTextSample({
+        title: extractSampleTitle(cleanedContent, session.title),
+        textContent: cleanedContent,
+      });
+      setSampleSaveState('saved');
+    } catch {
+      setSampleSaveState('error');
+    }
+  };
 
   return (
     <div className={`flex items-start gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -525,7 +552,15 @@ const MessageItem = memo(function MessageItem({
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{isUser ? '用户输入' : 'EchoAI 助手'}</p>
             {!isUser && <p className="mt-1 text-sm font-medium text-foreground/90">{isError ? '生成失败' : showDualCards ? '多版本候选结果' : '生成结果'}</p>}
           </div>
-          {msg.status === 'streaming' && <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] text-primary animate-pulse">生成中</span>}
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {canSaveToScriptLibrary && (
+              <Button variant={sampleSaveState === 'saved' ? 'tint' : 'secondary'} size="sm" className="h-8 px-2.5 text-[11px]" onClick={saveToScriptLibrary} disabled={sampleSaveState === 'saving'}>
+                <Save size={13} />
+                {sampleSaveState === 'saving' ? '写入中' : sampleSaveState === 'saved' ? '已写入脚本库' : sampleSaveState === 'error' ? '重试写入' : '写入脚本库'}
+              </Button>
+            )}
+            {msg.status === 'streaming' && <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] text-primary animate-pulse">生成中</span>}
+          </div>
         </div>
 
         <RecallSamplesPreview samples={samples} />

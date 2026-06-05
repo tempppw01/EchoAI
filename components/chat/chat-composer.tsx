@@ -743,7 +743,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     setValue('');
     setAttachments([]);
     setImportedTranscriptMeta(null);
-    setInputHint('已发送，附件内容已随消息提交。');
+    setInputHint('');
     setShowOptions(false);
   };
 
@@ -1186,9 +1186,11 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         </div>
       )}
 
-      <div className="mt-1 flex items-center px-2 text-xs text-muted-foreground">
-        <span>{inputHint || (mode === 'image' || mode === 'proImage' ? '图片模式会在上方工作区中保留最近的提示词与结果轨迹，也支持直接粘贴图片。' : '支持文件内容随消息发送，可直接从剪贴板粘贴图片。')}</span>
-      </div>
+      {inputHint && (
+        <div className="mt-1 flex items-center px-2 text-xs text-muted-foreground">
+          <span>{inputHint}</span>
+        </div>
+      )}
     </div>
   );
 }

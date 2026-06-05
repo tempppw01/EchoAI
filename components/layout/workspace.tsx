@@ -260,7 +260,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
       </div>
 
       <div className="relative z-10 flex h-[calc(100vh-56px)] overflow-hidden">
-        <aside className={`hidden border-r p-3 md:flex md:flex-col ${workspaceCollapsed ? 'md:hidden' : 'md:w-80'}`}>
+        <aside className={`hidden min-w-0 overflow-hidden border-r p-3 md:flex md:flex-col ${workspaceCollapsed ? 'md:hidden' : 'md:w-80'}`}>
           <div className="min-h-0 overflow-y-auto">
             <SidebarNav
               section={section}
@@ -436,7 +436,7 @@ function SidebarNav({
 
   return (
     <>
-      <div className="space-y-3" onClick={() => setContextMenu(null)}>
+      <div className="min-w-0 space-y-3 overflow-hidden" onClick={() => setContextMenu(null)}>
         <div className="grid gap-2">
           {workspaceGroups.map((group) => {
             const Icon = group.icon;
@@ -468,7 +468,7 @@ function SidebarNav({
             }
 
             return (
-              <div key={group.key} className="rounded-3xl border border-primary/35 bg-primary/10 p-3 text-primary shadow-sm">
+              <div key={group.key} className="min-w-0 overflow-hidden rounded-3xl border border-primary/35 bg-primary/10 p-3 text-primary shadow-sm">
                 <button
                   type="button"
                   onClick={() => onSelectGroup(group.key)}
@@ -488,7 +488,7 @@ function SidebarNav({
                   </div>
                 </button>
 
-                <div className="mt-3 rounded-2xl border border-primary/15 bg-background/72 p-2.5 text-foreground">
+                <div className="mt-3 min-w-0 overflow-hidden rounded-2xl border border-primary/15 bg-background/72 p-2.5 text-foreground">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold">{group.label}功能组</p>
@@ -500,7 +500,7 @@ function SidebarNav({
                     </Button>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-1.5">
+                  <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">
                     {activeFeatures.map((feature) => {
                       const FeatureIcon = feature.icon;
                       const isActiveFeature = section === feature.key;
@@ -511,19 +511,19 @@ function SidebarNav({
                           type="button"
                           onClick={() => onSelectFeature(feature.key)}
                           className={cn(
-                            'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition',
+                            'inline-flex h-8 max-w-full items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition',
                             isActiveFeature ? 'border-primary/30 bg-primary/10 text-primary shadow-sm' : 'border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:text-foreground',
                           )}
                         >
-                          <FeatureIcon size={12} />
-                          {feature.label}
+                          <FeatureIcon size={12} className="shrink-0" />
+                          <span className="truncate">{feature.label}</span>
                         </button>
                       );
                     })}
                   </div>
 
                   {section === 'videoScript' && (
-                    <div className="mt-3 rounded-2xl border border-cyan-400/20 bg-cyan-500/5 px-3 py-2 text-xs text-muted-foreground">
+                    <div className="mt-3 min-w-0 rounded-2xl border border-cyan-400/20 bg-cyan-500/5 px-3 py-2 text-xs leading-5 text-muted-foreground">
                       内容创作参数在底部输入区上方，点击“展开”即可填写产品、样本和热搜。
                     </div>
                   )}
