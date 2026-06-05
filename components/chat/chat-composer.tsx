@@ -150,6 +150,15 @@ const contentQuickTemplates: Array<{ name: string; description: string; preset: 
 
 const outputTypeLabel = (outputType?: VideoScriptPreset['outputType']) => (outputType === 'copy' ? '营销文案' : '短视频脚本');
 
+const antiHardTrendJackingRules = [
+  '【热点借势边界】',
+  '热点只能作为外部语境、行业联想、用户关心点或开场问题，不能写成“这个热点由我们参与/加工/制造/供应”，除非用户明确提供了事实证据。',
+  '禁止把热点主体直接绑定到当前产品：不要写“卫星上天靠的是这台机床”“某某热点背后藏着我们的加工实力”这类牵强归因。',
+  '正确做法：先判断热点背后的行业需求，再回到我们真实能做的能力、零件类型、精度、稳定性、交付和应用行业。',
+  '示例：遇到“千帆卫星”这类航天热点，不要说卫星是我们加工出来的；可以写“航空航天、新能源、高端装备里有很多精密零件，对稳定加工、批量一致性和交付速度要求很高，我们的机床/加工中心适合做这类精密零件加工”。',
+  '如果热点与产品只有很弱的关系，宁可完全不提热点，改写成行业痛点或客户采购判断标准。',
+];
+
 const formatTrendCatalog = (trends: DouyinTrendItem[]) =>
   trends
     .map((trend, index) => {
@@ -174,7 +183,7 @@ const buildVideoScriptPromptWithPreset = (
   const outputLabel = outputTypeLabel(outputType);
   const platformStrategy =
     normalizedPlatform === '抖音'
-      ? '平台策略：按抖音风格输出，强调前3秒钩子、快节奏、强情绪推进、短句表达和更直接的行动号召；若有热搜关键词，只借势切入，不硬蹭。'
+      ? '平台策略：按抖音风格输出，强调前3秒钩子、快节奏、强情绪推进、短句表达和更直接的行动号召；若有热搜关键词，只借势切入，不硬蹭，不把热点主体说成我们的案例。'
       : normalizedPlatform === '视频号'
         ? '平台策略：按视频号风格输出，强调可信、稳重、节奏适中、信息完整和更自然的转化表达。'
         : '平台策略：若未明确平台，请输出兼顾传播效率与可信度的通用内容。';
@@ -230,8 +239,9 @@ const buildVideoScriptPromptWithPreset = (
     ? [
         '【可参考的抖音热搜完整列表】',
         formatTrendCatalog(trendCatalog),
-        '请先判断哪些话题与当前产品、目标人群、使用场景或情绪切口真正相关，只选 0~3 个自然融入。',
-        '如果没有合适话题，宁可不借势，不要硬蹭。',
+        '请先判断哪些话题与当前产品、目标人群、使用场景、行业需求或情绪切口真正相关，只选 0~3 个自然融入。',
+        '选择标准：能自然转化成客户痛点、行业需求、加工难点、采购判断标准、设备能力说明，才允许借势。',
+        '如果只能靠牵强联想才能连接产品，判定为“不适合借势”，宁可不提这个热点。',
         '输出成品里不要出现“热搜”“榜单”“蹭热点”“根据热搜”“来自今日热榜”等暴露来源的说法，要把相关话题转化成自然语境、生活场景或用户痛点。',
         '',
       ]
@@ -277,6 +287,8 @@ const buildVideoScriptPromptWithPreset = (
     ...manualSampleBlock,
     ...viralReferenceBlock,
     ...trendCatalogBlock,
+    ...antiHardTrendJackingRules,
+    '',
     '【用户本次需求】',
     userInput || `请基于以上参数，先给出一版可直接使用的${outputLabel}。`,
     '',
@@ -301,7 +313,7 @@ const buildVideoScriptPromptWithPreset = (
     outputType === 'copy' ? '3. 正文文案：给出可直接发布的完整文案' : '3. 正文：给出完整脚本正文，按自然口播/叙事节奏展开',
     '4. 结尾CTA：给出 1 段明确的收口与行动引导',
     '',
-    '要求：严格基于参数，不要擅自编造产品事实；若关键信息缺失，先列出缺失项再给保守版本。',
+    '要求：严格基于参数，不要擅自编造产品事实、客户案例、参与关系或供应关系；若关键信息缺失，先列出缺失项再给保守版本。',
   ].join('\n');
 };
 
@@ -572,6 +584,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         '要求：',
         '1. 只返回标题本身，不要解释，不要序号，不要引号。',
         '2. 标题适合内容创作选题，不要太长，尽量控制在 12-28 个字。',
+        '3. 如果使用趋势关键词，只能转化成行业需求、客户痛点或应用场景，不要写成当前产品参与了热点事件或热点主体。',
         `我是做什么的/业务类型：${videoPreset.businessType || '未填写'}`,
         `产品/服务：${videoPreset.productName || '未填写'}`,
         `目标人群：${videoPreset.targetAudience || '未填写'}`,

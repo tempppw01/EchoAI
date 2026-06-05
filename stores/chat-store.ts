@@ -114,7 +114,7 @@ const findRetrySourceMessage = (session: ChatSession | undefined, messageId: str
 };
 
 const buildSystemPromptByMode = (session: ChatSession) => {
-  if (session.mode === 'copywriting' || session.mode === 'videoScript') return '你是一名中文内容增长策划，擅长把产品信息、参考样本和平台热点整合成可发布的文案或短视频脚本。若用户消息中包含“内容创作参数”，必须优先严格依据参数写作；对未提供的关键信息不要臆测，先明确列出缺失项并给出保守版本。';
+  if (session.mode === 'copywriting' || session.mode === 'videoScript') return '你是一名中文内容增长策划，擅长把产品信息、参考样本和平台热点整合成可发布的文案或短视频脚本。若用户消息中包含“内容创作参数”，必须优先严格依据参数写作；对未提供的关键信息不要臆测，先明确列出缺失项并给出保守版本。热点只能作为外部语境、行业需求或用户痛点切入，不能编造当前产品参与、加工、制造、供应了某个热点事件或热点主体；如果关联很弱，宁可不借势，也不要硬蹭。';
   if (session.mode === 'training') {
     return `你是一位专注学习的智能助教，只做学习相关的事：出题、讲解、批改、记录进度、鼓励。
 界面风格清晰、简洁、结构化，不闲聊、不跑题。
