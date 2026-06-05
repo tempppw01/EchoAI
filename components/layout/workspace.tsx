@@ -17,7 +17,7 @@ import {
   Video,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatList } from '@/components/chat/chat-list';
 import { MessageList } from '@/components/chat/message-list';
@@ -58,7 +58,7 @@ const modeToSection = (mode: ChatMode): SectionKey => {
 };
 
 export function Workspace({ mode }: { mode: ChatMode }) {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [search, setSearch] = useState('');
   const [section, setSection] = useState<SectionKey>(modeToSection(mode));
   const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({
@@ -177,6 +177,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
   const contentMode = active?.mode ?? mode;
   const isRoleplayMode = contentMode === 'roleplay';
+  const isDarkTheme = resolvedTheme === 'dark';
 
   return (
     <div className="relative h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(15,23,42,0.04),transparent_32%),linear-gradient(180deg,rgba(249,250,251,1),rgba(243,246,248,1))] dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_32%),linear-gradient(180deg,hsl(222_47%_7%),hsl(222_47%_5%))]">
@@ -197,8 +198,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           >
             {workspaceCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           </Button>
-          <ThemeIconButton active={theme === 'light'} label="切换到浅色主题" onClick={() => setTheme('light')} icon={<Sun size={16} />} />
-          <ThemeIconButton active={theme === 'dark'} label="切换到深色主题" onClick={() => setTheme('dark')} icon={<Moon size={16} />} />
+          <ThemeToggleButton isDark={isDarkTheme} onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')} />
           <Button variant="ghost" size="icon-sm" aria-label="打开设置中心" title="打开设置中心" onClick={() => setSettingsOpen(true)}>
             <Settings size={16} />
           </Button>
@@ -341,18 +341,20 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   );
 }
 
-function ThemeIconButton({ active, label, onClick, icon }: { active: boolean; label: string; onClick: () => void; icon: ReactNode }) {
+function ThemeToggleButton({ isDark, onClick }: { isDark: boolean; onClick: () => void }) {
+  const label = isDark ? '切换到浅色主题' : '切换到深色主题';
+
   return (
     <Button
       type="button"
-      variant={active ? 'tint' : 'ghost'}
+      variant="tint"
       size="icon-sm"
       className="rounded-full"
       aria-label={label}
       title={label}
       onClick={onClick}
     >
-      {icon}
+      {isDark ? <Moon size={16} /> : <Sun size={16} />}
     </Button>
   );
 }

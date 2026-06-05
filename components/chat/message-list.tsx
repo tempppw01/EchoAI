@@ -519,8 +519,8 @@ const MessageItem = memo(function MessageItem({
   return (
     <div className={`flex items-start gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border"><Bot size={15} /></div>}
-      <div className={`${isUser ? 'chat-bubble-user ml-auto max-w-[88%]' : 'chat-bubble-assistant mr-auto max-w-[96%]'} p-4`}>
-        <div className="mb-3 flex items-start justify-between gap-3">
+      <div className={isUser ? 'chat-bubble-user ml-auto max-w-[88%] p-4' : 'mr-auto max-w-[96%] px-1 py-1'}>
+        <div className={isUser ? 'mb-3 flex items-start justify-between gap-3' : 'mb-2 flex items-start justify-between gap-3'}>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{isUser ? '用户输入' : 'EchoAI 助手'}</p>
             {!isUser && <p className="mt-1 text-sm font-medium text-foreground/90">{isError ? '生成失败' : showDualCards ? '多版本候选结果' : '生成结果'}</p>}

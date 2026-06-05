@@ -149,7 +149,7 @@ body {
 }
 
 .message-markdown {
-  @apply text-[15px] leading-7 text-foreground;
+  @apply text-[15px] leading-6 text-foreground;
 }
 
 .message-markdown h1,
@@ -173,7 +173,7 @@ body {
 }
 
 .message-markdown p {
-  @apply my-2 text-[15px] leading-7 text-foreground;
+  @apply my-1.5 text-[15px] leading-6 text-foreground;
 }
 
 .message-markdown strong {
@@ -188,11 +188,11 @@ body {
 
 .message-markdown ul,
 .message-markdown ol {
-  @apply my-3 pl-5;
+  @apply my-2 pl-5;
 }
 
 .message-markdown li {
-  @apply my-1 text-[15px] leading-7;
+  @apply my-0.5 text-[15px] leading-6;
 }
 
 .message-markdown blockquote {
