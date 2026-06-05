@@ -342,7 +342,6 @@ export function MessageList({ session }: { session?: ChatSession }) {
     URL.revokeObjectURL(url);
   };
 
-  const showVideoScriptEmptyState = session.messages.length === 0 && isVideoScriptMode;
   const showVideoScriptLoadingState = isVideoScriptMode && hasStreamingMessage;
 
   return (
@@ -380,19 +379,6 @@ export function MessageList({ session }: { session?: ChatSession }) {
             <Download size={13} />导出内容
           </button>
         </div>
-      )}
-
-      {showVideoScriptEmptyState && (
-        <VideoScriptStateCard
-          variant="empty"
-          title="短视频功能区已就绪，先给我一份素材或需求"
-          description="这里支持内容创作工作流：既可以生成营销文案或视频脚本，也可以粘贴爆款内容做结构拆解。"
-          tips={[
-            '脚本生成：先填主题、产品、人群、平台和时长，再发送需求。',
-            '爆款分析：切到“爆款文案分析”，直接粘贴转录稿或现成文案。',
-            '结果会按标题、开头钩子、正文、结尾 CTA 结构化展示。',
-          ]}
-        />
       )}
 
       {showVideoScriptLoadingState && (

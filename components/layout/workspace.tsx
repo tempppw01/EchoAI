@@ -28,7 +28,6 @@ import { Button } from '@/components/ui/button';
 import { ChatMode, ChatSession } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useChatStore } from '@/stores/chat-store';
-import { useSettingsStore } from '@/stores/settings-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 import { useUIStore } from '@/stores/ui-store';
 
@@ -240,11 +239,6 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               </Button>
             </div>
           )}
-          {contentMode !== 'roleplay' && section !== 'chat' && (
-            <div className="px-3 pt-3 md:px-6 md:pt-6">
-              <WorkspaceIntro section={section} session={active} sessions={sessions} onOpenSection={openSection} />
-            </div>
-          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={section + (active?.id ?? '')}
@@ -253,7 +247,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               exit={{ opacity: 0 }}
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
-              <div className={cn('min-h-0 flex-1 overflow-hidden', isRoleplayMode ? 'overscroll-none p-2 md:p-3' : 'overflow-y-auto p-3 md:p-4')}>
+              <div className={cn('min-h-0 flex-1 overflow-hidden', isRoleplayMode ? 'overscroll-none p-2 md:p-3' : 'overflow-y-auto px-3 py-3 md:px-5')}>
                 <div className={cn('mx-auto w-full', isRoleplayMode ? 'h-full max-w-none overflow-hidden' : section === 'chat' ? 'max-w-4xl' : 'max-w-5xl')}>
                   {contentMode === 'proImage' || contentMode === 'image' ? (
                     <div className="space-y-6">
@@ -268,7 +262,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
                 </div>
               </div>
               {contentMode !== 'roleplay' && (
-                <div className={cn('mx-auto w-full', section === 'chat' ? 'max-w-4xl' : 'max-w-5xl')}>
+                <div className="w-full">
                   <ChatComposer mode={contentMode} />
                 </div>
               )}
@@ -360,113 +354,6 @@ function ThemeIconButton({ active, label, onClick, icon }: { active: boolean; la
     >
       {icon}
     </Button>
-  );
-}
-
-function WorkspaceIntro({
-  section,
-  session,
-  sessions,
-  onOpenSection,
-}: {
-  section: SectionKey;
-  session?: ChatSession;
-  sessions: ChatSession[];
-  onOpenSection: (key: SectionKey) => void;
-}) {
-  const hasApiKey = useSettingsStore((state) => Boolean(state.settings.apiKey?.trim()));
-  const currentSection = sections.find((item) => item.key === section);
-  const sectionSessionCount = sessions.filter((item) => modeToSection(item.mode) === section).length;
-  const messageCount = session?.messages.length ?? 0;
-  const lastTitle = session?.title || '准备开始新的会话';
-  const quickActions: Array<{ key: SectionKey; label: string; hint: string }> = [
-    { key: 'chat', label: '通用对话', hint: '问答与思路整理' },
-    { key: 'videoScript', label: '内容创作', hint: '文案 / 脚本 / 热点' },
-    { key: 'roleplay', label: '角色扮演', hint: '带角色的连续对话' },
-    { key: 'image', label: '专业绘图', hint: '提示词与出图工作流' },
-  ];
-  const stats = [
-    { label: '当前会话', value: lastTitle, sublabel: `${messageCount} 条消息` },
-    { label: '同类会话', value: `${sectionSessionCount} 条`, sublabel: currentSection?.label || '当前模式' },
-    { label: '工作方式', value: 'Markdown + 附件', sublabel: 'Enter 发送，Shift+Enter 换行' },
-  ];
-
-  return (
-    <div className="overflow-hidden rounded-[28px] border border-border/70 bg-card/90 shadow-[0_18px_60px_-34px_rgba(15,23,42,0.45)] backdrop-blur">
-      {!hasApiKey && (
-        <div className="border-b border-amber-400/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-900 dark:text-amber-100 md:px-5">
-          <span className="inline-flex items-center gap-2 font-medium">
-            <Sparkles size={12} />
-            还没有配置 API Key
-          </span>
-          <p className="mt-1 leading-5 text-amber-900/80 dark:text-amber-100/80">
-            你可以继续浏览和编辑页面，但真正发送消息前建议先去设置中心补上；如果服务端已有回退密钥，这里也会自动继续工作。
-          </p>
-        </div>
-      )}
-
-      <div className="grid gap-4 px-4 py-4 md:grid-cols-[1.2fr_0.8fr] md:px-5 md:py-5">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
-            <Sparkles size={12} />
-            当前模式 · {currentSection?.label || '工作台'}
-          </div>
-          <h1 className="mt-3 text-xl font-semibold tracking-tight text-foreground md:text-2xl">把对话、文件和上下文放进同一张工作台</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            支持 Markdown、附件上传、会话续写和多模式切换。先从一句话开始，后续内容会自动接在同一个上下文里。
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {quickActions.map((item) => {
-              const active = item.key === section;
-              return (
-                <Button
-                  key={item.key}
-                  variant={active ? 'tint' : 'secondary'}
-                  size="pill"
-                  className="h-9 px-4"
-                  onClick={() => onOpenSection(item.key)}
-                >
-                  <span className="flex flex-col items-start gap-0.5">
-                    <span>{item.label}</span>
-                    <span className="text-[10px] font-normal text-muted-foreground">{item.hint}</span>
-                  </span>
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1 xl:grid-cols-3">
-          {stats.map((item, index) => (
-            <div
-              key={item.label}
-              className={cn(
-                'rounded-2xl border p-3 shadow-sm',
-                index === 0 ? 'border-primary/20 bg-primary/5' : 'border-border/70 bg-background/70',
-              )}
-            >
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{item.label}</p>
-              <p className="mt-2 line-clamp-1 text-sm font-semibold text-foreground">{item.value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{item.sublabel}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 bg-background/65 px-4 py-3 text-xs text-muted-foreground md:px-5">
-        <span>输入后会自动保留上下文，附件、代码块和长文本都会按同一条会话继续整理。</span>
-        <div className="flex flex-wrap gap-2">
-          {sessions
-            .filter((item) => modeToSection(item.mode) === section)
-            .slice(0, 3)
-            .map((item) => (
-              <span key={item.id} className="rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] text-foreground/80">
-                {item.title}
-              </span>
-            ))}
-        </div>
-      </div>
-    </div>
   );
 }
 

@@ -280,7 +280,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [inputHint, setInputHint] = useState('');
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [showOptions, setShowOptions] = useState(false);
-  const [showVideoPreset, setShowVideoPreset] = useState(true);
+  const [showVideoPreset, setShowVideoPreset] = useState(false);
   const [videoPreset, setVideoPreset] = useState<VideoScriptPreset>(defaultVideoScriptPreset);
   const [videoTaskType, setVideoTaskType] = useState<'script' | 'viral-analysis' | 'editing-idea'>('script');
   const [isGeneratingTopic, setIsGeneratingTopic] = useState(false);
@@ -634,30 +634,23 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   };
 
   return (
-    <div className="relative overflow-hidden border-t border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.94),hsl(var(--surface)/0.98))] px-3 py-3 shadow-[0_-16px_40px_-28px_rgba(15,23,42,0.42)] backdrop-blur md:px-4 md:py-4">
+    <div className="relative overflow-hidden border-t border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.96),hsl(var(--surface)/0.99))] px-3 py-3 shadow-[0_-16px_40px_-28px_rgba(15,23,42,0.42)] backdrop-blur md:px-4">
       {!hasApiKey && (
-        <div className="mb-3 rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-xs text-amber-900 dark:text-amber-100">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex min-w-0 items-start gap-2">
-              <Sparkles size={14} className="mt-0.5 shrink-0 text-amber-500" />
-              <div className="min-w-0">
-                <p className="font-medium">当前还没有配置 API Key</p>
-                <p className="mt-1 leading-5 text-amber-900/80 dark:text-amber-100/80">
-                  你仍然可以继续聊天，系统会优先尝试服务端回退配置；如果服务端也没有可用密钥，发送消息时会提示你先去设置中心补上。
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="shrink-0 border-amber-400/30 bg-amber-50/80 text-amber-950 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-50 dark:hover:bg-amber-500/15"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings size={13} />
-              去设置
-            </Button>
-          </div>
+        <div className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+          <span className="inline-flex min-w-0 items-center gap-2 font-medium">
+            <Sparkles size={13} className="shrink-0 text-amber-500" />
+            <span className="truncate">未配置 API Key</span>
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-7 shrink-0 border-amber-400/30 bg-amber-50/80 px-2.5 text-xs text-amber-950 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-50 dark:hover:bg-amber-500/15"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings size={13} />
+            设置
+          </Button>
         </div>
       )}
 
@@ -673,7 +666,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       />
 
       {isContentMode && (
-        <div className="mb-3 space-y-3">
+        <div className="mb-2 space-y-2">
           <div className="flex justify-center">
             <div className="inline-flex rounded-full border border-white/10 bg-background/70 p-1 shadow-sm">
               <button
