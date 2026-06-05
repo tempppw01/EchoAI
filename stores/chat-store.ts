@@ -165,6 +165,7 @@ interface ChatState {
   regenerateSessionTitle: (id: string) => Promise<void>;
   updateSession: (id: string, patch: Partial<ChatSession>) => void;
   deleteSession: (id: string) => void;
+  clearAllSessions: () => void;
   togglePinSession: (id: string) => void;
   retryMessage: (sessionId: string, messageId: string) => void;
   deleteMessage: (sessionId: string, messageId: string) => void;
@@ -662,6 +663,11 @@ export const useChatStore = create<ChatState>()(
         set((state) => {
           const sessions = sortedSessions(state.sessions.filter((session) => session.id !== id));
           return { sessions: sessions.length ? sessions : [createInitialSession()], activeSessionId: sessions[0]?.id };
+        }),
+      clearAllSessions: () =>
+        set(() => {
+          const session = createInitialSession();
+          return { sessions: [session], activeSessionId: session.id, generatingSessionIds: [] };
         }),
       togglePinSession: (id) => set((state) => ({ sessions: sortedSessions(state.sessions.map((session) => (session.id === id ? { ...session, pinned: !session.pinned } : session))) })),
       retryMessage: (sessionId, messageId) => {

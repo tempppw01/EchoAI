@@ -1,9 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Check, Edit2, Pin, Search, Trash2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Check, ChevronDown, Edit2, Pin, Search, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useChatStore } from '@/stores/chat-store';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -26,19 +27,22 @@ export function ChatList({
   setSearch: (value: string) => void;
   closeMobile?: () => void;
 }) {
-  const { sessions, activeSessionId, selectSession, renameSession, deleteSession, togglePinSession } = useChatStore(
+  const { sessions, activeSessionId, selectSession, renameSession, deleteSession, clearAllSessions, togglePinSession } = useChatStore(
     useShallow((state) => ({
       sessions: state.sessions,
       activeSessionId: state.activeSessionId,
       selectSession: state.selectSession,
       renameSession: state.renameSession,
       deleteSession: state.deleteSession,
+      clearAllSessions: state.clearAllSessions,
       togglePinSession: state.togglePinSession,
     })),
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
+  const [listOpen, setListOpen] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
 
   const normalizedSearch = search.trim().toLowerCase();
   const filtered = useMemo(
@@ -46,121 +50,173 @@ export function ChatList({
     [sessions, normalizedSearch],
   );
 
+  useEffect(() => {
+    if (search.trim()) setListOpen(true);
+  }, [search]);
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 rounded-2xl border bg-card/60 p-2">
+    <div className="flex min-h-0 flex-col gap-2 rounded-2xl border bg-card/60 p-2">
       <div className="flex items-center gap-2">
-        <Search size={15} className="text-muted-foreground" />
-        <Input
-          placeholder="搜索会话..."
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          className="rounded-xl"
-        />
+        <button
+          type="button"
+          onClick={() => setListOpen((value) => !value)}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-1.5 text-left transition hover:bg-muted/55"
+        >
+          <ChevronDown size={14} className={`shrink-0 text-muted-foreground transition ${listOpen ? 'rotate-0' : '-rotate-90'}`} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-semibold text-foreground">全部话题</span>
+            <span className="block truncate text-[11px] text-muted-foreground">共 {sessions.length} 个，可展开搜索和管理</span>
+          </span>
+        </button>
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]" onClick={() => setConfirmClearOpen(true)} disabled={sessions.length === 0}>
+          清空
+        </Button>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-        {filtered.length === 0 ? (
-          <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">没有匹配的会话。</p>
-        ) : (
-          filtered.map((item) => (
-            <motion.button
-              layout
-              key={item.id}
-              className={`group w-full rounded-xl border px-2.5 py-2 text-left transition ${
-                item.id === (activeSessionId ?? sessions[0]?.id)
-                  ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
-                  : 'border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/70 hover:text-foreground'
-              }`}
-              onClick={() => {
-                selectSession(item.id);
-                closeMobile?.();
-              }}
-            >
-              <div className="flex items-center justify-between gap-2 text-sm font-medium">
-                {editingId === item.id ? (
-                  <Input
-                    value={draftTitle}
-                    onChange={(event) => setDraftTitle(event.target.value)}
-                    onClick={(event) => event.stopPropagation()}
-                    className="h-7"
-                  />
-                ) : (
-                  <span className="line-clamp-1">{item.pinned ? '置顶 · ' : ''}{item.title}</span>
-                )}
-                <span className="rounded-full border border-border/70 bg-background/70 px-2 py-1 text-[10px] uppercase text-muted-foreground">
-                  {modeLabelMap[item.mode] ?? item.mode}
-                </span>
-              </div>
+      {listOpen && (
+        <>
+          <div className="flex items-center gap-2">
+            <Search size={15} className="text-muted-foreground" />
+            <Input
+              placeholder="搜索会话..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="h-9 rounded-xl"
+            />
+          </div>
 
-              <p className="mt-1 line-clamp-1 text-xs leading-5 text-muted-foreground">
-                {item.summary && item.summary !== '开始你的第一条消息' ? item.summary : '点击切换到这个会话'}
-              </p>
+          <div className="max-h-72 min-h-0 space-y-1 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">没有匹配的会话。</p>
+            ) : (
+              filtered.map((item) => (
+                <motion.button
+                  layout
+                  key={item.id}
+                  className={`group w-full rounded-xl border px-2.5 py-2 text-left transition ${
+                    item.id === (activeSessionId ?? sessions[0]?.id)
+                      ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
+                      : 'border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/70 hover:text-foreground'
+                  }`}
+                  onClick={() => {
+                    selectSession(item.id);
+                    closeMobile?.();
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2 text-sm font-medium">
+                    {editingId === item.id ? (
+                      <Input
+                        value={draftTitle}
+                        onChange={(event) => setDraftTitle(event.target.value)}
+                        onClick={(event) => event.stopPropagation()}
+                        className="h-7"
+                      />
+                    ) : (
+                      <span className="line-clamp-1">{item.pinned ? '置顶 · ' : ''}{item.title}</span>
+                    )}
+                    <span className="rounded-full border border-border/70 bg-background/70 px-2 py-1 text-[10px] uppercase text-muted-foreground">
+                      {modeLabelMap[item.mode] ?? item.mode}
+                    </span>
+                  </div>
 
-              <div className="mt-2 flex gap-1 opacity-90 md:opacity-0 md:group-hover:opacity-100">
-                {editingId === item.id ? (
-                  <>
-                    <button
-                      className="ui-icon-button h-7 w-7"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        renameSession(item.id, draftTitle);
-                        setEditingId(null);
-                      }}
-                      aria-label="保存标题"
-                    >
-                      <Check size={13} />
-                    </button>
-                    <button
-                      className="ui-icon-button h-7 w-7"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setEditingId(null);
-                      }}
-                      aria-label="取消编辑"
-                    >
-                      <X size={13} />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      className="ui-icon-button h-7 w-7"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setEditingId(item.id);
-                        setDraftTitle(item.title);
-                      }}
-                      aria-label="重命名会话"
-                    >
-                      <Edit2 size={13} />
-                    </button>
-                    <button
-                      className="ui-icon-button h-7 w-7"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        togglePinSession(item.id);
-                      }}
-                      aria-label="切换置顶"
-                    >
-                      <Pin size={13} />
-                    </button>
-                    <button
-                      className="ui-icon-button h-7 w-7"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (confirm('确认删除会话？')) deleteSession(item.id);
-                      }}
-                      aria-label="删除会话"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </>
-                )}
-              </div>
-            </motion.button>
-          ))
-        )}
-      </div>
+                  <p className="mt-1 line-clamp-1 text-xs leading-5 text-muted-foreground">
+                    {item.summary && item.summary !== '开始你的第一条消息' ? item.summary : '点击切换到这个会话'}
+                  </p>
+
+                  <div className="mt-2 flex gap-1 opacity-90 md:opacity-0 md:group-hover:opacity-100">
+                    {editingId === item.id ? (
+                      <>
+                        <button
+                          className="ui-icon-button h-7 w-7"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            renameSession(item.id, draftTitle);
+                            setEditingId(null);
+                          }}
+                          aria-label="保存标题"
+                        >
+                          <Check size={13} />
+                        </button>
+                        <button
+                          className="ui-icon-button h-7 w-7"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setEditingId(null);
+                          }}
+                          aria-label="取消编辑"
+                        >
+                          <X size={13} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className="ui-icon-button h-7 w-7"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setEditingId(item.id);
+                            setDraftTitle(item.title);
+                          }}
+                          aria-label="重命名会话"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          className="ui-icon-button h-7 w-7"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            togglePinSession(item.id);
+                          }}
+                          aria-label="切换置顶"
+                        >
+                          <Pin size={13} />
+                        </button>
+                        <button
+                          className="ui-icon-button h-7 w-7"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (confirm('确认删除会话？')) deleteSession(item.id);
+                          }}
+                          aria-label="删除会话"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </motion.button>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {confirmClearOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-sm rounded-2xl border bg-background p-5 shadow-2xl">
+            <h3 className="text-base font-semibold">清空所有话题</h3>
+            <p className="mt-2 text-sm text-muted-foreground">确认删除全部会话话题吗？系统会保留一个新的空白通用对话。</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setConfirmClearOpen(false)}>
+                取消
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => {
+                  clearAllSessions();
+                  setSearch('');
+                  setListOpen(false);
+                  setConfirmClearOpen(false);
+                  closeMobile?.();
+                }}
+              >
+                清空
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

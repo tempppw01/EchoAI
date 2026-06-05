@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from 'next';
 import { AppProviders } from '@/components/providers/app-providers';
 
 export const metadata: Metadata = {
-  title: 'EchoAI 工作区',
-  description: 'EchoAI 多模块工作区',
+  title: 'EchoAI',
+  description: 'EchoAI',
   icons: {
     icon: '/icon.svg',
   },

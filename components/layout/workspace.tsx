@@ -225,7 +225,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     <div className="relative h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(15,23,42,0.04),transparent_32%),linear-gradient(180deg,rgba(249,250,251,1),rgba(243,246,248,1))] dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_32%),linear-gradient(180deg,hsl(222_47%_7%),hsl(222_47%_5%))]">
       <header className="relative z-20 flex h-14 shrink-0 items-center justify-between border-b bg-card/85 px-4 backdrop-blur">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => setSidebarOpen(true)}>
+          <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label="打开工作区侧栏" onClick={() => setSidebarOpen(true)}>
             <Menu size={16} />
           </Button>
           <span className="text-sm font-medium">EchoAI</span>
@@ -431,131 +431,147 @@ function SidebarNav({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; session: ChatSession } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
   const activeFeature = features.find((item) => item.key === section) || features[0];
-  const activeGroupMeta = workspaceGroups.find((item) => item.key === activeGroup) || workspaceGroups[0];
   const activeFeatures = groupFeatures(activeGroup);
   const activeFeatureSessions = sessions.filter((sessionItem) => modeToFeature(sessionItem.mode) === section).slice(0, 6);
 
   return (
     <>
       <div className="space-y-3" onClick={() => setContextMenu(null)}>
-        <div className="px-1">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">工作区</p>
-          <p className="mt-1 text-xs text-muted-foreground">先选板块，再用胶囊切换功能组。</p>
-        </div>
-
         <div className="grid gap-2">
           {workspaceGroups.map((group) => {
             const Icon = group.icon;
             const count = sessions.filter((sessionItem) => featureToGroup(modeToFeature(sessionItem.mode)) === group.key).length;
             const isActive = activeGroup === group.key;
 
-            return (
-              <button
-                key={group.key}
-                type="button"
-                onClick={() => onSelectGroup(group.key)}
-                className={cn(
-                  'rounded-2xl border p-3 text-left transition',
-                  isActive ? 'border-primary/35 bg-primary/10 text-primary shadow-sm' : 'border-border/60 bg-background/55 text-foreground hover:border-primary/25 hover:bg-primary/5',
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', group.accent)}>
-                    <Icon size={17} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">{group.label}</span>
-                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">{group.description}</span>
-                  </span>
-                  <span className="rounded-full border border-border/70 bg-background/75 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                    {count}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="rounded-3xl border bg-card/70 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">{activeGroupMeta.label}功能组</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">当前：{activeFeature.label}</p>
-            </div>
-            <Button size="sm" variant="secondary" onClick={() => onCreate(section)}>
-              <Plus size={13} />
-              新建
-            </Button>
-          </div>
-
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {activeFeatures.map((feature) => {
-              const Icon = feature.icon;
-              const isActive = section === feature.key;
-
+            if (!isActive) {
               return (
                 <button
-                  key={feature.key}
+                  key={group.key}
                   type="button"
-                  onClick={() => onSelectFeature(feature.key)}
-                  className={cn(
-                    'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition',
-                    isActive ? 'border-primary/30 bg-primary/10 text-primary shadow-sm' : 'border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:text-foreground',
-                  )}
+                  onClick={() => onSelectGroup(group.key)}
+                  className="rounded-2xl border border-border/60 bg-background/55 p-3 text-left text-foreground transition hover:border-primary/25 hover:bg-primary/5"
                 >
-                  <Icon size={12} />
-                  {feature.label}
+                  <div className="flex items-center gap-3">
+                    <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', group.accent)}>
+                      <Icon size={17} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">{group.label}</span>
+                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">{group.description}</span>
+                    </span>
+                    <span className="rounded-full border border-border/70 bg-background/75 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      {count}
+                    </span>
+                  </div>
                 </button>
               );
-            })}
-          </div>
+            }
 
-          {section === 'videoScript' && (
-            <div className="mt-3 rounded-2xl border border-cyan-400/20 bg-cyan-500/5 px-3 py-2 text-xs text-muted-foreground">
-              内容创作参数在底部输入区上方，点击“展开”即可填写产品、样本和热搜。
-            </div>
-          )}
-
-          <div className="mt-3 space-y-1.5">
-            {activeFeatureSessions.length === 0 ? (
-              <button
-                type="button"
-                onClick={() => onCreate(section)}
-                className="flex h-10 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border/80 bg-background/45 text-xs font-medium text-muted-foreground transition hover:border-primary/35 hover:bg-primary/10 hover:text-primary"
-              >
-                <Plus size={12} />
-                新建{activeFeature.label}
-              </button>
-            ) : (
-              activeFeatureSessions.map((sessionItem) => {
-                const isActiveSession = sessionItem.id === activeSessionId;
-                return (
-                  <button
-                    key={sessionItem.id}
-                    onClick={() => onSelectSession(sessionItem.id)}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
-                    }}
-                    className={cn(
-                      'flex w-full items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm transition',
-                      isActiveSession
-                        ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
-                        : 'border-border/55 bg-background/50 text-muted-foreground hover:border-border hover:bg-background/80 hover:text-foreground',
-                    )}
-                    title={`${sessionItem.title}（点击切换，右键管理）`}
-                  >
-                    <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', isActiveSession ? 'bg-primary' : 'bg-muted-foreground/35')} />
-                    <span className="min-w-0 flex-1 truncate font-medium">{sessionItem.title}</span>
-                    <span className="shrink-0 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                      {isActiveSession ? '当前' : '进入'}
+            return (
+              <div key={group.key} className="rounded-3xl border border-primary/35 bg-primary/10 p-3 text-primary shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => onSelectGroup(group.key)}
+                  className="w-full rounded-2xl text-left transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', group.accent)}>
+                      <Icon size={17} />
                     </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">{group.label}</span>
+                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">{group.description}</span>
+                    </span>
+                    <span className="rounded-full border border-border/70 bg-background/75 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      {count}
+                    </span>
+                  </div>
+                </button>
+
+                <div className="mt-3 rounded-2xl border border-primary/15 bg-background/72 p-2.5 text-foreground">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{group.label}功能组</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">当前：{activeFeature.label}</p>
+                    </div>
+                    <Button size="sm" variant="secondary" onClick={() => onCreate(section)}>
+                      <Plus size={13} />
+                      新建
+                    </Button>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {activeFeatures.map((feature) => {
+                      const FeatureIcon = feature.icon;
+                      const isActiveFeature = section === feature.key;
+
+                      return (
+                        <button
+                          key={feature.key}
+                          type="button"
+                          onClick={() => onSelectFeature(feature.key)}
+                          className={cn(
+                            'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition',
+                            isActiveFeature ? 'border-primary/30 bg-primary/10 text-primary shadow-sm' : 'border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:text-foreground',
+                          )}
+                        >
+                          <FeatureIcon size={12} />
+                          {feature.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {section === 'videoScript' && (
+                    <div className="mt-3 rounded-2xl border border-cyan-400/20 bg-cyan-500/5 px-3 py-2 text-xs text-muted-foreground">
+                      内容创作参数在底部输入区上方，点击“展开”即可填写产品、样本和热搜。
+                    </div>
+                  )}
+
+                  <div className="mt-3 space-y-1.5">
+                    {activeFeatureSessions.length === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => onCreate(section)}
+                        className="flex h-10 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border/80 bg-background/45 text-xs font-medium text-muted-foreground transition hover:border-primary/35 hover:bg-primary/10 hover:text-primary"
+                      >
+                        <Plus size={12} />
+                        新建{activeFeature.label}
+                      </button>
+                    ) : (
+                      activeFeatureSessions.map((sessionItem) => {
+                        const isActiveSession = sessionItem.id === activeSessionId;
+                        return (
+                          <button
+                            key={sessionItem.id}
+                            onClick={() => onSelectSession(sessionItem.id)}
+                            onContextMenu={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
+                            }}
+                            className={cn(
+                              'flex w-full items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm transition',
+                              isActiveSession
+                                ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
+                                : 'border-border/55 bg-background/50 text-muted-foreground hover:border-border hover:bg-background/80 hover:text-foreground',
+                            )}
+                            title={`${sessionItem.title}（点击切换，右键管理）`}
+                          >
+                            <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', isActiveSession ? 'bg-primary' : 'bg-muted-foreground/35')} />
+                            <span className="min-w-0 flex-1 truncate font-medium">{sessionItem.title}</span>
+                            <span className="shrink-0 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              {isActiveSession ? '当前' : '进入'}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
