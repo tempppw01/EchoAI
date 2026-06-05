@@ -32,10 +32,16 @@ export interface VideoScriptPreset {
 
 export interface DouyinTrendItem {
   title: string;
+  rank?: number;
   hot?: string;
   label?: string;
   url?: string;
   desc?: string;
+  seenBefore?: boolean;
+  previousSeenAt?: string;
+  previousRank?: number;
+  previousHot?: string;
+  previousSourceLabel?: string;
 }
 
 export interface DouyinTrendSnapshot {

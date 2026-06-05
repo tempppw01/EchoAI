@@ -12,6 +12,12 @@ const SOURCES = [
 const TOPHUB_ORIGIN = 'https://tophub.today';
 
 const textOf = (value: unknown) => (typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '');
+const numberOf = (value: unknown) => {
+  const text = textOf(value);
+  if (!text) return undefined;
+  const parsed = Number.parseInt(text.replace(/[^\d]/g, ''), 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
 
 const pickArray = (payload: unknown): unknown[] => {
   if (Array.isArray(payload)) return payload;
@@ -39,6 +45,7 @@ const normalizeTrend = (item: unknown): DouyinTrendItem | null => {
 
   return {
     title,
+    rank: numberOf(record.rank) || numberOf(record.index) || numberOf(record.order) || numberOf(record.position) || numberOf(record.no),
     hot: textOf(record.hot) || textOf(record.heat) || textOf(record.hot_value) || textOf(record.popularity),
     label: textOf(record.label) || textOf(record.tag),
     url: textOf(record.url) || textOf(record.link) || getDouyinSearchUrl(title),
@@ -88,6 +95,7 @@ const parseTopHubTableRows = (raw: string) => {
 
       return {
         title,
+        rank: Number.parseInt(rank, 10),
         hot,
         label: 'TopHub',
         url: url || getDouyinSearchUrl(title),
@@ -101,7 +109,10 @@ const parsePayload = (raw: string, contentType: string) => {
   if (contentType.includes('application/json') || raw.trim().startsWith('{') || raw.trim().startsWith('[')) {
     try {
       const payload = JSON.parse(raw);
-      return pickArray(payload).map(normalizeTrend).filter((item): item is DouyinTrendItem => Boolean(item));
+      return pickArray(payload)
+        .map(normalizeTrend)
+        .filter((item): item is DouyinTrendItem => Boolean(item))
+        .map((item, index) => ({ ...item, rank: item.rank ?? index + 1 }));
     } catch {
       // Fall through to HTML parsing because some endpoints return text/html with JSON-like payloads.
     }
@@ -112,7 +123,7 @@ const parsePayload = (raw: string, contentType: string) => {
 
   const blocks = [...raw.matchAll(/<div\s+class=["']item["'][\s\S]*?(?=<div\s+class=["']item["']|<\/div>\s*<\/div>\s*<\/body>|$)/gi)].map((match) => match[0]);
   const htmlItems = blocks
-    .map((block): DouyinTrendItem | null => {
+    .map((block, index): DouyinTrendItem | null => {
       const keyword = block.match(/<div\s+class=["']keyword["'][^>]*>([\s\S]*?)<\/div>/i)?.[1];
       const hot = block.match(/<div\s+class=["']hotnum["'][^>]*>([\s\S]*?)<\/div>/i)?.[1];
       const label = block.match(/<span\s+class=["']tag[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1];
@@ -120,6 +131,7 @@ const parsePayload = (raw: string, contentType: string) => {
       if (!title) return null;
       return {
         title,
+        rank: index + 1,
         hot: hot ? stripTags(hot).replace(/^热度值[:：]\s*/, '') : undefined,
         label: label ? stripTags(label) : undefined,
         url: getDouyinSearchUrl(title),
@@ -132,7 +144,7 @@ const parsePayload = (raw: string, contentType: string) => {
   return [...raw.matchAll(/<div\s+class=["']keyword["'][^>]*>([\s\S]*?)<\/div>/gi)]
     .map((match) => stripTags(match[1]))
     .filter(Boolean)
-    .map((title) => ({ title, url: getDouyinSearchUrl(title) }));
+    .map((title, index) => ({ title, rank: index + 1, url: getDouyinSearchUrl(title) }));
 };
 
 export async function GET() {

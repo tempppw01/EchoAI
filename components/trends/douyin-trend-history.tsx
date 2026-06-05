@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ArrowLeft, ExternalLink, History, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { enrichTrendItemsWithHistory, formatTrendHistoryLabel } from '@/lib/trend-utils';
 import { DouyinTrendItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { getDouyinTrendUrl, useTrendStore } from '@/stores/trend-store';
@@ -44,6 +45,11 @@ export function DouyinTrendHistoryPage() {
     () => snapshots.find((snapshot) => snapshot.id === activeSnapshotId) || snapshots[0],
     [activeSnapshotId, snapshots],
   );
+  const activeSnapshotItems = useMemo(() => {
+    if (!activeSnapshot) return [];
+    const activeIndex = snapshots.findIndex((snapshot) => snapshot.id === activeSnapshot.id);
+    return enrichTrendItemsWithHistory(activeSnapshot.items, activeIndex >= 0 ? snapshots.slice(activeIndex + 1) : []);
+  }, [activeSnapshot, snapshots]);
 
   const fetchAndSave = async () => {
     if (loading) return;
@@ -61,7 +67,7 @@ export function DouyinTrendHistoryPage() {
       };
 
       if (!response.ok) throw new Error(data.error || '拉取抖音热搜失败');
-      const items = data.items || [];
+      const items = enrichTrendItemsWithHistory(data.items || [], snapshots);
       if (items.length === 0) {
         setStatus('这次没有拉取到热搜条目，未生成新快照。');
         return;
@@ -148,7 +154,7 @@ export function DouyinTrendHistoryPage() {
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{formatTime(snapshot.fetchedAt)}</p>
                   <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-                    {snapshot.items.slice(0, 4).map((item) => item.title).join('、')}
+                    {snapshot.items.slice(0, 4).map((item, index) => `TOP${item.rank ?? index + 1} ${item.title}`).join('、')}
                   </p>
                 </button>
               ))
@@ -187,7 +193,7 @@ export function DouyinTrendHistoryPage() {
               </div>
 
               <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {activeSnapshot.items.map((item, index) => (
+                {activeSnapshotItems.map((item, index) => (
                   <a
                     key={`${item.title}-${item.hot || ''}-${index}`}
                     href={getDouyinTrendUrl(item)}
@@ -197,13 +203,16 @@ export function DouyinTrendHistoryPage() {
                   >
                     <div className="flex items-start gap-3">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary">
-                        {index + 1}
+                        {item.rank ?? index + 1}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-2 text-sm font-medium text-foreground">{item.title}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                           {item.hot && <span className="rounded-full bg-muted px-2 py-0.5">热度 {item.hot}</span>}
                           {item.label && <span className="rounded-full bg-muted px-2 py-0.5">{item.label}</span>}
+                          <span className={cn('rounded-full px-2 py-0.5', item.seenBefore ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300')}>
+                            {formatTrendHistoryLabel(item)}
+                          </span>
                           <span className="inline-flex items-center gap-1 text-primary">
                             打开
                             <ExternalLink size={11} />

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
+import { enrichTrendItemsWithHistory, formatTrendHistoryLabel } from '@/lib/trend-utils';
 import { ChatMode, DouyinTrendItem, VideoScriptPreset } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSampleLibraryStore } from '@/stores/sample-library-store';
@@ -151,7 +152,15 @@ const outputTypeLabel = (outputType?: VideoScriptPreset['outputType']) => (outpu
 
 const formatTrendCatalog = (trends: DouyinTrendItem[]) =>
   trends
-    .map((trend, index) => `${index + 1}. ${trend.title}${trend.hot ? `（热度：${trend.hot}）` : ''}`)
+    .map((trend, index) => {
+      const rank = trend.rank ?? index + 1;
+      const meta = [
+        trend.hot ? `热度：${trend.hot}` : '',
+        formatTrendHistoryLabel(trend),
+      ].filter(Boolean);
+
+      return `TOP${rank}. ${trend.title}${meta.length ? `（${meta.join('；')}）` : ''}`;
+    })
     .join('\n');
 
 const buildVideoScriptPromptWithPreset = (
@@ -380,7 +389,12 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const { settings, setSettings } = useSettingsStore();
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
   const getRelevantSamples = useSampleLibraryStore((state) => state.getRelevantSamples);
-  const addTrendSnapshot = useTrendStore((state) => state.addSnapshot);
+  const { trendSnapshots, addTrendSnapshot } = useTrendStore(
+    useShallow((state) => ({
+      trendSnapshots: state.snapshots,
+      addTrendSnapshot: state.addSnapshot,
+    })),
+  );
   const hasApiKey = Boolean(settings.apiKey?.trim());
 
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
@@ -599,7 +613,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       const response = await fetch('/api/trends/douyin', { method: 'GET', cache: 'no-store' });
       const data = (await response.json()) as { items?: DouyinTrendItem[]; error?: string; source?: string; sourceLabel?: string; fetchedAt?: string };
       if (!response.ok) throw new Error(data.error || '拉取抖音热搜失败');
-      const items = data.items || [];
+      const items = enrichTrendItemsWithHistory(data.items || [], trendSnapshots);
       setDouyinTrends(items);
       const sourceLabel = data.sourceLabel || '抖音热搜';
       if (items.length > 0) {
@@ -969,16 +983,18 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                       </div>
                       {douyinTrends.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          {douyinTrends.slice(0, 12).map((trend) => (
+                          {douyinTrends.slice(0, 12).map((trend, index) => (
                             <button
                               key={`${trend.title}-${trend.hot || ''}`}
                               type="button"
                               className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
-                              title={trend.desc || trend.hot || trend.title}
+                              title={[trend.desc, formatTrendHistoryLabel(trend)].filter(Boolean).join(' · ')}
                               onClick={() => applyTrendKeyword(trend.title)}
                             >
+                              <span className="mr-1 font-semibold text-foreground/80">TOP{trend.rank ?? index + 1}</span>
                               {trend.title}
                               {trend.hot ? <span className="ml-1 opacity-70">{trend.hot}</span> : null}
+                              <span className="ml-1 opacity-70">{trend.seenBefore ? '上次出现过' : '历史未见'}</span>
                             </button>
                           ))}
                           {douyinTrends.length > 12 && (
@@ -1125,7 +1141,13 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           </Button>
         )}
 
-        <Button variant="ghost" size="icon" onClick={() => setShowOptions((prev) => !prev)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={showOptions ? '收起输入设置' : '展开输入设置'}
+          title={showOptions ? '收起输入设置' : '展开输入设置'}
+          onClick={() => setShowOptions((prev) => !prev)}
+        >
           <SlidersHorizontal size={16} />
         </Button>
       </div>

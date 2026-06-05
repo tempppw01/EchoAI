@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { ensureTrendRanks } from '@/lib/trend-utils';
 import { DouyinTrendItem, DouyinTrendSnapshot } from '@/lib/types';
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -28,7 +29,7 @@ export const useTrendStore = create<{
           sourceLabel,
           fetchedAt: fetchedAt || now(),
           createdAt: now(),
-          items,
+          items: ensureTrendRanks(items),
         };
 
         set((state) => ({
