@@ -83,7 +83,7 @@ export function DouyinTrendHistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,hsl(var(--background)),hsl(var(--surface)))] text-foreground">
+    <div className="h-screen overflow-y-auto overscroll-contain bg-[linear-gradient(180deg,hsl(var(--background)),hsl(var(--surface)))] text-foreground">
       <header className="sticky top-0 z-20 border-b bg-card/88 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">

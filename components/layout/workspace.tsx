@@ -2,11 +2,11 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  BookOpen,
   Brush,
-  ChevronDown,
-  ChevronUp,
   History,
   Menu,
+  MessageCircle,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
@@ -33,25 +33,41 @@ import { useChatStore } from '@/stores/chat-store';
 import { useRoleplayStore } from '@/stores/roleplay-store';
 import { useUIStore } from '@/stores/ui-store';
 
-type SectionKey = 'chat' | 'videoScript' | 'roleplay' | 'training' | 'image';
+type FeatureKey = 'chat' | 'videoScript' | 'roleplay' | 'training' | 'image';
+type WorkspaceGroupKey = 'dialogue' | 'learning' | 'drawing';
 
-type Section = {
-  key: SectionKey;
+type WorkspaceFeature = {
+  key: FeatureKey;
   label: string;
   mode: ChatMode;
   icon: typeof Sparkles;
   accent: string;
+  group: WorkspaceGroupKey;
 };
 
-const sections: Section[] = [
-  { key: 'chat', label: '通用对话', mode: 'chat', icon: Sparkles, accent: 'bg-blue-500/10 text-blue-600 dark:text-blue-300' },
-  { key: 'videoScript', label: '内容创作', mode: 'videoScript', icon: Video, accent: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-300' },
-  { key: 'roleplay', label: '角色扮演', mode: 'roleplay', icon: Swords, accent: 'bg-teal-500/10 text-teal-600 dark:text-teal-300' },
-  { key: 'training', label: '学习对练', mode: 'training', icon: Sparkles, accent: 'bg-amber-500/10 text-amber-600 dark:text-amber-300' },
-  { key: 'image', label: '专业绘图', mode: 'proImage', icon: Brush, accent: 'bg-slate-500/10 text-slate-600 dark:text-slate-300' },
+type WorkspaceGroup = {
+  key: WorkspaceGroupKey;
+  label: string;
+  description: string;
+  icon: typeof Sparkles;
+  accent: string;
+};
+
+const workspaceGroups: WorkspaceGroup[] = [
+  { key: 'dialogue', label: '对话', description: '聊天、内容创作、角色扮演', icon: MessageCircle, accent: 'bg-blue-500/10 text-blue-600 dark:text-blue-300' },
+  { key: 'learning', label: '学习', description: '测验、对练、复盘', icon: BookOpen, accent: 'bg-amber-500/10 text-amber-600 dark:text-amber-300' },
+  { key: 'drawing', label: '绘图', description: '专业图片生成', icon: Brush, accent: 'bg-slate-500/10 text-slate-600 dark:text-slate-300' },
 ];
 
-const modeToSection = (mode: ChatMode): SectionKey => {
+const features: WorkspaceFeature[] = [
+  { key: 'chat', label: '通用对话', mode: 'chat', icon: Sparkles, accent: 'bg-blue-500/10 text-blue-600 dark:text-blue-300', group: 'dialogue' },
+  { key: 'videoScript', label: '内容创作', mode: 'videoScript', icon: Video, accent: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-300', group: 'dialogue' },
+  { key: 'roleplay', label: '角色扮演', mode: 'roleplay', icon: Swords, accent: 'bg-teal-500/10 text-teal-600 dark:text-teal-300', group: 'dialogue' },
+  { key: 'training', label: '学习对练', mode: 'training', icon: BookOpen, accent: 'bg-amber-500/10 text-amber-600 dark:text-amber-300', group: 'learning' },
+  { key: 'image', label: '专业绘图', mode: 'proImage', icon: Brush, accent: 'bg-slate-500/10 text-slate-600 dark:text-slate-300', group: 'drawing' },
+];
+
+const modeToFeature = (mode: ChatMode): FeatureKey => {
   if (mode === 'copywriting' || mode === 'videoScript') return 'videoScript';
   if (mode === 'roleplay') return 'roleplay';
   if (mode === 'training') return 'training';
@@ -59,18 +75,15 @@ const modeToSection = (mode: ChatMode): SectionKey => {
   return 'chat';
 };
 
+const featureToGroup = (feature: FeatureKey): WorkspaceGroupKey => features.find((item) => item.key === feature)?.group || 'dialogue';
+const groupFeatures = (group: WorkspaceGroupKey) => features.filter((feature) => feature.group === group);
+const defaultFeatureForGroup = (group: WorkspaceGroupKey) => groupFeatures(group)[0]?.key || 'chat';
+
 export function Workspace({ mode }: { mode: ChatMode }) {
   const { resolvedTheme, setTheme } = useTheme();
   const [search, setSearch] = useState('');
-  const [section, setSection] = useState<SectionKey>(modeToSection(mode));
-  const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({
-    chat: true,
-    videoScript: true,
-    roleplay: true,
-    training: true,
-    image: true,
-  });
-  const [moduleCollapsed, setModuleCollapsed] = useState(false);
+  const [section, setSection] = useState<FeatureKey>(modeToFeature(mode));
+  const [activeGroup, setActiveGroup] = useState<WorkspaceGroupKey>(featureToGroup(modeToFeature(mode)));
   const [trainingTopicDialog, setTrainingTopicDialog] = useState<{ open: boolean; sessionId?: string }>({ open: false });
   const [trainingTopicInput, setTrainingTopicInput] = useState('');
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(false);
@@ -83,23 +96,24 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     () => sessions.find((sessionItem) => sessionItem.id === (activeSessionId ?? sessions[0]?.id)),
     [sessions, activeSessionId],
   );
-  const lastRouteSectionRef = useRef<SectionKey | null>(null);
+  const lastRouteSectionRef = useRef<FeatureKey | null>(null);
 
   useEffect(() => {
-    const targetSection = modeToSection(mode);
+    const targetSection = modeToFeature(mode);
     if (lastRouteSectionRef.current === targetSection) return;
     lastRouteSectionRef.current = targetSection;
     setSection(targetSection);
+    setActiveGroup(featureToGroup(targetSection));
 
-    if (active && modeToSection(active.mode) === targetSection) return;
+    if (active && modeToFeature(active.mode) === targetSection) return;
 
-    const existing = sessions.find((item) => modeToSection(item.mode) === targetSection);
+    const existing = sessions.find((item) => modeToFeature(item.mode) === targetSection);
     if (existing) {
       selectSession(existing.id);
       return;
     }
 
-    const targetMode = sections.find((item) => item.key === targetSection)?.mode;
+    const targetMode = features.find((item) => item.key === targetSection)?.mode;
     if (!targetMode) return;
 
     if (targetMode === 'roleplay') {
@@ -121,17 +135,22 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
   useEffect(() => {
     if (!active) return;
-    const activeSection = modeToSection(active.mode);
+    const activeSection = modeToFeature(active.mode);
     setSection((current) => (current === activeSection ? current : activeSection));
+    setActiveGroup((current) => {
+      const nextGroup = featureToGroup(activeSection);
+      return current === nextGroup ? current : nextGroup;
+    });
   }, [active]);
 
-  const openSection = (target: SectionKey) => {
+  const openFeature = (target: FeatureKey) => {
     setSearch('');
     setSection(target);
-    const targetMode = sections.find((item) => item.key === target)?.mode;
+    setActiveGroup(featureToGroup(target));
+    const targetMode = features.find((item) => item.key === target)?.mode;
     if (!targetMode) return;
 
-    const existing = sessions.find((item) => modeToSection(item.mode) === target);
+    const existing = sessions.find((item) => modeToFeature(item.mode) === target);
     if (existing) {
       selectSession(existing.id);
       return;
@@ -154,10 +173,31 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     createSession(targetMode);
   };
 
-  const createInSection = (target: SectionKey) => {
+  const openGroup = (target: WorkspaceGroupKey) => {
+    setSearch('');
+    setActiveGroup(target);
+    const activeFeature = active ? modeToFeature(active.mode) : undefined;
+    if (activeFeature && featureToGroup(activeFeature) === target) {
+      setSection(activeFeature);
+      return;
+    }
+
+    const existing = sessions.find((item) => featureToGroup(modeToFeature(item.mode)) === target);
+    if (existing) {
+      const nextFeature = modeToFeature(existing.mode);
+      setSection(nextFeature);
+      selectSession(existing.id);
+      return;
+    }
+
+    openFeature(defaultFeatureForGroup(target));
+  };
+
+  const createInFeature = (target: FeatureKey) => {
     setSearch('');
     setSection(target);
-    const targetMode = sections.find((item) => item.key === target)?.mode;
+    setActiveGroup(featureToGroup(target));
+    const targetMode = features.find((item) => item.key === target)?.mode;
     if (!targetMode) return;
 
     if (targetMode === 'roleplay') {
@@ -188,7 +228,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => setSidebarOpen(true)}>
             <Menu size={16} />
           </Button>
-          <span className="text-sm font-medium">EchoAI 工作区</span>
+          <span className="text-sm font-medium">EchoAI</span>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -224,15 +264,13 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           <div className="min-h-0 overflow-y-auto">
             <SidebarNav
               section={section}
+              activeGroup={activeGroup}
               sessions={sessions}
               activeSessionId={active?.id ?? activeSessionId}
-              expanded={expanded}
-              moduleCollapsed={moduleCollapsed}
-              onToggleModule={() => setModuleCollapsed((prev) => !prev)}
-              onToggle={(key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
-              onSelect={openSection}
+              onSelectGroup={openGroup}
+              onSelectFeature={openFeature}
               onSelectSession={selectSession}
-              onCreate={createInSection}
+              onCreate={createInFeature}
             />
           </div>
           <div className="mt-3 min-h-0 flex-1 border-t pt-3">
@@ -288,14 +326,15 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             <div className="min-h-0 overflow-y-auto">
               <SidebarNav
                 section={section}
+                activeGroup={activeGroup}
                 sessions={sessions}
                 activeSessionId={active?.id ?? activeSessionId}
-                expanded={expanded}
-                moduleCollapsed={moduleCollapsed}
-                onToggleModule={() => setModuleCollapsed((prev) => !prev)}
-                onToggle={(key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
-                onSelect={(key) => {
-                  openSection(key);
+                onSelectGroup={(key) => {
+                  openGroup(key);
+                  setSidebarOpen(false);
+                }}
+                onSelectFeature={(key) => {
+                  openFeature(key);
                   setSidebarOpen(false);
                 }}
                 onSelectSession={(id) => {
@@ -303,7 +342,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
                   setSidebarOpen(false);
                 }}
                 onCreate={(key) => {
-                  createInSection(key);
+                  createInFeature(key);
                   setSidebarOpen(false);
                 }}
               />
@@ -371,134 +410,153 @@ function ThemeToggleButton({ isDark, onClick }: { isDark: boolean; onClick: () =
 
 function SidebarNav({
   section,
+  activeGroup,
   sessions,
   activeSessionId,
-  expanded,
-  moduleCollapsed,
-  onToggleModule,
-  onToggle,
-  onSelect,
+  onSelectGroup,
+  onSelectFeature,
   onSelectSession,
   onCreate,
 }: {
-  section: SectionKey;
+  section: FeatureKey;
+  activeGroup: WorkspaceGroupKey;
   sessions: ReturnType<typeof useChatStore.getState>['sessions'];
   activeSessionId?: string;
-  expanded: Record<SectionKey, boolean>;
-  moduleCollapsed: boolean;
-  onToggleModule: () => void;
-  onToggle: (key: SectionKey) => void;
-  onSelect: (key: SectionKey) => void;
+  onSelectGroup: (key: WorkspaceGroupKey) => void;
+  onSelectFeature: (key: FeatureKey) => void;
   onSelectSession: (id: string) => void;
-  onCreate: (key: SectionKey) => void;
+  onCreate: (key: FeatureKey) => void;
 }) {
   const { deleteSession, regenerateSessionTitle } = useChatStore();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; session: ChatSession } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
+  const activeFeature = features.find((item) => item.key === section) || features[0];
+  const activeGroupMeta = workspaceGroups.find((item) => item.key === activeGroup) || workspaceGroups[0];
+  const activeFeatures = groupFeatures(activeGroup);
+  const activeFeatureSessions = sessions.filter((sessionItem) => modeToFeature(sessionItem.mode) === section).slice(0, 6);
 
   return (
     <>
       <div className="space-y-3" onClick={() => setContextMenu(null)}>
-        <div className="flex items-center justify-between px-2">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">工作区模块</p>
-          <button
-            onClick={onToggleModule}
-            className="ui-icon-button h-7 w-7 rounded-md border-transparent bg-transparent"
-            aria-label={moduleCollapsed ? '展开工作区模块' : '折叠工作区模块'}
-          >
-            {moduleCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </button>
+        <div className="px-1">
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">工作区</p>
+          <p className="mt-1 text-xs text-muted-foreground">先选板块，再用胶囊切换功能组。</p>
         </div>
-        {moduleCollapsed && <p className="px-2 text-xs text-muted-foreground">模块列表已折叠</p>}
-        {!moduleCollapsed &&
-          sections.map((item) => {
-            const recentSessions = sessions.filter((sessionItem) => modeToSection(sessionItem.mode) === item.key).slice(0, 3);
-            const Icon = item.icon;
-            const isOpen = expanded[item.key];
+
+        <div className="grid gap-2">
+          {workspaceGroups.map((group) => {
+            const Icon = group.icon;
+            const count = sessions.filter((sessionItem) => featureToGroup(modeToFeature(sessionItem.mode)) === group.key).length;
+            const isActive = activeGroup === group.key;
 
             return (
-              <div
-                key={item.key}
+              <button
+                key={group.key}
+                type="button"
+                onClick={() => onSelectGroup(group.key)}
                 className={cn(
-                  'group rounded-2xl border p-1.5 transition',
-                  section === item.key ? 'border-primary/20 bg-primary/[0.045]' : 'border-transparent hover:border-border/70 hover:bg-card/55',
+                  'rounded-2xl border p-3 text-left transition',
+                  isActive ? 'border-primary/35 bg-primary/10 text-primary shadow-sm' : 'border-border/60 bg-background/55 text-foreground hover:border-primary/25 hover:bg-primary/5',
                 )}
               >
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => onSelect(item.key)}
-                    className={cn(
-                      'flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-medium transition',
-                      section === item.key ? 'bg-background/90 text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground',
-                    )}
-                    title={`进入${item.label}`}
-                  >
-                    <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-lg', item.accent)}>
-                      <Icon size={15} />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-                    <span className="rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                      {recentSessions.length}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="ui-icon-button h-8 w-8 shrink-0 rounded-xl border-transparent bg-transparent"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onToggle(item.key);
-                    }}
-                    aria-label={isOpen ? `收起${item.label}` : `展开${item.label}`}
-                  >
-                    <ChevronDown size={14} className={`transition ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
-                  </button>
+                <div className="flex items-center gap-3">
+                  <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', group.accent)}>
+                    <Icon size={17} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">{group.label}</span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">{group.description}</span>
+                  </span>
+                  <span className="rounded-full border border-border/70 bg-background/75 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {count}
+                  </span>
                 </div>
-
-                {isOpen && (
-                  <div className="mt-1.5 space-y-1 pl-10 pr-1">
-                    <button
-                      type="button"
-                      className="flex h-8 w-full items-center gap-2 rounded-xl border border-dashed border-border/80 bg-background/35 px-2.5 text-left text-xs font-medium text-muted-foreground transition hover:border-primary/35 hover:bg-primary/10 hover:text-primary"
-                      onClick={() => onCreate(item.key)}
-                      title={`新建${item.label}会话`}
-                    >
-                      <Plus size={12} />
-                      新建{item.label}
-                    </button>
-                    {recentSessions.length > 0 && (
-                      <div className="space-y-1">
-                        {recentSessions.map((sessionItem) => {
-                          const isActiveSession = sessionItem.id === activeSessionId;
-                          return (
-                            <button
-                              key={sessionItem.id}
-                              onClick={() => onSelectSession(sessionItem.id)}
-                              onContextMenu={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
-                              }}
-                              className={cn(
-                                'flex w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-left text-sm transition',
-                                isActiveSession
-                                  ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
-                                  : 'border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/70 hover:text-foreground',
-                              )}
-                              title={`${sessionItem.title}（点击切换，右键管理）`}
-                            >
-                              <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', isActiveSession ? 'bg-primary' : 'bg-muted-foreground/35')} />
-                              <span className="min-w-0 flex-1 truncate font-medium">{sessionItem.title}</span>
-                              <span className="shrink-0 text-[10px] font-medium text-muted-foreground">{isActiveSession ? '当前' : '进入'}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              </button>
             );
           })}
+        </div>
+
+        <div className="rounded-3xl border bg-card/70 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{activeGroupMeta.label}功能组</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">当前：{activeFeature.label}</p>
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => onCreate(section)}>
+              <Plus size={13} />
+              新建
+            </Button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {activeFeatures.map((feature) => {
+              const Icon = feature.icon;
+              const isActive = section === feature.key;
+
+              return (
+                <button
+                  key={feature.key}
+                  type="button"
+                  onClick={() => onSelectFeature(feature.key)}
+                  className={cn(
+                    'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition',
+                    isActive ? 'border-primary/30 bg-primary/10 text-primary shadow-sm' : 'border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:text-foreground',
+                  )}
+                >
+                  <Icon size={12} />
+                  {feature.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {section === 'videoScript' && (
+            <div className="mt-3 rounded-2xl border border-cyan-400/20 bg-cyan-500/5 px-3 py-2 text-xs text-muted-foreground">
+              内容创作参数在底部输入区上方，点击“展开”即可填写产品、样本和热搜。
+            </div>
+          )}
+
+          <div className="mt-3 space-y-1.5">
+            {activeFeatureSessions.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => onCreate(section)}
+                className="flex h-10 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border/80 bg-background/45 text-xs font-medium text-muted-foreground transition hover:border-primary/35 hover:bg-primary/10 hover:text-primary"
+              >
+                <Plus size={12} />
+                新建{activeFeature.label}
+              </button>
+            ) : (
+              activeFeatureSessions.map((sessionItem) => {
+                const isActiveSession = sessionItem.id === activeSessionId;
+                return (
+                  <button
+                    key={sessionItem.id}
+                    onClick={() => onSelectSession(sessionItem.id)}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
+                    }}
+                    className={cn(
+                      'flex w-full items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm transition',
+                      isActiveSession
+                        ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
+                        : 'border-border/55 bg-background/50 text-muted-foreground hover:border-border hover:bg-background/80 hover:text-foreground',
+                    )}
+                    title={`${sessionItem.title}（点击切换，右键管理）`}
+                  >
+                    <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', isActiveSession ? 'bg-primary' : 'bg-muted-foreground/35')} />
+                    <span className="min-w-0 flex-1 truncate font-medium">{sessionItem.title}</span>
+                    <span className="shrink-0 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {isActiveSession ? '当前' : '进入'}
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
       </div>
 
       {contextMenu && (
