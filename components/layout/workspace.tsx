@@ -81,6 +81,7 @@ const defaultFeatureForGroup = (group: WorkspaceGroupKey) => groupFeatures(group
 
 export function Workspace({ mode }: { mode: ChatMode }) {
   const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState('');
   const [section, setSection] = useState<FeatureKey>(modeToFeature(mode));
   const [activeGroup, setActiveGroup] = useState<WorkspaceGroupKey>(featureToGroup(modeToFeature(mode)));
@@ -253,6 +254,18 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const contentMode = visibleSession?.mode ?? sectionFeature?.mode ?? mode;
   const isRoleplayMode = contentMode === 'roleplay';
   const isDarkTheme = resolvedTheme === 'dark';
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[linear-gradient(180deg,rgba(249,250,251,1),rgba(243,246,248,1))] text-sm text-muted-foreground dark:bg-[linear-gradient(180deg,hsl(222_47%_7%),hsl(222_47%_5%))]">
+        EchoAI 正在启动...
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(15,23,42,0.04),transparent_32%),linear-gradient(180deg,rgba(249,250,251,1),rgba(243,246,248,1))] dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_32%),linear-gradient(180deg,hsl(222_47%_7%),hsl(222_47%_5%))]">

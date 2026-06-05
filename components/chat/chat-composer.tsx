@@ -172,6 +172,27 @@ const formatTrendCatalog = (trends: DouyinTrendItem[]) =>
     })
     .join('\n');
 
+const describeTrendContext = (manualKeywords?: string, trendCatalog: DouyinTrendItem[] = []) => {
+  const manual = manualKeywords?.trim();
+  if (manual && trendCatalog.length > 0) return `${manual}；另已加载完整热搜榜单 ${trendCatalog.length} 条，见下方【可参考的抖音热搜完整列表】`;
+  if (manual) return manual;
+  if (trendCatalog.length > 0) return `已加载完整热搜榜单 ${trendCatalog.length} 条，见下方【可参考的抖音热搜完整列表】`;
+  return '无';
+};
+
+const buildTrendCatalogBlock = (trendCatalog: DouyinTrendItem[]) =>
+  trendCatalog.length > 0
+    ? [
+        '【可参考的抖音热搜完整列表】',
+        formatTrendCatalog(trendCatalog),
+        '请先判断哪些话题与当前产品、目标人群、使用场景、行业需求或情绪切口真正相关，只选 0~3 个自然融入。',
+        '选择标准：能自然转化成客户痛点、行业需求、加工难点、采购判断标准、设备能力说明，才允许借势。',
+        '如果只能靠牵强联想才能连接产品，判定为“不适合借势”，宁可不提这个热点。',
+        '输出成品里不要出现“热搜”“榜单”“蹭热点”“根据热搜”“来自今日热榜”等暴露来源的说法，要把相关话题转化成自然语境、生活场景或用户痛点。',
+        '',
+      ]
+    : [];
+
 const buildVideoScriptPromptWithPreset = (
   preset: VideoScriptPreset,
   userInput: string,
@@ -226,7 +247,7 @@ const buildVideoScriptPromptWithPreset = (
     `发布平台：${preset.platform || '未填写'}`,
     `时长（秒）：${duration}`,
     `内容目标：${preset.contentGoal || '未填写'}`,
-    `抖音热搜/趋势关键词：${preset.trendKeywords || '无'}`,
+    `抖音热搜/趋势关键词：${describeTrendContext(preset.trendKeywords, trendCatalog)}`,
     `必须包含：${preset.mustInclude || '无'}`,
     `避免内容：${preset.avoid || '无'}`,
     platformStrategy,
@@ -235,17 +256,7 @@ const buildVideoScriptPromptWithPreset = (
     versionStrategy,
   ];
 
-  const trendCatalogBlock = trendCatalog.length > 0
-    ? [
-        '【可参考的抖音热搜完整列表】',
-        formatTrendCatalog(trendCatalog),
-        '请先判断哪些话题与当前产品、目标人群、使用场景、行业需求或情绪切口真正相关，只选 0~3 个自然融入。',
-        '选择标准：能自然转化成客户痛点、行业需求、加工难点、采购判断标准、设备能力说明，才允许借势。',
-        '如果只能靠牵强联想才能连接产品，判定为“不适合借势”，宁可不提这个热点。',
-        '输出成品里不要出现“热搜”“榜单”“蹭热点”“根据热搜”“来自今日热榜”等暴露来源的说法，要把相关话题转化成自然语境、生活场景或用户痛点。',
-        '',
-      ]
-    : [];
+  const trendCatalogBlock = buildTrendCatalogBlock(trendCatalog);
 
   const sampleBlock = recalledSamples.length > 0
     ? [
@@ -283,10 +294,10 @@ const buildVideoScriptPromptWithPreset = (
     '【内容创作参数】',
     ...lines,
     '',
+    ...trendCatalogBlock,
     ...sampleBlock,
     ...manualSampleBlock,
     ...viralReferenceBlock,
-    ...trendCatalogBlock,
     ...antiHardTrendJackingRules,
     '',
     '【用户本次需求】',
@@ -318,7 +329,8 @@ const buildVideoScriptPromptWithPreset = (
 };
 
 
-const buildEditingIdeaPrompt = (scriptContent: string, preset: VideoScriptPreset, userInput: string) => {
+const buildEditingIdeaPrompt = (scriptContent: string, preset: VideoScriptPreset, userInput: string, trendCatalog: DouyinTrendItem[] = []) => {
+  const trendCatalogBlock = buildTrendCatalogBlock(trendCatalog);
   const lines = [
     '【剪辑思路生成任务】',
     `发布平台：${preset.platform || '未填写'}`,
@@ -328,6 +340,9 @@ const buildEditingIdeaPrompt = (scriptContent: string, preset: VideoScriptPreset
     `产品/服务：${preset.productName || '未填写'}`,
     `目标人群：${preset.targetAudience || '未填写'}`,
     `核心卖点：${preset.coreSellingPoints || '未填写'}`,
+    `抖音热搜/趋势关键词：${describeTrendContext(preset.trendKeywords, trendCatalog)}`,
+    '',
+    ...trendCatalogBlock,
     '',
     '【脚本原文】',
     scriptContent.trim() || '未提供脚本原文',
@@ -407,6 +422,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     })),
   );
   const hasApiKey = Boolean(settings.apiKey?.trim());
+  const activeTrendCatalog = douyinTrends.length > 0 ? douyinTrends : trendSnapshots[0]?.items || [];
 
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
   const isGenerating = !!activeSession?.id && generatingSessionIds.includes(activeSession.id);
@@ -428,9 +444,10 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       p.contentGoal?.trim() ||
       p.referenceSamples?.trim() ||
       p.trendKeywords?.trim() ||
+      activeTrendCatalog.length > 0 ||
       viralStructureReference?.content?.trim(),
     );
-  }, [videoPreset, viralStructureReference]);
+  }, [activeTrendCatalog.length, videoPreset, viralStructureReference]);
   const canSendVideoScriptFromPreset = isContentMode && videoTaskType === 'script' && hasVideoPresetInput;
   const latestAssistantMessage = [...(activeSession?.messages || [])].reverse().find((message) => message.role === 'assistant' && message.status !== 'error');
   const editingIdeaSource = (activeSession?.preferredCandidate?.content || latestAssistantMessage?.content || '').trim();
@@ -586,6 +603,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     if (isGeneratingTopic) return;
     setIsGeneratingTopic(true);
     try {
+      const trendCatalogBlock = buildTrendCatalogBlock(activeTrendCatalog);
       const prompt = [
         `请根据以下内容创作参数，生成 1 个适合直接放进“主题 / 选题”输入框的中文标题。输出类型：${outputTypeLabel(videoPreset.outputType)}`,
         '要求：',
@@ -601,9 +619,11 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         `内容类型：${videoPreset.contentType || '口播'}`,
         `时长（秒）：${videoPreset.durationSec || 60}`,
         `内容目标：${videoPreset.contentGoal || '未填写'}`,
-        `抖音热搜/趋势关键词：${videoPreset.trendKeywords || '无'}`,
+        `抖音热搜/趋势关键词：${describeTrendContext(videoPreset.trendKeywords, activeTrendCatalog)}`,
         `必须包含：${videoPreset.mustInclude || '无'}`,
         `避免内容：${videoPreset.avoid || '无'}`,
+        '',
+        ...trendCatalogBlock,
       ].join('\n');
 
       const topic = await requestOpenAICompatible({
@@ -688,11 +708,15 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       .join('\n');
 
     let contentToSend = value.trim();
+    const trendCatalogBlock = buildTrendCatalogBlock(activeTrendCatalog);
 
     if (isContentMode && videoTaskType === 'viral-analysis') {
       contentToSend = [
         '【爆款文案分析任务】',
         '请分析下面这段爆款文案，并严格按以下结构输出，不要合并栏目，不要遗漏标题：',
+        `抖音热搜/趋势关键词：${describeTrendContext(videoPreset.trendKeywords, activeTrendCatalog)}`,
+        '',
+        ...trendCatalogBlock,
         '## 钩子结构',
         '- 开头抓人的句子/动作是什么',
         '- 它为什么能把人留下来',
@@ -732,7 +756,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       ].join('\n');
     } else if (isContentMode && videoTaskType === 'editing-idea') {
       const scriptContent = editingIdeaSource || value.trim();
-      contentToSend = buildEditingIdeaPrompt(scriptContent, videoPreset, value.trim());
+      contentToSend = buildEditingIdeaPrompt(scriptContent, videoPreset, value.trim(), activeTrendCatalog);
       if (!editingIdeaSource && value.trim()) {
         setInputHint('本次使用你手动输入的脚本文本生成剪辑思路。');
       }
@@ -746,7 +770,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         videoPreset.coreSellingPoints || '',
         videoPreset.referenceSamples || '',
         videoPreset.trendKeywords || '',
-        formatTrendCatalog(douyinTrends),
+        formatTrendCatalog(activeTrendCatalog),
         viralStructureReference?.content || '',
         contentToSend,
       ].filter(Boolean).join('\n');
@@ -754,7 +778,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         title: item.title,
         content: item.textContent.slice(0, 1500),
       }));
-      contentToSend = buildVideoScriptPromptWithPreset({ ...videoPreset, viralStructureReference }, contentToSend, recalledSamples, douyinTrends);
+      contentToSend = buildVideoScriptPromptWithPreset({ ...videoPreset, viralStructureReference }, contentToSend, recalledSamples, activeTrendCatalog);
     }
 
     const finalContent = [contentToSend, attachmentText].filter(Boolean).join('\n\n');
