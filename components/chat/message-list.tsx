@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Bot, ChevronDown, ChevronUp, Copy, Download, Eraser, Heart, Pencil, RefreshCcw, RotateCw, Save, Trash2, UserRound, Wand2 } from 'lucide-react';
+import { AlertTriangle, Bot, ChevronDown, ChevronUp, Copy, Download, Eraser, Heart, Pencil, RefreshCcw, RotateCw, Save, Trash2, UserRound, Wand2 } from 'lucide-react';
 import { VideoScriptStateCard } from '@/components/chat/video-script-state-card';
 import { Button } from '@/components/ui/button';
 import { ChatSession } from '@/lib/types';
@@ -327,8 +327,11 @@ export function MessageList({ session }: { session?: ChatSession }) {
   const isTrainingMode = session?.mode === 'training';
   const trainingQuestionStem = session?.trainingCurrentQuestion?.stem;
   const isVideoScriptMode = session?.mode === 'videoScript';
-  const lastMessage = session?.messages.at(-1);
   const hasStreamingMessage = session?.messages.some((msg) => msg.status === 'streaming');
+  const latestErrorMessage = useMemo(() => {
+    const error = [...(session?.messages || [])].reverse().find((msg) => msg.role === 'assistant' && msg.status === 'error');
+    return error?.content.replace(/^⚠️\s*/, '').trim();
+  }, [session?.messages]);
 
   useEffect(() => {
     if (!isTrainingMode || !trainingQuestionStem) return;
@@ -361,6 +364,43 @@ export function MessageList({ session }: { session?: ChatSession }) {
 
   return (
     <div className="space-y-5">
+      {session.mode !== 'training' && session.messages.length > 0 && (
+        <div className="sticky top-0 z-20 -mx-1 space-y-2 border-b border-border/60 bg-[linear-gradient(180deg,hsl(var(--background)/0.96),hsl(var(--background)/0.82))] px-1 py-2 backdrop-blur">
+          {latestErrorMessage && (
+            <div className="flex flex-col gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-2 text-red-700 dark:text-red-200">
+                <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-medium">生成内容失败</p>
+                  <p className="mt-0.5 truncate text-xs opacity-85">{latestErrorMessage || '请检查 API Key、模型或网络后重试。'}</p>
+                </div>
+              </div>
+              <Button variant="secondary" size="sm" className="h-8 shrink-0 text-xs" onClick={() => regenerateLastAssistant(session.id)}>
+                <RefreshCcw size={13} />
+                重新生成
+              </Button>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="ui-inline-action"
+              title="清空当前会话上下文"
+              onClick={() => setClearConfirmOpen(true)}
+            >
+              <Eraser size={13} />清空上下文
+            </button>
+            <button type="button" className="ui-inline-action" onClick={() => regenerateLastAssistant(session.id)}>
+              <RotateCw size={13} />重新生成
+            </button>
+            <button type="button" className="ui-inline-action" onClick={exportContent}>
+              <Download size={13} />导出内容
+            </button>
+          </div>
+        </div>
+      )}
+
       {session.mode === 'training' && (
         <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-emerald-500/10 p-4">
           <div className="mb-2 flex items-center justify-between text-sm">
@@ -371,25 +411,6 @@ export function MessageList({ session }: { session?: ChatSession }) {
             <div className="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 transition-all" style={{ width: `${session.trainingScore ?? 60}%` }} />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">主题：{session.trainingTopic || '尚未设置'} · 已完成 {session.trainingRound ?? 0} 题</p>
-        </div>
-      )}
-
-      {session.messages.length > 0 && (
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            className="ui-inline-action"
-            title="清空当前会话上下文"
-            onClick={() => setClearConfirmOpen(true)}
-          >
-            <Eraser size={13} />清空上下文
-          </button>
-          <button type="button" className="ui-inline-action" onClick={() => regenerateLastAssistant(session.id)}>
-            <RotateCw size={13} />重新生成
-          </button>
-          <button type="button" className="ui-inline-action" onClick={exportContent}>
-            <Download size={13} />导出内容
-          </button>
         </div>
       )}
 

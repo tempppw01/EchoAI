@@ -107,6 +107,11 @@ body {
   color: hsl(var(--foreground));
 }
 
+.ui-icon-button:disabled,
+.ui-inline-action:disabled {
+  @apply cursor-not-allowed opacity-45;
+}
+
 .ui-segmented-trigger[data-state='active'] {
   @apply border-primary/20 bg-primary/10 text-primary;
 }

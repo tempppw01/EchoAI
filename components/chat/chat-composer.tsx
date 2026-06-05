@@ -1,7 +1,7 @@
 'use client';
 
 import { type ChangeEvent, type ClipboardEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Eraser, FileText, Paperclip, SendHorizontal, Settings, SlidersHorizontal, Sparkles, Square, Upload, X } from 'lucide-react';
+import { Paperclip, SendHorizontal, Settings, SlidersHorizontal, Sparkles, Square, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -386,7 +386,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const { sessions, activeSessionId, sendMessage, createSession, generatingSessionIds, stopMessage, updateSession, clearContext } = useChatStore(
+  const { sessions, activeSessionId, sendMessage, createSession, generatingSessionIds, stopMessage, updateSession } = useChatStore(
     useShallow((state) => ({
       sessions: state.sessions,
       activeSessionId: state.activeSessionId,
@@ -395,7 +395,6 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       generatingSessionIds: state.generatingSessionIds,
       stopMessage: state.stopMessage,
       updateSession: state.updateSession,
-      clearContext: state.clearContext,
     })),
   );
   const { settings, setSettings } = useSettingsStore();
@@ -436,6 +435,14 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const latestAssistantMessage = [...(activeSession?.messages || [])].reverse().find((message) => message.role === 'assistant' && message.status !== 'error');
   const editingIdeaSource = (activeSession?.preferredCandidate?.content || latestAssistantMessage?.content || '').trim();
   const canSendEditingIdea = isContentMode && videoTaskType === 'editing-idea' && Boolean(editingIdeaSource || value.trim() || attachments.length > 0);
+  const videoTaskLabel = videoTaskType === 'script' ? '生成' : videoTaskType === 'viral-analysis' ? '拆解' : '剪辑';
+  const videoPresetSummary = [
+    outputTypeLabel(videoPreset.outputType),
+    videoPreset.durationSec ? `${videoPreset.durationSec}秒` : '',
+    videoPreset.platform || '',
+    videoPreset.versionCount ? `${videoPreset.versionCount}版` : '',
+    videoPreset.productName?.trim() || videoPreset.businessType?.trim() || '',
+  ].filter(Boolean).slice(0, 5).join(' · ') || '未填写参数';
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -793,77 +800,83 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       />
 
       {isContentMode && (
-        <div className="mb-2 space-y-2">
-          <div className="flex justify-center">
-            <div className="inline-flex rounded-full border border-white/10 bg-background/70 p-1 shadow-sm">
+        <div className="mb-2 rounded-lg border border-border/70 bg-background/72 p-2 text-xs shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex shrink-0 rounded-lg border border-border/70 bg-card/80 p-0.5 shadow-sm">
               <button
                 type="button"
                 data-state={videoTaskType === 'script' ? 'active' : 'inactive'}
-                className="ui-segmented-trigger min-w-[92px]"
+                className="ui-segmented-trigger h-7 min-w-[76px] rounded-md px-2 text-[11px]"
                 onClick={() => setVideoTaskType('script')}
               >
-                内容生成
+                生成
               </button>
               <button
                 type="button"
                 data-state={videoTaskType === 'viral-analysis' ? 'active' : 'inactive'}
-                className="ui-segmented-trigger min-w-[92px]"
+                className="ui-segmented-trigger h-7 min-w-[76px] rounded-md px-2 text-[11px]"
                 onClick={() => setVideoTaskType('viral-analysis')}
               >
-                爆款拆解
+                拆解
               </button>
               <button
                 type="button"
                 data-state={videoTaskType === 'editing-idea' ? 'active' : 'inactive'}
-                className="ui-segmented-trigger min-w-[92px]"
+                className="ui-segmented-trigger h-7 min-w-[76px] rounded-md px-2 text-[11px]"
                 onClick={() => setVideoTaskType('editing-idea')}
               >
-                剪辑思路
+                剪辑
               </button>
             </div>
+
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <span className="shrink-0 rounded-md border border-primary/20 bg-primary/10 px-2 py-1 font-medium text-primary">{videoTaskLabel}</span>
+              <span className="min-w-0 truncate text-muted-foreground">{videoPresetSummary}</span>
+            </div>
+
+            <button
+              type="button"
+              className="ui-inline-action h-7 shrink-0 rounded-md px-2.5"
+              onClick={() => {
+                if (videoTaskType !== 'script') {
+                  setVideoTaskType('script');
+                  setShowVideoPreset(true);
+                  return;
+                }
+                setShowVideoPreset((prev) => !prev);
+              }}
+            >
+              {showVideoPreset && videoTaskType === 'script' ? '收起参数' : '参数'}
+            </button>
           </div>
 
-          {activeSession?.preferredCandidate && (
-            <div className="rounded-xl border border-rose-400/20 bg-rose-500/5 px-3 py-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">当前参考候选：</span>
-              {activeSession.preferredCandidate.label}
+          {(activeSession?.preferredCandidate || viralStructureReference || videoTaskType !== 'script' || importedTranscriptMeta) && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+              {activeSession?.preferredCandidate && (
+                <span className="rounded-md border border-rose-400/20 bg-rose-500/5 px-2 py-1">
+                  参考候选：{activeSession.preferredCandidate.label}
+                </span>
+              )}
+              {viralStructureReference && (
+                <span className="rounded-md border border-emerald-400/20 bg-emerald-500/5 px-2 py-1">
+                  已套用：{viralStructureReference.label}
+                </span>
+              )}
+              {videoTaskType === 'editing-idea' && (
+                <span className="rounded-md border border-border/70 bg-card/60 px-2 py-1">
+                  {editingIdeaSource ? '已自动复用当前脚本结果' : '可粘贴脚本后生成剪辑思路'}
+                </span>
+              )}
+              {videoTaskType === 'viral-analysis' && importedTranscriptMeta && (
+                <span className="rounded-md border border-sky-400/20 bg-sky-500/5 px-2 py-1">
+                  已导入：{importedTranscriptMeta.name}
+                </span>
+              )}
             </div>
           )}
 
-          {videoTaskType === 'script' && (
-            <div className="rounded-xl border bg-background/70 p-3 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">内容创作参数</span>
-                <button className="ui-inline-action h-7 px-2.5" onClick={() => setShowVideoPreset((prev) => !prev)}>
-                  {showVideoPreset ? '收起' : '展开'}
-                </button>
-              </div>
-              {viralStructureReference && (
-                <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/5 px-3 py-2 text-xs text-muted-foreground">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <span className="font-medium text-foreground">已套用爆款结构：</span>
-                      {viralStructureReference.label}
-                    </div>
-                    {!videoPreset.topic?.trim() && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="text-[11px]"
-                        onClick={generatePresetTopic}
-                        disabled={isGeneratingTopic}
-                      >
-                        <Sparkles size={12} className={isGeneratingTopic ? 'animate-pulse' : ''} />
-                        自动生成选题
-                      </Button>
-                    )}
-                  </div>
-                  {!videoPreset.topic?.trim() && <p className="mt-1">可直接点右侧按钮，根据这份结构先生成一个新的选题。</p>}
-                </div>
-              )}
-              {showVideoPreset && (
-                <div className="mt-3 max-h-[36vh] space-y-3 overflow-y-auto pr-1">
+          {showVideoPreset && videoTaskType === 'script' && (
+            <div className="mt-2 max-h-[34vh] space-y-2 overflow-y-auto rounded-lg border border-border/70 bg-card/45 p-2 pr-1">
                   <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border/70 bg-background/60 p-2">
                     <span className="mr-1 text-[11px] font-medium text-muted-foreground">快捷模板</span>
                     {contentQuickTemplates.map((template) => (
@@ -1031,39 +1044,6 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                       <Input className="h-9" value={videoPreset.avoid || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, avoid: e.target.value }))} placeholder="例如：绝对化承诺、虚构参数" />
                     </label>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-
-
-          {videoTaskType === 'editing-idea' && (
-            <div className="rounded-xl border bg-background/70 p-3 text-xs">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-medium">剪辑思路输入</span>
-                <span className="text-muted-foreground">自动复用当前脚本结果</span>
-              </div>
-              <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-muted-foreground">
-                {editingIdeaSource ? (
-                  <>
-                    <p><span className="font-medium text-foreground">已自动带入当前脚本结果，</span>可直接生成剪辑思路。</p>
-                    <p className="mt-1 line-clamp-4 whitespace-pre-wrap">{editingIdeaSource}</p>
-                  </>
-                ) : (
-                  <p>当前会话还没有可复用的脚本结果，你也可以直接在下方输入框粘贴脚本文本后生成。</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {videoTaskType === 'viral-analysis' && importedTranscriptMeta && (
-            <div className="rounded-xl border border-sky-400/20 bg-sky-500/5 px-3 py-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <FileText size={14} className="text-sky-300" />
-                <span className="font-medium text-foreground">已导入转录文本：</span>
-                <span>{importedTranscriptMeta.name}</span>
-              </div>
-              <p className="mt-1">内容已自动填入分析输入框，可直接发送继续做结构提取。</p>
             </div>
           )}
         </div>
@@ -1092,7 +1072,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         </div>
       )}
 
-      <div className={`chat-panel flex gap-2 p-1.5 ${isImageMode ? 'items-center' : 'items-end'}`}>
+      <div className={`chat-panel flex gap-2 !rounded-xl p-1.5 ${isImageMode ? 'items-center' : 'items-end'}`}>
         {mode === 'training' && (
           <div className="flex-1 rounded-xl border border-dashed border-primary/30 bg-gradient-to-r from-sky-500/10 to-cyan-500/10 px-3 py-4 text-sm text-muted-foreground">
             训练模式请在上方点击大卡片选项作答，系统会自动连续出题并更新分数。
@@ -1116,7 +1096,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             if (inputHint) setInputHint('');
           }}
           rows={1}
-          className={`${isImageMode ? 'min-h-10' : 'min-h-[54px]'} max-h-[220px] resize-none overflow-y-auto rounded-xl border-0 bg-transparent py-2.5 shadow-none focus-visible:ring-0`}
+          className={`${isImageMode ? 'min-h-10' : 'min-h-[54px]'} max-h-[220px] resize-none overflow-y-auto rounded-md border-0 bg-transparent py-2.5 shadow-none focus-visible:ring-0`}
           placeholder={isContentMode && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，或导入 txt/md/srt/vtt/json 转录文本后回车发送分析' : isContentMode && videoTaskType === 'editing-idea' ? '可补充剪辑重点；若当前没有脚本结果，也可直接粘贴脚本文本后生成剪辑思路' : mode === 'image' || mode === 'proImage' ? '描述你想生成的图片内容，发送后会把图片工作流记录保留在本页。' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
@@ -1128,21 +1108,6 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             onSend();
           }}
         />}
-
-        {activeSession?.id && mode !== 'training' && (
-          <Button
-            variant="ghost"
-            size="icon"
-            title="清空当前会话上下文"
-            onClick={() => {
-              clearContext(activeSession.id);
-              setImportedTranscriptMeta(null);
-              setInputHint('已清空当前会话上下文。');
-            }}
-          >
-            <Eraser size={16} />
-          </Button>
-        )}
 
         {isGenerating && activeSession?.id ? (
           <Button variant="ghost" size="icon" onClick={() => stopMessage(activeSession.id)}>
