@@ -321,6 +321,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
   const { retryMessage, regenerateLastAssistant, clearContext, deleteMessage, editUserMessage, answerTrainingQuestion, setPreferredCandidate, applyViralStructureToNewVideoSession } = useChatStore();
   const [editingId, setEditingId] = useState<string>();
   const [editingText, setEditingText] = useState('');
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const trainingQuestionRef = useRef<HTMLDivElement>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const isTrainingMode = session?.mode === 'training';
@@ -338,6 +339,10 @@ export function MessageList({ session }: { session?: ChatSession }) {
     if (!session) return;
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [session]);
+
+  useEffect(() => {
+    setClearConfirmOpen(false);
+  }, [session?.id]);
 
   if (!session) return null;
 
@@ -372,22 +377,45 @@ export function MessageList({ session }: { session?: ChatSession }) {
       {session.messages.length > 0 && (
         <div className="flex justify-end gap-2">
           <button
+            type="button"
             className="ui-inline-action"
             title="清空当前会话上下文"
-            onClick={() => {
-              if (window.confirm('确定清空当前会话上下文吗？')) {
-                clearContext(session.id);
-              }
-            }}
+            onClick={() => setClearConfirmOpen(true)}
           >
             <Eraser size={13} />清空上下文
           </button>
-          <button className="ui-inline-action" onClick={() => regenerateLastAssistant(session.id)}>
+          <button type="button" className="ui-inline-action" onClick={() => regenerateLastAssistant(session.id)}>
             <RotateCw size={13} />重新生成
           </button>
-          <button className="ui-inline-action" onClick={exportContent}>
+          <button type="button" className="ui-inline-action" onClick={exportContent}>
             <Download size={13} />导出内容
           </button>
+        </div>
+      )}
+
+      {clearConfirmOpen && (
+        <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-3 text-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium text-foreground">确认清空当前会话上下文？</p>
+              <p className="mt-1 text-xs text-muted-foreground">会删除本会话的消息内容，但不会影响其它会话。</p>
+            </div>
+            <div className="flex shrink-0 justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setClearConfirmOpen(false)}>
+                取消
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => {
+                  clearContext(session.id);
+                  setClearConfirmOpen(false);
+                }}
+              >
+                清空
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -750,11 +778,11 @@ const MessageItem = memo(function MessageItem({
         )}
 
         <div className="mt-3 flex gap-1.5 text-xs opacity-90">
-          <button className="ui-icon-button h-7 w-7 bg-transparent" onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
-          {isUser && <button className="ui-icon-button h-7 w-7 bg-transparent" onClick={onEdit}><Pencil size={14} /></button>}
-          {isUser && <button className="ui-icon-button h-7 w-7 bg-transparent" onClick={onRetry}><RefreshCcw size={14} /></button>}
-          {!isUser && isError && <button className="ui-icon-button h-7 w-7 bg-transparent" onClick={onRetry}><RefreshCcw size={14} /></button>}
-          <button className="ui-icon-button h-7 w-7 bg-transparent" onClick={onDelete}><Trash2 size={14} /></button>
+          <button type="button" className="ui-icon-button h-7 w-7 bg-transparent" title="复制内容" aria-label="复制内容" onClick={() => navigator.clipboard.writeText(msg.content)}><Copy size={14} /></button>
+          {isUser && <button type="button" className="ui-icon-button h-7 w-7 bg-transparent" title="编辑消息" aria-label="编辑消息" onClick={onEdit}><Pencil size={14} /></button>}
+          {isUser && <button type="button" className="ui-icon-button h-7 w-7 bg-transparent" title="用这条消息重试" aria-label="用这条消息重试" onClick={onRetry}><RefreshCcw size={14} /></button>}
+          {!isUser && isError && <button type="button" className="ui-icon-button h-7 w-7 bg-transparent" title="重新生成" aria-label="重新生成" onClick={onRetry}><RefreshCcw size={14} /></button>}
+          <button type="button" className="ui-icon-button h-7 w-7 bg-transparent" title="删除这条消息" aria-label="删除这条消息" onClick={onDelete}><Trash2 size={14} /></button>
         </div>
       </div>
       {isUser && <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary"><UserRound size={15} /></div>}

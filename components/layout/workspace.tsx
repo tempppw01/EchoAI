@@ -143,6 +143,35 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     });
   }, [active]);
 
+  useEffect(() => {
+    if (active && modeToFeature(active.mode) === section) return;
+
+    const existing = sessions.find((item) => modeToFeature(item.mode) === section);
+    if (existing) {
+      selectSession(existing.id);
+      return;
+    }
+
+    const targetMode = features.find((item) => item.key === section)?.mode;
+    if (!targetMode) return;
+
+    if (targetMode === 'roleplay') {
+      createSession('roleplay', undefined, undefined, {
+        characterId: recentCharacterId ?? activeCharacterId,
+        worldId: activeWorldId,
+      });
+      return;
+    }
+
+    if (targetMode === 'training') {
+      const sessionId = createSession('training');
+      setTrainingTopicDialog({ open: true, sessionId });
+      return;
+    }
+
+    createSession(targetMode);
+  }, [active, activeCharacterId, activeWorldId, createSession, recentCharacterId, section, selectSession, sessions]);
+
   const openFeature = (target: FeatureKey) => {
     setSearch('');
     setSection(target);
@@ -217,7 +246,11 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     createSession(targetMode);
   };
 
-  const contentMode = active?.mode ?? mode;
+  const sectionFeature = features.find((item) => item.key === section);
+  const visibleSession = active && modeToFeature(active.mode) === section
+    ? active
+    : sessions.find((sessionItem) => modeToFeature(sessionItem.mode) === section);
+  const contentMode = visibleSession?.mode ?? sectionFeature?.mode ?? mode;
   const isRoleplayMode = contentMode === 'roleplay';
   const isDarkTheme = resolvedTheme === 'dark';
 
@@ -266,7 +299,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               section={section}
               activeGroup={activeGroup}
               sessions={sessions}
-              activeSessionId={active?.id ?? activeSessionId}
+              activeSessionId={visibleSession?.id ?? activeSessionId}
               onSelectGroup={openGroup}
               onSelectFeature={openFeature}
               onSelectSession={selectSession}
@@ -289,7 +322,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
           )}
           <AnimatePresence mode="wait">
             <motion.div
-              key={section + (active?.id ?? '')}
+              key={section + (visibleSession?.id ?? '')}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -299,13 +332,13 @@ export function Workspace({ mode }: { mode: ChatMode }) {
                 <div className={cn('mx-auto w-full', isRoleplayMode ? 'h-full max-w-none overflow-hidden' : section === 'chat' ? 'max-w-4xl' : 'max-w-5xl')}>
                   {contentMode === 'proImage' || contentMode === 'image' ? (
                     <div className="space-y-6">
-                      <ProImagePanel session={active} />
-                      <MessageList session={active} />
+                      <ProImagePanel session={visibleSession} />
+                      <MessageList session={visibleSession} />
                     </div>
                   ) : contentMode === 'roleplay' ? (
-                    <RoleplayStudio session={active} />
+                    <RoleplayStudio session={visibleSession} />
                   ) : (
-                    <MessageList session={active} />
+                    <MessageList session={visibleSession} />
                   )}
                 </div>
               </div>
@@ -328,7 +361,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
                 section={section}
                 activeGroup={activeGroup}
                 sessions={sessions}
-                activeSessionId={active?.id ?? activeSessionId}
+                activeSessionId={visibleSession?.id ?? activeSessionId}
                 onSelectGroup={(key) => {
                   openGroup(key);
                   setSidebarOpen(false);
