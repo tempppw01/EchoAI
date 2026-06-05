@@ -53,6 +53,31 @@ export interface DouyinTrendSnapshot {
   items: DouyinTrendItem[];
 }
 
+export interface DouyinKeywordSuggestion {
+  keyword: string;
+  rank: number;
+  source?: string;
+  type?: 'suggestion' | 'longTail' | 'related';
+  score?: number;
+}
+
+export interface DouyinKeywordSnapshot {
+  id: string;
+  keyword: string;
+  fetchedAt: string;
+  source: string;
+  suggestions: DouyinKeywordSuggestion[];
+  longTailSuggestions: DouyinKeywordSuggestion[];
+}
+
+export interface DouyinKeywordWatch {
+  id: string;
+  keyword: string;
+  createdAt: string;
+  updatedAt: string;
+  snapshots: DouyinKeywordSnapshot[];
+}
+
 export interface PreferredCandidateContext {
   sourceMessageId: string;
   versionKey: string;

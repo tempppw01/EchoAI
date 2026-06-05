@@ -1,4 +1,4 @@
-import type { DouyinTrendItem, DouyinTrendSnapshot } from '@/lib/types';
+import type { DouyinKeywordSuggestion, DouyinTrendItem, DouyinTrendSnapshot } from '@/lib/types';
 
 export const normalizeTrendTitle = (title: string) =>
   title
@@ -74,4 +74,50 @@ export const formatTrendHistoryLabel = (item: DouyinTrendItem) => {
   if (item.previousRank) parts.push(`TOP${item.previousRank}`);
   if (item.previousHot) parts.push(`热度${item.previousHot}`);
   return parts.join(' · ');
+};
+
+export const dedupeKeywordSuggestions = (suggestions: DouyinKeywordSuggestion[]) => {
+  const seen = new Set<string>();
+
+  return suggestions.filter((item) => {
+    const key = normalizeTrendTitle(item.keyword);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+export const isLongTailKeyword = (keyword: string) => {
+  const normalized = keyword.trim();
+  return normalized.length >= 8 || /怎么|如何|哪里|多少钱|厂家|价格|推荐|教程|区别|避坑|测评|排行榜|安装|定制|批发|维修|方案|案例/.test(normalized);
+};
+
+export const splitKeywordSuggestions = (suggestions: DouyinKeywordSuggestion[]) => {
+  const ranked = dedupeKeywordSuggestions(suggestions).map((item, index) => ({
+    ...item,
+    rank: item.rank || index + 1,
+    type: item.type || (isLongTailKeyword(item.keyword) ? 'longTail' : 'suggestion'),
+  }));
+
+  return {
+    suggestions: ranked,
+    longTailSuggestions: ranked.filter((item) => item.type === 'longTail' || isLongTailKeyword(item.keyword)),
+  };
+};
+
+export const summarizeKeywordMomentum = (suggestions: DouyinKeywordSuggestion[], previous: DouyinKeywordSuggestion[] = []) => {
+  const previousMap = new Map(previous.map((item) => [normalizeTrendTitle(item.keyword), item.rank]));
+
+  return suggestions.map((item) => {
+    const key = normalizeTrendTitle(item.keyword);
+    const previousRank = previousMap.get(key);
+    const delta = previousRank ? previousRank - item.rank : undefined;
+
+    return {
+      ...item,
+      previousRank,
+      delta,
+      momentum: previousRank ? (delta && delta > 0 ? 'up' : delta && delta < 0 ? 'down' : 'flat') : 'new',
+    };
+  });
 };
