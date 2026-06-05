@@ -5,6 +5,7 @@ import {
   Brush,
   ChevronDown,
   ChevronUp,
+  History,
   Menu,
   Moon,
   PanelLeftClose,
@@ -16,6 +17,7 @@ import {
   Swords,
   Video,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChatComposer } from '@/components/chat/chat-composer';
@@ -199,6 +201,14 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             {workspaceCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           </Button>
           <ThemeToggleButton isDark={isDarkTheme} onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')} />
+          <Link
+            href="/trends"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-muted-foreground transition hover:bg-muted/70 hover:text-foreground"
+            aria-label="打开热搜历史"
+            title="打开热搜历史"
+          >
+            <History size={16} />
+          </Link>
           <Button variant="ghost" size="icon-sm" aria-label="打开设置中心" title="打开设置中心" onClick={() => setSettingsOpen(true)}>
             <Settings size={16} />
           </Button>

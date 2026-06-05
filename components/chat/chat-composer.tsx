@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
-import { ChatMode, VideoScriptPreset } from '@/lib/types';
+import { ChatMode, DouyinTrendItem, VideoScriptPreset } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSampleLibraryStore } from '@/stores/sample-library-store';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useTrendStore } from '@/stores/trend-store';
 import { useUIStore } from '@/stores/ui-store';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -145,14 +146,6 @@ const contentQuickTemplates: Array<{ name: string; description: string; preset: 
     },
   },
 ];
-
-type DouyinTrendItem = {
-  title: string;
-  hot?: string;
-  label?: string;
-  url?: string;
-  desc?: string;
-};
 
 const outputTypeLabel = (outputType?: VideoScriptPreset['outputType']) => (outputType === 'copy' ? '营销文案' : '短视频脚本');
 
@@ -387,6 +380,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const { settings, setSettings } = useSettingsStore();
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
   const getRelevantSamples = useSampleLibraryStore((state) => state.getRelevantSamples);
+  const addTrendSnapshot = useTrendStore((state) => state.addSnapshot);
   const hasApiKey = Boolean(settings.apiKey?.trim());
 
   const activeSession = useMemo(() => sessions.find((s) => s.id === (activeSessionId ?? sessions[0]?.id)), [sessions, activeSessionId]);
@@ -603,11 +597,19 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     setIsFetchingTrends(true);
     try {
       const response = await fetch('/api/trends/douyin', { method: 'GET', cache: 'no-store' });
-      const data = (await response.json()) as { items?: DouyinTrendItem[]; error?: string; sourceLabel?: string };
+      const data = (await response.json()) as { items?: DouyinTrendItem[]; error?: string; source?: string; sourceLabel?: string; fetchedAt?: string };
       if (!response.ok) throw new Error(data.error || '拉取抖音热搜失败');
       const items = data.items || [];
       setDouyinTrends(items);
       const sourceLabel = data.sourceLabel || '抖音热搜';
+      if (items.length > 0) {
+        addTrendSnapshot({
+          source: data.source || '',
+          sourceLabel,
+          fetchedAt: data.fetchedAt,
+          items,
+        });
+      }
       setInputHint(items.length > 0 ? `已从${sourceLabel}拉取 ${items.length} 条热搜，生成时会自动筛选适合产品的自然切入点。` : '暂时没有拉取到热搜词条。');
     } catch (error) {
       const message = error instanceof Error ? error.message : '拉取抖音热搜失败';

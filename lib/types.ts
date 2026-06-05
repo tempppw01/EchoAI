@@ -30,6 +30,23 @@ export interface VideoScriptPreset {
   viralStructureReference?: ViralStructureReference;
 }
 
+export interface DouyinTrendItem {
+  title: string;
+  hot?: string;
+  label?: string;
+  url?: string;
+  desc?: string;
+}
+
+export interface DouyinTrendSnapshot {
+  id: string;
+  source: string;
+  sourceLabel: string;
+  fetchedAt: string;
+  createdAt: string;
+  items: DouyinTrendItem[];
+}
+
 export interface PreferredCandidateContext {
   sourceMessageId: string;
   versionKey: string;
