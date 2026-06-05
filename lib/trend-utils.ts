@@ -76,6 +76,45 @@ export const formatTrendHistoryLabel = (item: DouyinTrendItem) => {
   return parts.join(' · ');
 };
 
+export const getTrendRankMovement = (item: DouyinTrendItem) => {
+  const currentRank = item.rank;
+  const previousRank = item.previousRank;
+  if (!currentRank || !previousRank) return { type: 'new' as const };
+  if (currentRank < previousRank) return { type: 'up' as const, delta: previousRank - currentRank };
+  if (currentRank > previousRank) return { type: 'down' as const, delta: currentRank - previousRank };
+  return { type: 'flat' as const };
+};
+
+export const findDroppedHistoricalTrends = (
+  currentItems: DouyinTrendItem[],
+  previousSnapshots: DouyinTrendSnapshot[],
+) => {
+  const currentKeys = new Set(currentItems.map((item) => normalizeTrendTitle(item.title)));
+  const seen = new Set<string>();
+  const dropped: DouyinTrendItem[] = [];
+
+  for (const snapshot of previousSnapshots) {
+    snapshot.items.forEach((item, index) => {
+      const key = normalizeTrendTitle(item.title);
+      if (!key || currentKeys.has(key) || seen.has(key)) return;
+      seen.add(key);
+      const lastRank = item.rank ?? index + 1;
+
+      dropped.push({
+        ...item,
+        rank: lastRank,
+        seenBefore: true,
+        previousSeenAt: snapshot.fetchedAt,
+        previousRank: lastRank,
+        previousHot: item.hot,
+        previousSourceLabel: snapshot.sourceLabel,
+      });
+    });
+  }
+
+  return dropped;
+};
+
 export const dedupeKeywordSuggestions = (suggestions: DouyinKeywordSuggestion[]) => {
   const seen = new Set<string>();
 

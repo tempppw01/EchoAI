@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Brain, ChevronDown, ChevronUp, ExternalLink, History, RefreshCw, Search, Star, Trash2, X } from 'lucide-react';
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, Brain, ChevronDown, ChevronUp, ExternalLink, History, Minus, RefreshCw, Search, Star, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
-import { enrichTrendItemsWithHistory, formatTrendHistoryLabel, summarizeKeywordMomentum } from '@/lib/trend-utils';
+import { enrichTrendItemsWithHistory, findDroppedHistoricalTrends, formatTrendHistoryLabel, getTrendRankMovement, summarizeKeywordMomentum } from '@/lib/trend-utils';
 import { DouyinKeywordSuggestion, DouyinTrendItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -38,6 +38,39 @@ const formatFullTime = (value?: string) => {
   }).format(date);
 };
 
+function TrendMovementBadge({ item }: { item: DouyinTrendItem }) {
+  const movement = getTrendRankMovement(item);
+
+  if (movement.type === 'up') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-red-600 dark:text-red-300" title={`较上次上升 ${movement.delta} 位`}>
+        <ArrowUpRight size={11} />
+        升{movement.delta}
+      </span>
+    );
+  }
+
+  if (movement.type === 'down') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-blue-600 dark:text-blue-300" title={`较上次下降 ${movement.delta} 位`}>
+        <ArrowDownRight size={11} />
+        降{movement.delta}
+      </span>
+    );
+  }
+
+  if (movement.type === 'flat') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-muted-foreground" title="排名与上次相同">
+        <Minus size={11} />
+        持平
+      </span>
+    );
+  }
+
+  return <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-emerald-700 dark:text-emerald-300">新进</span>;
+}
+
 export function DouyinTrendHistoryPage() {
   const { snapshots, keywordWatches, addSnapshot, deleteSnapshot, clearSnapshots, followKeyword, unfollowKeyword, addKeywordSnapshot } = useTrendStore();
   const { settings } = useSettingsStore();
@@ -68,6 +101,15 @@ export function DouyinTrendHistoryPage() {
     const activeIndex = snapshots.findIndex((snapshot) => snapshot.id === activeSnapshot.id);
     return enrichTrendItemsWithHistory(activeSnapshot.items, activeIndex >= 0 ? snapshots.slice(activeIndex + 1) : []);
   }, [activeSnapshot, snapshots]);
+  const activeSnapshotPreviousSnapshots = useMemo(() => {
+    if (!activeSnapshot) return [];
+    const activeIndex = snapshots.findIndex((snapshot) => snapshot.id === activeSnapshot.id);
+    return activeIndex >= 0 ? snapshots.slice(activeIndex + 1) : [];
+  }, [activeSnapshot, snapshots]);
+  const droppedHistoricalItems = useMemo(
+    () => findDroppedHistoricalTrends(activeSnapshotItems, activeSnapshotPreviousSnapshots),
+    [activeSnapshotItems, activeSnapshotPreviousSnapshots],
+  );
   const activeWatch = useMemo(
     () => keywordWatches.find((watch) => watch.id === activeWatchId) || keywordWatches[0],
     [activeWatchId, keywordWatches],
@@ -500,37 +542,97 @@ export function DouyinTrendHistoryPage() {
                 </div>
               )}
 
-              <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {activeSnapshotItems.map((item, index) => (
-                  <a
-                    key={`${item.title}-${item.hot || ''}-${index}`}
-                    href={getDouyinTrendUrl(item)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group rounded-2xl border border-border/70 bg-background/60 p-3 transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary">
-                        {item.rank ?? index + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-sm font-medium text-foreground">{item.title}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                          {item.hot && <span className="rounded-full bg-muted px-2 py-0.5">热度 {item.hot}</span>}
-                          {item.label && <span className="rounded-full bg-muted px-2 py-0.5">{item.label}</span>}
-                          <span className={cn('rounded-full px-2 py-0.5', item.seenBefore ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300')}>
-                            {formatTrendHistoryLabel(item)}
-                          </span>
-                          <span className="inline-flex items-center gap-1 text-primary">
-                            打开
-                            <ExternalLink size={11} />
-                          </span>
+              <div className="mt-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-base font-semibold">今日热榜 TOP50</h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">搜索链接已放在热搜词标题上，升降按上一次出现排名计算。</p>
+                  </div>
+                  <span className="rounded-full border border-border/70 bg-background/65 px-2.5 py-1 text-xs text-muted-foreground">
+                    {activeSnapshotItems.length} 条
+                  </span>
+                </div>
+
+                <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  {activeSnapshotItems.map((item, index) => (
+                    <div
+                      key={`${item.title}-${item.hot || ''}-${index}`}
+                      className="group rounded-2xl border border-border/70 bg-background/60 p-3 transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary">
+                          {item.rank ?? index + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <a
+                            href={getDouyinTrendUrl(item)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="line-clamp-2 text-sm font-medium text-foreground transition hover:text-primary hover:underline"
+                          >
+                            {item.title}
+                            <ExternalLink size={11} className="ml-1 inline align-[-1px]" />
+                          </a>
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                            <TrendMovementBadge item={item} />
+                            {item.hot && <span className="rounded-full bg-muted px-2 py-0.5">热度 {item.hot}</span>}
+                            {item.label && <span className="rounded-full bg-muted px-2 py-0.5">{item.label}</span>}
+                            <span className={cn('rounded-full px-2 py-0.5', item.seenBefore ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300')}>
+                              {formatTrendHistoryLabel(item)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </a>
-                ))}
+                  ))}
+                </div>
               </div>
+
+              {droppedHistoricalItems.length > 0 && (
+                <div className="mt-6 border-t pt-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <h2 className="text-base font-semibold">历史热榜</h2>
+                      <p className="mt-0.5 text-xs text-muted-foreground">曾经进入过热榜，但当前不在这次 TOP50 内；保留最后排名和最后热度。</p>
+                    </div>
+                    <span className="rounded-full border border-border/70 bg-background/65 px-2.5 py-1 text-xs text-muted-foreground">
+                      {droppedHistoricalItems.length} 条
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    {droppedHistoricalItems.map((item, index) => (
+                      <div
+                        key={`${item.title}-${item.previousSeenAt || ''}-${index}`}
+                        className="rounded-2xl border border-dashed border-border/75 bg-background/42 p-3"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-muted/70 text-xs font-semibold text-muted-foreground">
+                            {item.previousRank ?? item.rank ?? index + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <a
+                              href={getDouyinTrendUrl(item)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="line-clamp-2 text-sm font-medium text-foreground transition hover:text-primary hover:underline"
+                            >
+                              {item.title}
+                              <ExternalLink size={11} className="ml-1 inline align-[-1px]" />
+                            </a>
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <span className="rounded-full bg-muted px-2 py-0.5">已掉出TOP50</span>
+                              {item.previousHot && <span className="rounded-full bg-muted px-2 py-0.5">最后热度 {item.previousHot}</span>}
+                              {item.previousRank && <span className="rounded-full bg-muted px-2 py-0.5">最后TOP{item.previousRank}</span>}
+                              {item.previousSeenAt && <span className="rounded-full bg-muted px-2 py-0.5">最后出现 {formatTime(item.previousSeenAt)}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex min-h-[420px] flex-col items-center justify-center rounded-3xl border border-dashed bg-background/55 px-6 text-center">
