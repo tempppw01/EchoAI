@@ -162,7 +162,7 @@ export async function GET() {
       }
 
       const raw = await response.text();
-      const items = parsePayload(raw, response.headers.get('content-type') || '').slice(0, 20);
+      const items = parsePayload(raw, response.headers.get('content-type') || '');
 
       if (items.length > 0) {
         return NextResponse.json({

@@ -87,6 +87,65 @@ const defaultVideoScriptPreset: VideoScriptPreset = {
   avoid: '',
 };
 
+const contentQuickTemplates: Array<{ name: string; description: string; preset: Partial<VideoScriptPreset> }> = [
+  {
+    name: '工厂获客',
+    description: 'B2B 产品、采购决策、私信转化',
+    preset: {
+      businessType: '工业设备 / 工厂供应商',
+      targetAudience: '工厂老板、采购负责人、仓储负责人',
+      contentType: '口播',
+      platform: '抖音',
+      durationSec: 30,
+      contentGoal: '引导私信咨询',
+      toneStyle: '专业、直接、有对比',
+      mustInclude: '成本对比、使用场景、行动号召',
+      avoid: '绝对化承诺、虚构参数、夸大效果',
+    },
+  },
+  {
+    name: '产品种草',
+    description: '突出卖点、适合短视频转化',
+    preset: {
+      targetAudience: '有明确需求但还在对比的人群',
+      contentType: '口播',
+      platform: '抖音',
+      durationSec: 30,
+      contentGoal: '种草转化',
+      toneStyle: '自然、轻快、像真实体验分享',
+      mustInclude: '痛点、核心卖点、使用前后对比',
+      avoid: '硬广腔、过度承诺、强行制造焦虑',
+    },
+  },
+  {
+    name: '知识科普',
+    description: '讲清概念、建立专业信任',
+    preset: {
+      contentType: '解说',
+      platform: '抖音',
+      durationSec: 60,
+      contentGoal: '提升信任和专业度',
+      toneStyle: '清楚、克制、专业但不端着',
+      mustInclude: '误区解释、判断标准、实用建议',
+      avoid: '贩卖焦虑、过多术语、没有结论',
+    },
+  },
+  {
+    name: '爆款短句',
+    description: '快节奏、多版本、强开头',
+    preset: {
+      contentType: '混剪文案',
+      platform: '抖音',
+      durationSec: 15,
+      versionCount: 3,
+      contentGoal: '提升完播和互动',
+      toneStyle: '短句、强节奏、有记忆点',
+      mustInclude: '3秒钩子、反差、评论引导',
+      avoid: '长铺垫、解释过多、AI腔',
+    },
+  },
+];
+
 type DouyinTrendItem = {
   title: string;
   hot?: string;
@@ -97,7 +156,17 @@ type DouyinTrendItem = {
 
 const outputTypeLabel = (outputType?: VideoScriptPreset['outputType']) => (outputType === 'copy' ? '营销文案' : '短视频脚本');
 
-const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: string, recalledSamples: Array<{ title: string; content: string }> = []) => {
+const formatTrendCatalog = (trends: DouyinTrendItem[]) =>
+  trends
+    .map((trend, index) => `${index + 1}. ${trend.title}${trend.hot ? `（热度：${trend.hot}）` : ''}`)
+    .join('\n');
+
+const buildVideoScriptPromptWithPreset = (
+  preset: VideoScriptPreset,
+  userInput: string,
+  recalledSamples: Array<{ title: string; content: string }> = [],
+  trendCatalog: DouyinTrendItem[] = [],
+) => {
   const normalizedPlatform = (preset.platform || '').trim();
   const outputType = preset.outputType || 'script';
   const outputLabel = outputTypeLabel(outputType);
@@ -155,6 +224,17 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
     versionStrategy,
   ];
 
+  const trendCatalogBlock = trendCatalog.length > 0
+    ? [
+        '【可参考的抖音热搜完整列表】',
+        formatTrendCatalog(trendCatalog),
+        '请先判断哪些话题与当前产品、目标人群、使用场景或情绪切口真正相关，只选 0~3 个自然融入。',
+        '如果没有合适话题，宁可不借势，不要硬蹭。',
+        '输出成品里不要出现“热搜”“榜单”“蹭热点”“根据热搜”“来自今日热榜”等暴露来源的说法，要把相关话题转化成自然语境、生活场景或用户痛点。',
+        '',
+      ]
+    : [];
+
   const sampleBlock = recalledSamples.length > 0
     ? [
         '【召回到的示范样本】',
@@ -194,6 +274,7 @@ const buildVideoScriptPromptWithPreset = (preset: VideoScriptPreset, userInput: 
     ...sampleBlock,
     ...manualSampleBlock,
     ...viralReferenceBlock,
+    ...trendCatalogBlock,
     '【用户本次需求】',
     userInput || `请基于以上参数，先给出一版可直接使用的${outputLabel}。`,
     '',
@@ -524,10 +605,10 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       const response = await fetch('/api/trends/douyin', { method: 'GET', cache: 'no-store' });
       const data = (await response.json()) as { items?: DouyinTrendItem[]; error?: string; sourceLabel?: string };
       if (!response.ok) throw new Error(data.error || '拉取抖音热搜失败');
-      const items = (data.items || []).slice(0, 12);
+      const items = data.items || [];
       setDouyinTrends(items);
       const sourceLabel = data.sourceLabel || '抖音热搜';
-      setInputHint(items.length > 0 ? `已从${sourceLabel}拉取热搜，点击词条可加入趋势关键词。` : '暂时没有拉取到热搜词条。');
+      setInputHint(items.length > 0 ? `已从${sourceLabel}拉取 ${items.length} 条热搜，生成时会自动筛选适合产品的自然切入点。` : '暂时没有拉取到热搜词条。');
     } catch (error) {
       const message = error instanceof Error ? error.message : '拉取抖音热搜失败';
       setInputHint(message);
@@ -542,6 +623,22 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       if (existing.includes(title)) return prev;
       return { ...prev, trendKeywords: [...existing, title].slice(0, 8).join('、') };
     });
+  };
+
+  const applyQuickTemplate = (template: Partial<VideoScriptPreset>) => {
+    setVideoPreset((prev) => ({
+      ...prev,
+      ...template,
+      topic: prev.topic,
+      businessType: prev.businessType || template.businessType || '',
+      productName: prev.productName,
+      targetAudience: prev.targetAudience || template.targetAudience || '',
+      coreSellingPoints: prev.coreSellingPoints,
+      referenceSamples: prev.referenceSamples,
+      trendKeywords: prev.trendKeywords,
+    }));
+    setShowVideoPreset(true);
+    setInputHint('已套用快捷模板，可继续补充产品和卖点。');
   };
 
   const onSend = async () => {
@@ -613,6 +710,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         videoPreset.coreSellingPoints || '',
         videoPreset.referenceSamples || '',
         videoPreset.trendKeywords || '',
+        formatTrendCatalog(douyinTrends),
         viralStructureReference?.content || '',
         contentToSend,
       ].filter(Boolean).join('\n');
@@ -620,7 +718,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         title: item.title,
         content: item.textContent.slice(0, 1500),
       }));
-      contentToSend = buildVideoScriptPromptWithPreset({ ...videoPreset, viralStructureReference }, contentToSend, recalledSamples);
+      contentToSend = buildVideoScriptPromptWithPreset({ ...videoPreset, viralStructureReference }, contentToSend, recalledSamples, douyinTrends);
     }
 
     const finalContent = [contentToSend, attachmentText].filter(Boolean).join('\n\n');
@@ -736,146 +834,172 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                 </div>
               )}
               {showVideoPreset && (
-                <div className="mt-3 grid max-h-[42vh] gap-2 overflow-y-auto pr-1 md:grid-cols-2">
-                  <label className="grid gap-1">
-                    <span className="text-muted-foreground">输出类型</span>
-                    <select
-                      className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
-                      value={videoPreset.outputType || 'script'}
-                      onChange={(e) => setVideoPreset((prev) => ({ ...prev, outputType: e.target.value as VideoScriptPreset['outputType'] }))}
-                    >
-                      <option value="script">视频脚本</option>
-                      <option value="copy">营销文案</option>
-                    </select>
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-muted-foreground">我是做什么的</span>
-                    <Input value={videoPreset.businessType || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, businessType: e.target.value }))} placeholder="例如：工业仓储设备厂家" />
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <span className="text-muted-foreground">主题 / 选题</span>
-                    <div className="flex gap-2">
-                      <Input value={videoPreset.topic || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, topic: e.target.value }))} placeholder="例如：为什么越来越多工厂改用金属卡板？" />
-                      <Button
+                <div className="mt-3 max-h-[36vh] space-y-3 overflow-y-auto pr-1">
+                  <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border/70 bg-background/60 p-2">
+                    <span className="mr-1 text-[11px] font-medium text-muted-foreground">快捷模板</span>
+                    {contentQuickTemplates.map((template) => (
+                      <button
+                        key={template.name}
                         type="button"
-                        variant="secondary"
-                        size="icon"
-                        onClick={generatePresetTopic}
-                        disabled={isGeneratingTopic}
-                        title="自动生成标题"
+                        className="rounded-full border border-border/70 bg-card/80 px-2.5 py-1 text-[11px] text-foreground transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                        title={template.description}
+                        onClick={() => applyQuickTemplate(template.preset)}
                       >
-                        <Sparkles size={16} className={isGeneratingTopic ? 'animate-pulse' : ''} />
-                      </Button>
-                    </div>
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-muted-foreground">产品/服务</span>
-                    <Input value={videoPreset.productName || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, productName: e.target.value }))} placeholder="例如：金属卡板" />
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-muted-foreground">目标人群</span>
-                    <Input value={videoPreset.targetAudience || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, targetAudience: e.target.value }))} placeholder="例如：工厂采购负责人" />
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-muted-foreground">内容类型</span>
-                    <select
-                      className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
-                      value={videoPreset.contentType || '口播'}
-                      onChange={(e) => setVideoPreset((prev) => ({ ...prev, contentType: e.target.value }))}
-                    >
-                      <option value="口播">口播</option>
-                      <option value="剧情">剧情</option>
-                      <option value="解说">解说</option>
-                      <option value="混剪文案">混剪文案</option>
-                    </select>
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-muted-foreground">脚本版本数</span>
-                    <select
-                      className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
-                      value={String(videoPreset.versionCount || 1)}
-                      onChange={(e) => setVideoPreset((prev) => ({ ...prev, versionCount: Number(e.target.value) || 1 }))}
-                    >
-                      <option value="1">1 个版本</option>
-                      <option value="2">2 个版本</option>
-                      <option value="3">3 个版本</option>
-                    </select>
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <span className="text-muted-foreground">核心卖点</span>
-                    <Input value={videoPreset.coreSellingPoints || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, coreSellingPoints: e.target.value }))} placeholder="例如：耐用、可循环、长期成本低" />
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-muted-foreground">语气风格</span>
-                    <Input value={videoPreset.toneStyle || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, toneStyle: e.target.value }))} placeholder="例如：专业、直接、有对比" />
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-muted-foreground">发布平台</span>
-                    <select
-                      className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
-                      value={videoPreset.platform || ''}
-                      onChange={(e) => setVideoPreset((prev) => ({ ...prev, platform: e.target.value }))}
-                    >
-                      <option value="">请选择平台</option>
-                      <option value="抖音">抖音</option>
-                      <option value="视频号">视频号</option>
-                    </select>
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-muted-foreground">内容目标</span>
-                    <Input value={videoPreset.contentGoal || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, contentGoal: e.target.value }))} placeholder="例如：引导私信、提升完播、种草转化" />
-                  </label>
-                  <label className="grid gap-1">
-                    <span className="text-muted-foreground">时长（秒）</span>
-                    <select
-                      className="h-10 w-full rounded-md border bg-card px-3 py-2 text-sm"
-                      value={String(videoPreset.durationSec || 60)}
-                      onChange={(e) => setVideoPreset((prev) => ({ ...prev, durationSec: Number(e.target.value) || 60 }))}
-                    >
-                      <option value="15">15 秒</option>
-                      <option value="30">30 秒</option>
-                      <option value="60">60 秒</option>
-                      <option value="90">90 秒</option>
-                    </select>
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <span className="text-muted-foreground">抖音热搜 / 趋势关键词</span>
-                    <div className="flex gap-2">
-                      <Input value={videoPreset.trendKeywords || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, trendKeywords: e.target.value }))} placeholder="可手动填写，或点击右侧拉取热搜后选择" />
-                      <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={fetchDouyinTrends} disabled={isFetchingTrends}>
-                        <Sparkles size={13} className={isFetchingTrends ? 'animate-pulse' : ''} />
-                        热搜
-                      </Button>
-                    </div>
-                    {douyinTrends.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {douyinTrends.map((trend) => (
-                          <button
-                            key={`${trend.title}-${trend.hot || ''}`}
-                            type="button"
-                            className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
-                            title={trend.desc || trend.hot || trend.title}
-                            onClick={() => applyTrendKeyword(trend.title)}
-                          >
-                            {trend.title}
-                            {trend.hot ? <span className="ml-1 opacity-70">{trend.hot}</span> : null}
-                          </button>
-                        ))}
+                        {template.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-6">
+                    <label className="grid gap-1">
+                      <span className="text-muted-foreground">输出</span>
+                      <select
+                        className="h-9 w-full rounded-md border bg-card px-2.5 text-sm"
+                        value={videoPreset.outputType || 'script'}
+                        onChange={(e) => setVideoPreset((prev) => ({ ...prev, outputType: e.target.value as VideoScriptPreset['outputType'] }))}
+                      >
+                        <option value="script">视频脚本</option>
+                        <option value="copy">营销文案</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-muted-foreground">类型</span>
+                      <select
+                        className="h-9 w-full rounded-md border bg-card px-2.5 text-sm"
+                        value={videoPreset.contentType || '口播'}
+                        onChange={(e) => setVideoPreset((prev) => ({ ...prev, contentType: e.target.value }))}
+                      >
+                        <option value="口播">口播</option>
+                        <option value="剧情">剧情</option>
+                        <option value="解说">解说</option>
+                        <option value="混剪文案">混剪文案</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-muted-foreground">版本</span>
+                      <select
+                        className="h-9 w-full rounded-md border bg-card px-2.5 text-sm"
+                        value={String(videoPreset.versionCount || 1)}
+                        onChange={(e) => setVideoPreset((prev) => ({ ...prev, versionCount: Number(e.target.value) || 1 }))}
+                      >
+                        <option value="1">1 个</option>
+                        <option value="2">2 个</option>
+                        <option value="3">3 个</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-muted-foreground">时长</span>
+                      <select
+                        className="h-9 w-full rounded-md border bg-card px-2.5 text-sm"
+                        value={String(videoPreset.durationSec || 60)}
+                        onChange={(e) => setVideoPreset((prev) => ({ ...prev, durationSec: Number(e.target.value) || 60 }))}
+                      >
+                        <option value="15">15 秒</option>
+                        <option value="30">30 秒</option>
+                        <option value="60">60 秒</option>
+                        <option value="90">90 秒</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-muted-foreground">平台</span>
+                      <select
+                        className="h-9 w-full rounded-md border bg-card px-2.5 text-sm"
+                        value={videoPreset.platform || ''}
+                        onChange={(e) => setVideoPreset((prev) => ({ ...prev, platform: e.target.value }))}
+                      >
+                        <option value="">平台</option>
+                        <option value="抖音">抖音</option>
+                        <option value="视频号">视频号</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-muted-foreground">目标</span>
+                      <Input className="h-9" value={videoPreset.contentGoal || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, contentGoal: e.target.value }))} placeholder="私信/转化" />
+                    </label>
+
+                    <label className="grid gap-1 md:col-span-2 xl:col-span-3">
+                      <span className="text-muted-foreground">我是做什么的</span>
+                      <Input className="h-9" value={videoPreset.businessType || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, businessType: e.target.value }))} placeholder="例如：工业仓储设备厂家" />
+                    </label>
+                    <label className="grid gap-1 md:col-span-2 xl:col-span-3">
+                      <span className="text-muted-foreground">产品/服务</span>
+                      <Input className="h-9" value={videoPreset.productName || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, productName: e.target.value }))} placeholder="例如：金属卡板" />
+                    </label>
+                    <label className="grid gap-1 md:col-span-2 xl:col-span-3">
+                      <span className="text-muted-foreground">目标人群</span>
+                      <Input className="h-9" value={videoPreset.targetAudience || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, targetAudience: e.target.value }))} placeholder="例如：工厂采购负责人" />
+                    </label>
+                    <label className="grid gap-1 md:col-span-2 xl:col-span-3">
+                      <span className="text-muted-foreground">语气风格</span>
+                      <Input className="h-9" value={videoPreset.toneStyle || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, toneStyle: e.target.value }))} placeholder="专业、直接、有对比" />
+                    </label>
+
+                    <label className="grid gap-1 md:col-span-4 xl:col-span-6">
+                      <span className="text-muted-foreground">主题 / 选题</span>
+                      <div className="flex gap-2">
+                        <Input className="h-9" value={videoPreset.topic || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, topic: e.target.value }))} placeholder="例如：为什么越来越多工厂改用金属卡板？" />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="h-9 shrink-0 px-2.5"
+                          onClick={generatePresetTopic}
+                          disabled={isGeneratingTopic}
+                          title="自动生成标题"
+                        >
+                          <Sparkles size={14} className={isGeneratingTopic ? 'animate-pulse' : ''} />
+                          选题
+                        </Button>
                       </div>
-                    )}
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <span className="text-muted-foreground">必须包含</span>
-                    <Input value={videoPreset.mustInclude || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, mustInclude: e.target.value }))} placeholder="例如：运镜、成本对比、行动号召" />
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <span className="text-muted-foreground">参考样本</span>
-                    <Textarea value={videoPreset.referenceSamples || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, referenceSamples: e.target.value }))} rows={3} className="min-h-24 resize-y" placeholder="粘贴你喜欢的文案、脚本、竞品样本或历史高转化内容，系统会学习结构和语气，不会照抄。" />
-                  </label>
-                  <label className="grid gap-1 md:col-span-2">
-                    <span className="text-muted-foreground">避免内容</span>
-                    <Input value={videoPreset.avoid || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, avoid: e.target.value }))} placeholder="例如：绝对化承诺、虚构参数" />
-                  </label>
+                    </label>
+                    <label className="grid gap-1 md:col-span-4 xl:col-span-6">
+                      <span className="text-muted-foreground">核心卖点</span>
+                      <Input className="h-9" value={videoPreset.coreSellingPoints || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, coreSellingPoints: e.target.value }))} placeholder="例如：耐用、可循环、长期成本低" />
+                    </label>
+                    <label className="grid gap-1 md:col-span-4 xl:col-span-6">
+                      <span className="text-muted-foreground">抖音热搜 / 趋势关键词</span>
+                      <div className="flex gap-2">
+                        <Input className="h-9" value={videoPreset.trendKeywords || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, trendKeywords: e.target.value }))} placeholder="可手动补充；生成时会让 AI 从完整热搜中挑合适的自然切口" />
+                        <Button type="button" variant="secondary" size="sm" className="h-9 shrink-0 px-2.5" onClick={fetchDouyinTrends} disabled={isFetchingTrends}>
+                          <Sparkles size={13} className={isFetchingTrends ? 'animate-pulse' : ''} />
+                          热搜
+                        </Button>
+                      </div>
+                      {douyinTrends.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {douyinTrends.slice(0, 12).map((trend) => (
+                            <button
+                              key={`${trend.title}-${trend.hot || ''}`}
+                              type="button"
+                              className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                              title={trend.desc || trend.hot || trend.title}
+                              onClick={() => applyTrendKeyword(trend.title)}
+                            >
+                              {trend.title}
+                              {trend.hot ? <span className="ml-1 opacity-70">{trend.hot}</span> : null}
+                            </button>
+                          ))}
+                          {douyinTrends.length > 12 && (
+                            <span className="rounded-full border border-dashed border-border/80 px-2.5 py-1 text-[11px] text-muted-foreground">
+                              已加载 {douyinTrends.length} 条，生成时全部参与判断
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </label>
+                    <label className="grid gap-1 md:col-span-4 xl:col-span-6">
+                      <span className="text-muted-foreground">必须包含</span>
+                      <Input className="h-9" value={videoPreset.mustInclude || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, mustInclude: e.target.value }))} placeholder="例如：运镜、成本对比、行动号召" />
+                    </label>
+                    <label className="grid gap-1 md:col-span-4 xl:col-span-6">
+                      <span className="text-muted-foreground">参考样本</span>
+                      <Textarea value={videoPreset.referenceSamples || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, referenceSamples: e.target.value }))} rows={2} className="min-h-16 resize-y" placeholder="粘贴参考文案、竞品样本或历史高转化内容，系统学习结构和语气，不照抄。" />
+                    </label>
+                    <label className="grid gap-1 md:col-span-4 xl:col-span-6">
+                      <span className="text-muted-foreground">避免内容</span>
+                      <Input className="h-9" value={videoPreset.avoid || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, avoid: e.target.value }))} placeholder="例如：绝对化承诺、虚构参数" />
+                    </label>
+                  </div>
                 </div>
               )}
             </div>
