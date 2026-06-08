@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatComposer } from '@/components/chat/chat-composer';
 import { ChatList } from '@/components/chat/chat-list';
 import { MessageList } from '@/components/chat/message-list';
@@ -78,6 +78,9 @@ const modeToFeature = (mode: ChatMode): FeatureKey => {
 const featureToGroup = (feature: FeatureKey): WorkspaceGroupKey => features.find((item) => item.key === feature)?.group || 'dialogue';
 const groupFeatures = (group: WorkspaceGroupKey) => features.filter((feature) => feature.group === group);
 const defaultFeatureForGroup = (group: WorkspaceGroupKey) => groupFeatures(group)[0]?.key || 'chat';
+const SIDEBAR_MIN_WIDTH = 248;
+const SIDEBAR_MAX_WIDTH = 340;
+const SIDEBAR_DEFAULT_WIDTH = 280;
 
 export function Workspace({ mode }: { mode: ChatMode }) {
   const { resolvedTheme, setTheme } = useTheme();
@@ -88,6 +91,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const [trainingTopicDialog, setTrainingTopicDialog] = useState<{ open: boolean; sessionId?: string }>({ open: false });
   const [trainingTopicInput, setTrainingTopicInput] = useState('');
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
 
   const { settingsOpen, setSettingsOpen, sidebarOpen, setSidebarOpen } = useUIStore();
   const { sessions, activeSessionId, createSession, selectSession, startTraining } = useChatStore();
@@ -255,6 +259,29 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   const isRoleplayMode = contentMode === 'roleplay';
   const isDarkTheme = resolvedTheme === 'dark';
 
+  const startSidebarResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = sidebarWidth;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const nextWidth = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, startWidth + moveEvent.clientX - startX));
+      setSidebarWidth(nextWidth);
+    };
+
+    const onPointerUp = () => {
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -298,11 +325,14 @@ export function Workspace({ mode }: { mode: ChatMode }) {
 
       <div className="relative z-10 flex h-[calc(100vh-56px)] overflow-hidden">
         {!workspaceCollapsed && (
-          <aside className="relative hidden min-w-0 overflow-visible border-r p-3 md:flex md:w-80 md:flex-col">
+          <aside
+            className="relative hidden min-w-0 overflow-visible border-r bg-card/30 p-3 md:flex md:flex-col"
+            style={{ width: sidebarWidth }}
+          >
             <Button
               variant="secondary"
               size="icon-sm"
-              className="absolute -right-4 top-4 z-20 rounded-full border-primary/20 bg-card shadow-lg shadow-slate-900/10"
+              className="absolute -right-4 top-4 z-30 rounded-full border-primary/20 bg-card shadow-lg shadow-slate-900/10"
               onClick={() => setWorkspaceCollapsed(true)}
               aria-label="折叠工作区侧栏"
               title="折叠工作区侧栏"
@@ -310,6 +340,24 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             >
               <PanelLeftClose size={15} />
             </Button>
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="拖动调整侧栏宽度"
+              aria-valuemin={SIDEBAR_MIN_WIDTH}
+              aria-valuemax={SIDEBAR_MAX_WIDTH}
+              aria-valuenow={sidebarWidth}
+              tabIndex={0}
+              onPointerDown={startSidebarResize}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowLeft') setSidebarWidth((width) => Math.max(SIDEBAR_MIN_WIDTH, width - 16));
+                if (event.key === 'ArrowRight') setSidebarWidth((width) => Math.min(SIDEBAR_MAX_WIDTH, width + 16));
+              }}
+              className="group absolute -right-1.5 top-0 z-20 h-full w-3 cursor-col-resize outline-none"
+              title="拖动调整侧栏宽度"
+            >
+              <span className="absolute left-1/2 top-16 h-14 w-1 -translate-x-1/2 rounded-full bg-border transition group-hover:bg-primary/50 group-focus-visible:bg-primary/70" />
+            </div>
             <div className="min-h-0 overflow-y-auto">
               <SidebarNav
                 section={section}
@@ -504,7 +552,7 @@ function SidebarNav({
                   key={group.key}
                   type="button"
                   onClick={() => onSelectGroup(group.key)}
-                  className="rounded-2xl border border-border/60 bg-background/55 p-3 text-left text-foreground transition hover:border-primary/25 hover:bg-primary/5"
+                  className="cursor-pointer rounded-2xl border border-border/60 bg-background/70 p-3 text-left text-foreground transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
                 >
                   <div className="flex items-center gap-3">
                     <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', group.accent)}>
@@ -523,35 +571,29 @@ function SidebarNav({
             }
 
             return (
-              <div key={group.key} className="min-w-0 overflow-hidden rounded-3xl border border-primary/35 bg-primary/10 p-3 text-primary shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => onSelectGroup(group.key)}
-                  className="w-full rounded-2xl text-left transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', group.accent)}>
-                      <Icon size={17} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold">{group.label}</span>
-                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">{group.description}</span>
-                    </span>
-                    <span className="rounded-full border border-border/70 bg-background/75 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                      {count}
-                    </span>
-                  </div>
-                </button>
+              <div key={group.key} className="min-w-0 overflow-hidden rounded-[24px] border border-primary/30 bg-primary/[0.06] p-2.5 text-primary shadow-sm">
+                <div className="flex items-center gap-3 px-0.5">
+                  <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', group.accent)}>
+                    <Icon size={17} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">{group.label}</span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">{group.description}</span>
+                  </span>
+                  <span className="rounded-full border border-primary/20 bg-background/85 px-2 py-0.5 text-[11px] font-medium text-primary">
+                    {count}
+                  </span>
+                </div>
 
                 <div className="mt-3 min-w-0 overflow-hidden rounded-2xl border border-primary/15 bg-background/72 p-2.5 text-foreground">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold">{group.label}功能组</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">当前：{activeFeature.label}</p>
+                      <p className="text-sm font-semibold">当前：{activeFeature.label}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">选择功能，或新建一个话题</p>
                     </div>
-                    <Button size="sm" variant="secondary" onClick={() => onCreate(section)}>
+                    <Button size="sm" variant="primary" className="h-8 px-2.5 text-[11px]" onClick={() => onCreate(section)}>
                       <Plus size={13} />
-                      新建
+                      新建话题
                     </Button>
                   </div>
 
@@ -566,8 +608,8 @@ function SidebarNav({
                           type="button"
                           onClick={() => onSelectFeature(feature.key)}
                           className={cn(
-                            'inline-flex h-8 max-w-full items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition',
-                            isActiveFeature ? 'border-primary/30 bg-primary/10 text-primary shadow-sm' : 'border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:text-foreground',
+                            'inline-flex h-8 max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition hover:-translate-y-0.5',
+                            isActiveFeature ? 'border-primary bg-primary text-white shadow-sm shadow-primary/15' : 'border-border/70 bg-background/80 text-muted-foreground hover:border-primary/30 hover:bg-primary/10 hover:text-primary',
                           )}
                         >
                           <FeatureIcon size={12} className="shrink-0" />
@@ -579,7 +621,7 @@ function SidebarNav({
 
                   {section === 'videoScript' && (
                     <div className="mt-3 min-w-0 rounded-2xl border border-cyan-400/20 bg-cyan-500/5 px-3 py-2 text-xs leading-5 text-muted-foreground">
-                      内容创作参数在底部输入区上方，点击“展开”即可填写产品、样本和热搜。
+                      参数在底部输入区，可填写产品、样本和热搜。
                     </div>
                   )}
 
@@ -588,7 +630,7 @@ function SidebarNav({
                       <button
                         type="button"
                         onClick={() => onCreate(section)}
-                        className="flex h-10 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border/80 bg-background/45 text-xs font-medium text-muted-foreground transition hover:border-primary/35 hover:bg-primary/10 hover:text-primary"
+                        className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/45 bg-primary/5 text-xs font-semibold text-primary transition hover:border-primary hover:bg-primary/10"
                       >
                         <Plus size={12} />
                         新建{activeFeature.label}
@@ -606,17 +648,17 @@ function SidebarNav({
                               setContextMenu({ x: event.clientX, y: event.clientY, session: sessionItem });
                             }}
                             className={cn(
-                              'flex w-full items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm transition',
+                              'flex w-full cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm transition hover:-translate-y-0.5 hover:shadow-sm',
                               isActiveSession
-                                ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
-                                : 'border-border/55 bg-background/50 text-muted-foreground hover:border-border hover:bg-background/80 hover:text-foreground',
+                                ? 'border-primary/45 bg-primary/10 text-primary shadow-sm'
+                                : 'border-border/70 bg-background/75 text-foreground hover:border-primary/30 hover:bg-primary/5',
                             )}
                             title={`${sessionItem.title}（点击切换，右键管理）`}
                           >
                             <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', isActiveSession ? 'bg-primary' : 'bg-muted-foreground/35')} />
                             <span className="min-w-0 flex-1 truncate font-medium">{sessionItem.title}</span>
-                            <span className="shrink-0 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                              {isActiveSession ? '当前' : '进入'}
+                            <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold', isActiveSession ? 'bg-background/90 text-primary' : 'bg-primary/10 text-primary')}>
+                              {isActiveSession ? '当前' : '点击进入'}
                             </span>
                           </button>
                         );

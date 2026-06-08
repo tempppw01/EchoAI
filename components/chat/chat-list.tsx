@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Check, ChevronDown, Edit2, Pin, Search, Trash2, X } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -39,10 +39,9 @@ export function ChatList({
     })),
   );
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftTitle, setDraftTitle] = useState('');
   const [listOpen, setListOpen] = useState(false);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; session: (typeof sessions)[number] } | null>(null);
 
   const normalizedSearch = search.trim().toLowerCase();
   const filtered = useMemo(
@@ -55,12 +54,12 @@ export function ChatList({
   }, [search]);
 
   return (
-    <div className="flex min-h-0 flex-col gap-2 rounded-2xl border bg-card/60 p-2">
+    <div className="flex min-h-0 flex-col gap-2 rounded-2xl border bg-card/60 p-2" onClick={() => setContextMenu(null)}>
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => setListOpen((value) => !value)}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-1.5 text-left transition hover:bg-muted/55"
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-xl px-2 py-1.5 text-left transition hover:bg-primary/5 hover:text-primary"
         >
           <ChevronDown size={14} className={`shrink-0 text-muted-foreground transition ${listOpen ? 'rotate-0' : '-rotate-90'}`} />
           <span className="min-w-0 flex-1">
@@ -68,9 +67,6 @@ export function ChatList({
             <span className="block truncate text-[11px] text-muted-foreground">共 {sessions.length} 个，可展开搜索和管理</span>
           </span>
         </button>
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]" onClick={() => setConfirmClearOpen(true)} disabled={sessions.length === 0}>
-          清空
-        </Button>
       </div>
 
       {listOpen && (
@@ -93,27 +89,24 @@ export function ChatList({
                 <motion.button
                   layout
                   key={item.id}
-                  className={`group w-full rounded-xl border px-2.5 py-2 text-left transition ${
+                  className={`group w-full cursor-pointer rounded-xl border px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${
                     item.id === (activeSessionId ?? sessions[0]?.id)
                       ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
-                      : 'border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/70 hover:text-foreground'
+                      : 'border-border/60 bg-background/55 text-foreground hover:border-primary/30 hover:bg-primary/5'
                   }`}
                   onClick={() => {
                     selectSession(item.id);
                     closeMobile?.();
                   }}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setContextMenu({ x: event.clientX, y: event.clientY, session: item });
+                  }}
+                  title={`${item.title}（点击进入，右键管理）`}
                 >
                   <div className="flex items-center justify-between gap-2 text-sm font-medium">
-                    {editingId === item.id ? (
-                      <Input
-                        value={draftTitle}
-                        onChange={(event) => setDraftTitle(event.target.value)}
-                        onClick={(event) => event.stopPropagation()}
-                        className="h-7"
-                      />
-                    ) : (
-                      <span className="line-clamp-1">{item.pinned ? '置顶 · ' : ''}{item.title}</span>
-                    )}
+                    <span className="line-clamp-1">{item.pinned ? '置顶 · ' : ''}{item.title}</span>
                     <span className="rounded-full border border-border/70 bg-background/70 px-2 py-1 text-[10px] uppercase text-muted-foreground">
                       {modeLabelMap[item.mode] ?? item.mode}
                     </span>
@@ -122,71 +115,52 @@ export function ChatList({
                   <p className="mt-1 line-clamp-1 text-xs leading-5 text-muted-foreground">
                     {item.summary && item.summary !== '开始你的第一条消息' ? item.summary : '点击切换到这个会话'}
                   </p>
-
-                  <div className="mt-2 flex gap-1 opacity-90 md:opacity-0 md:group-hover:opacity-100">
-                    {editingId === item.id ? (
-                      <>
-                        <button
-                          className="ui-icon-button h-7 w-7"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            renameSession(item.id, draftTitle);
-                            setEditingId(null);
-                          }}
-                          aria-label="保存标题"
-                        >
-                          <Check size={13} />
-                        </button>
-                        <button
-                          className="ui-icon-button h-7 w-7"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setEditingId(null);
-                          }}
-                          aria-label="取消编辑"
-                        >
-                          <X size={13} />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          className="ui-icon-button h-7 w-7"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setEditingId(item.id);
-                            setDraftTitle(item.title);
-                          }}
-                          aria-label="重命名会话"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          className="ui-icon-button h-7 w-7"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            togglePinSession(item.id);
-                          }}
-                          aria-label="切换置顶"
-                        >
-                          <Pin size={13} />
-                        </button>
-                        <button
-                          className="ui-icon-button h-7 w-7"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            if (confirm('确认删除会话？')) deleteSession(item.id);
-                          }}
-                          aria-label="删除会话"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </>
-                    )}
-                  </div>
                 </motion.button>
               ))
             )}
+          </div>
+
+          <div className="flex items-center justify-between border-t border-border/70 pt-2">
+            <span className="text-[11px] text-muted-foreground">右键话题可置顶、重命名或删除</span>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] text-red-500 hover:text-red-600" onClick={() => setConfirmClearOpen(true)} disabled={sessions.length === 0}>
+              清空全部
+            </Button>
+          </div>
+        </>
+      )}
+
+      {contextMenu && (
+        <>
+          <button className="fixed inset-0 z-40 cursor-default bg-transparent" onClick={() => setContextMenu(null)} aria-label="关闭话题菜单" />
+          <div className="fixed z-50 min-w-[168px] rounded-xl border border-border bg-card p-1 shadow-2xl" style={{ left: contextMenu.x, top: contextMenu.y }}>
+            <button
+              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-muted"
+              onClick={() => {
+                const nextTitle = window.prompt('重命名话题', contextMenu.session.title);
+                if (nextTitle !== null) renameSession(contextMenu.session.id, nextTitle);
+                setContextMenu(null);
+              }}
+            >
+              重命名话题
+            </button>
+            <button
+              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-foreground transition hover:bg-muted"
+              onClick={() => {
+                togglePinSession(contextMenu.session.id);
+                setContextMenu(null);
+              }}
+            >
+              {contextMenu.session.pinned ? '取消置顶' : '置顶话题'}
+            </button>
+            <button
+              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-red-500 transition hover:bg-muted"
+              onClick={() => {
+                if (window.confirm(`确认删除“${contextMenu.session.title}”吗？`)) deleteSession(contextMenu.session.id);
+                setContextMenu(null);
+              }}
+            >
+              删除话题
+            </button>
           </div>
         </>
       )}
