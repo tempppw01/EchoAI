@@ -415,13 +415,11 @@ export function MessageList({ session }: { session?: ChatSession }) {
       )}
 
       {clearConfirmOpen && (
-        <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-3 text-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-medium text-foreground">确认清空当前会话上下文？</p>
-              <p className="mt-1 text-xs text-muted-foreground">会删除本会话的消息内容，但不会影响其它会话。</p>
-            </div>
-            <div className="flex shrink-0 justify-end gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-background p-5 shadow-2xl">
+            <p className="text-base font-semibold text-foreground">确认清空当前会话上下文？</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">会删除本会话的消息内容，但不会影响其它会话。</p>
+            <div className="mt-5 flex justify-end gap-2">
               <Button variant="secondary" size="sm" onClick={() => setClearConfirmOpen(false)}>
                 取消
               </Button>
