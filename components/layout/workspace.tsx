@@ -375,21 +375,18 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             </div>
           </aside>
         )}
+        {workspaceCollapsed && (
+          <CollapsedSidebarNav
+            section={section}
+            activeGroup={activeGroup}
+            sessions={sessions}
+            onExpand={() => setWorkspaceCollapsed(false)}
+            onSelectGroup={openGroup}
+            onSelectFeature={openFeature}
+          />
+        )}
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-          {workspaceCollapsed && (
-            <Button
-              variant="secondary"
-              size="icon-sm"
-              className="absolute left-3 top-3 z-20 rounded-full border-primary/20 bg-card shadow-lg shadow-slate-900/10 md:left-4"
-              onClick={() => setWorkspaceCollapsed(false)}
-              aria-label="展开工作区侧栏"
-              title="展开工作区侧栏"
-              aria-expanded={!workspaceCollapsed}
-            >
-              <PanelLeftOpen size={15} />
-            </Button>
-          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={section + (visibleSession?.id ?? '')}
@@ -508,6 +505,98 @@ function ThemeToggleButton({ isDark, onClick }: { isDark: boolean; onClick: () =
     >
       {isDark ? <Moon size={16} /> : <Sun size={16} />}
     </Button>
+  );
+}
+
+function CollapsedSidebarNav({
+  section,
+  activeGroup,
+  sessions,
+  onExpand,
+  onSelectGroup,
+  onSelectFeature,
+}: {
+  section: FeatureKey;
+  activeGroup: WorkspaceGroupKey;
+  sessions: ReturnType<typeof useChatStore.getState>['sessions'];
+  onExpand: () => void;
+  onSelectGroup: (key: WorkspaceGroupKey) => void;
+  onSelectFeature: (key: FeatureKey) => void;
+}) {
+  return (
+    <aside className="relative hidden w-16 shrink-0 border-r bg-card/55 px-2 py-3 backdrop-blur md:flex md:flex-col md:items-center">
+      <Button
+        variant="secondary"
+        size="icon-sm"
+        className="h-10 w-10 rounded-2xl border-primary/20 bg-background/90 shadow-sm"
+        onClick={onExpand}
+        aria-label="展开工作区侧栏"
+        title="展开工作区侧栏"
+        aria-expanded={false}
+      >
+        <PanelLeftOpen size={16} />
+      </Button>
+
+      <div className="mt-4 flex w-full flex-col items-center gap-2">
+        {workspaceGroups.map((group) => {
+          const Icon = group.icon;
+          const isActive = activeGroup === group.key;
+          const count = sessions.filter((sessionItem) => featureToGroup(modeToFeature(sessionItem.mode)) === group.key).length;
+
+          return (
+            <button
+              key={group.key}
+              type="button"
+              onClick={() => onSelectGroup(group.key)}
+              className={cn(
+                'relative flex h-11 w-11 items-center justify-center rounded-2xl border text-muted-foreground transition hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/10 hover:text-primary',
+                isActive ? 'border-primary/40 bg-primary text-white shadow-sm shadow-primary/20 hover:bg-primary hover:text-white' : 'border-border/70 bg-background/75',
+              )}
+              aria-label={`切换到${group.label}`}
+              title={`${group.label} · ${group.description}`}
+            >
+              <Icon size={18} />
+              {count > 0 && (
+                <span
+                  className={cn(
+                    'absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold',
+                    isActive ? 'bg-background text-primary' : 'bg-primary text-white',
+                  )}
+                >
+                  {count > 9 ? '9+' : count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="my-4 h-px w-8 bg-border/80" />
+
+      <div className="flex w-full flex-1 flex-col items-center gap-2 overflow-y-auto pb-2">
+        {features.map((feature) => {
+          const Icon = feature.icon;
+          const isActive = section === feature.key;
+
+          return (
+            <button
+              key={feature.key}
+              type="button"
+              onClick={() => onSelectFeature(feature.key)}
+              className={cn(
+                'group relative flex h-10 w-10 items-center justify-center rounded-2xl border transition hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/10 hover:text-primary',
+                isActive ? 'border-primary/45 bg-primary/10 text-primary shadow-sm' : 'border-transparent bg-transparent text-muted-foreground',
+              )}
+              aria-label={`切换到${feature.label}`}
+              title={feature.label}
+            >
+              <Icon size={17} />
+              {isActive && <span className="absolute -left-2 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" />}
+            </button>
+          );
+        })}
+      </div>
+    </aside>
   );
 }
 
