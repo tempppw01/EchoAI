@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowDownRight, ArrowLeft, ArrowUpRight, Brain, ChevronDown, ChevronUp, ExternalLink, History, Minus, RefreshCw, Search, Star, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
 import { enrichTrendItemsWithHistory, findDroppedHistoricalTrends, formatTrendHistoryLabel, getTrendRankMovement, summarizeKeywordMomentum } from '@/lib/trend-utils';
-import { DouyinKeywordSuggestion, DouyinTrendItem } from '@/lib/types';
+import { DouyinKeywordSuggestion, DouyinTrendItem, DouyinTrendSnapshot } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings-store';
 import { getDouyinTrendUrl, useTrendStore } from '@/stores/trend-store';
@@ -72,8 +72,9 @@ function TrendMovementBadge({ item }: { item: DouyinTrendItem }) {
 }
 
 export function DouyinTrendHistoryPage() {
-  const { snapshots, keywordWatches, addSnapshot, deleteSnapshot, clearSnapshots, followKeyword, unfollowKeyword, addKeywordSnapshot } = useTrendStore();
+  const { keywordWatches, followKeyword, unfollowKeyword, addKeywordSnapshot } = useTrendStore();
   const { settings } = useSettingsStore();
+  const [snapshots, setSnapshots] = useState<DouyinTrendSnapshot[]>([]);
   const [activeSnapshotId, setActiveSnapshotId] = useState<string | undefined>();
   const [activeWatchId, setActiveWatchId] = useState<string | undefined>();
   const [snapshotsCollapsed, setSnapshotsCollapsed] = useState(true);
@@ -122,40 +123,78 @@ export function DouyinTrendHistoryPage() {
     [latestKeywordSnapshot, previousKeywordSnapshot],
   );
 
+  const loadSnapshots = async () => {
+    try {
+      setStatus('正在读取服务端快照...');
+      const response = await fetch('/api/trends/douyin/snapshots', { method: 'GET', cache: 'no-store' });
+      const data = (await response.json()) as { snapshots?: DouyinTrendSnapshot[]; error?: string };
+      if (!response.ok) throw new Error(data.error || '读取热搜快照失败');
+      setSnapshots(data.snapshots || []);
+      setStatus(data.snapshots?.length ? `已读取 ${data.snapshots.length} 个服务端快照。` : '');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : '读取热搜快照失败');
+    }
+  };
+
+  useEffect(() => {
+    void loadSnapshots();
+  }, []);
+
   const fetchAndSave = async () => {
     if (loading) return;
     setLoading(true);
     setStatus('');
 
     try {
-      const response = await fetch('/api/trends/douyin', { method: 'GET', cache: 'no-store' });
+      const response = await fetch('/api/trends/douyin/snapshots', { method: 'POST', cache: 'no-store' });
       const data = (await response.json()) as {
-        items?: DouyinTrendItem[];
+        snapshot?: DouyinTrendSnapshot;
+        snapshots?: DouyinTrendSnapshot[];
         error?: string;
-        source?: string;
-        sourceLabel?: string;
-        fetchedAt?: string;
       };
 
-      if (!response.ok) throw new Error(data.error || '拉取抖音热搜失败');
-      const items = enrichTrendItemsWithHistory(data.items || [], snapshots);
-      if (items.length === 0) {
+      if (!response.ok) throw new Error(data.error || '拉取并保存抖音热搜失败');
+      const savedSnapshot = data.snapshot;
+      const nextSnapshots = data.snapshots || (savedSnapshot ? [savedSnapshot, ...snapshots] : snapshots);
+      setSnapshots(nextSnapshots);
+
+      if (!savedSnapshot || savedSnapshot.items.length === 0) {
         setStatus('这次没有拉取到热搜条目，未生成新快照。');
         return;
       }
 
-      const snapshot = addSnapshot({
-        source: data.source || '',
-        sourceLabel: data.sourceLabel || '抖音热搜',
-        fetchedAt: data.fetchedAt,
-        items,
-      });
-      setActiveSnapshotId(snapshot.id);
-      setStatus(`已保存 ${items.length} 条热搜快照。`);
+      setActiveSnapshotId(savedSnapshot.id);
+      setStatus(`已保存 ${savedSnapshot.items.length} 条热搜快照到服务端。`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : '拉取抖音热搜失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteSnapshot = async (id: string) => {
+    try {
+      const response = await fetch(`/api/trends/douyin/snapshots/${encodeURIComponent(id)}`, { method: 'DELETE', cache: 'no-store' });
+      const data = (await response.json()) as { snapshots?: DouyinTrendSnapshot[]; error?: string };
+      if (!response.ok) throw new Error(data.error || '删除热搜快照失败');
+      setSnapshots(data.snapshots || []);
+      if (activeSnapshotId === id) setActiveSnapshotId(undefined);
+      setStatus('已删除服务端快照。');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : '删除热搜快照失败');
+    }
+  };
+
+  const clearSnapshots = async () => {
+    try {
+      const response = await fetch('/api/trends/douyin/snapshots', { method: 'DELETE', cache: 'no-store' });
+      const data = (await response.json()) as { snapshots?: DouyinTrendSnapshot[]; error?: string };
+      if (!response.ok) throw new Error(data.error || '清空热搜快照失败');
+      setSnapshots(data.snapshots || []);
+      setActiveSnapshotId(undefined);
+      setStatus('已清空服务端热搜快照。');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : '清空热搜快照失败');
     }
   };
 

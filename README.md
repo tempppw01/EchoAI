@@ -190,6 +190,44 @@ npm run start
 
 ---
 
+## 抖音热搜快照与定时抓取
+
+`/trends` 已改为读取服务端热搜历史，快照默认保存在本地：
+
+```text
+data/douyin-trend-snapshots.json
+```
+
+可用接口：
+
+- `GET /api/trends/douyin/snapshots`：读取服务端历史快照
+- `POST /api/trends/douyin/snapshots`：抓取最新热搜并保存，也支持传入当前热搜列表后保存
+- `DELETE /api/trends/douyin/snapshots`：清空服务端历史
+- `DELETE /api/trends/douyin/snapshots/:id`：删除单个快照
+- `GET|POST /api/trends/douyin/cron`：给定时任务调用，抓取并保存最新热搜
+
+如果公开部署，建议设置定时任务密钥：
+
+```bash
+TREND_CRON_SECRET=你的定时任务密钥
+```
+
+配置后调用：
+
+```powershell
+Invoke-RestMethod -Method POST "http://127.0.0.1:3000/api/trends/douyin/cron?secret=$env:TREND_CRON_SECRET"
+```
+
+也可以使用请求头：
+
+```powershell
+Invoke-RestMethod -Method POST "http://127.0.0.1:3000/api/trends/douyin/cron" -Headers @{ Authorization = "Bearer $env:TREND_CRON_SECRET" }
+```
+
+未配置 `TREND_CRON_SECRET` 时，本地可直接调用 cron 入口。服务端文件持久化适合本地或传统 Node 服务；如果部署到无状态 Serverless，后续建议改接数据库。
+
+---
+
 ## 可选后端代理（server/）
 
 仓库中包含一个可选的代理服务（`server/`），用于补充更适合业务环境的服务端能力，例如：

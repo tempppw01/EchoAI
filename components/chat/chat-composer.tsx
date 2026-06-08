@@ -7,11 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
 import { enrichTrendItemsWithHistory, formatTrendHistoryLabel } from '@/lib/trend-utils';
-import { ChatMode, DouyinTrendItem, VideoScriptPreset } from '@/lib/types';
+import { ChatMode, DouyinTrendItem, DouyinTrendSnapshot, VideoScriptPreset } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSampleLibraryStore } from '@/stores/sample-library-store';
 import { useSettingsStore } from '@/stores/settings-store';
-import { useTrendStore } from '@/stores/trend-store';
 import { useUIStore } from '@/stores/ui-store';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -415,12 +414,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const { settings, setSettings } = useSettingsStore();
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
   const getRelevantSamples = useSampleLibraryStore((state) => state.getRelevantSamples);
-  const { trendSnapshots, addTrendSnapshot } = useTrendStore(
-    useShallow((state) => ({
-      trendSnapshots: state.snapshots,
-      addTrendSnapshot: state.addSnapshot,
-    })),
-  );
+  const [trendSnapshots, setTrendSnapshots] = useState<DouyinTrendSnapshot[]>([]);
   const hasApiKey = Boolean(settings.apiKey?.trim());
   const activeTrendCatalog = douyinTrends.length > 0 ? douyinTrends : trendSnapshots[0]?.items || [];
 
@@ -472,6 +466,27 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     if (activeSession?.mode !== 'videoScript' && activeSession?.mode !== 'copywriting') return;
     setVideoPreset({ ...defaultVideoScriptPreset, ...(activeSession.videoScriptPreset || {}) });
   }, [activeSession?.id, activeSession?.mode, activeSession?.videoScriptPreset]);
+
+  useEffect(() => {
+    if (!isContentMode) return;
+    let cancelled = false;
+
+    const loadTrendSnapshots = async () => {
+      try {
+        const response = await fetch('/api/trends/douyin/snapshots', { method: 'GET', cache: 'no-store' });
+        const data = (await response.json()) as { snapshots?: DouyinTrendSnapshot[] };
+        if (!cancelled && response.ok) setTrendSnapshots(data.snapshots || []);
+      } catch {
+        // 热搜历史只是内容创作增强上下文，读取失败不阻塞输入。
+      }
+    };
+
+    void loadTrendSnapshots();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isContentMode]);
 
   useEffect(() => {
     if (videoTaskType !== 'viral-analysis') {
@@ -657,12 +672,19 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       setDouyinTrends(items);
       const sourceLabel = data.sourceLabel || '抖音热搜';
       if (items.length > 0) {
-        addTrendSnapshot({
-          source: data.source || '',
-          sourceLabel,
-          fetchedAt: data.fetchedAt,
-          items,
+        const snapshotResponse = await fetch('/api/trends/douyin/snapshots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source: data.source || '',
+            sourceLabel,
+            fetchedAt: data.fetchedAt,
+            items,
+          }),
         });
+        const snapshotData = (await snapshotResponse.json()) as { snapshots?: DouyinTrendSnapshot[]; error?: string };
+        if (!snapshotResponse.ok) throw new Error(snapshotData.error || '保存热搜快照失败');
+        setTrendSnapshots(snapshotData.snapshots || []);
       }
       setInputHint(items.length > 0 ? `已从${sourceLabel}拉取 ${items.length} 条热搜，生成时会自动筛选适合产品的自然切入点。` : '暂时没有拉取到热搜词条。');
     } catch (error) {
