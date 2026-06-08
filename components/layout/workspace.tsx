@@ -329,17 +329,6 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             className="relative hidden min-w-0 overflow-visible border-r bg-card/30 p-3 md:flex md:flex-col"
             style={{ width: sidebarWidth }}
           >
-            <Button
-              variant="secondary"
-              size="icon-sm"
-              className="absolute -right-4 top-4 z-30 rounded-full border-primary/20 bg-card shadow-lg shadow-slate-900/10"
-              onClick={() => setWorkspaceCollapsed(true)}
-              aria-label="折叠工作区侧栏"
-              title="折叠工作区侧栏"
-              aria-expanded={!workspaceCollapsed}
-            >
-              <PanelLeftClose size={15} />
-            </Button>
             <div
               role="separator"
               aria-orientation="vertical"
@@ -357,6 +346,19 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               title="拖动调整侧栏宽度"
             >
               <span className="absolute left-1/2 top-16 h-14 w-1 -translate-x-1/2 rounded-full bg-border transition group-hover:bg-primary/50 group-focus-visible:bg-primary/70" />
+            </div>
+            <div className="mb-2 flex justify-end">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-8 w-8 rounded-xl border border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:bg-primary/10 hover:text-primary"
+                onClick={() => setWorkspaceCollapsed(true)}
+                aria-label="折叠工作区侧栏"
+                title="折叠工作区侧栏"
+                aria-expanded={!workspaceCollapsed}
+              >
+                <PanelLeftClose size={15} />
+              </Button>
             </div>
             <div className="min-h-0 overflow-y-auto">
               <SidebarNav
