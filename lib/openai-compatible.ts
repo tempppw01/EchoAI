@@ -62,8 +62,9 @@ export async function requestOpenAICompatible(params: {
   settings: AppSettings;
   model: string;
   messages: OpenAICompatibleMessage[];
+  signal?: AbortSignal;
 }) {
-  const { settings, model, messages } = params;
+  const { settings, model, messages, signal } = params;
   const normalizedMessages = messages.map((message) => ({
     ...message,
     content: message.role === 'user' && typeof message.content === 'string' ? toOpenAIContent(message.content) : message.content,
@@ -84,6 +85,7 @@ export async function requestOpenAICompatible(params: {
         stream: false,
         config: getOpenAIConfigOverride(settings),
       }),
+      signal,
     });
   } catch (error) {
     throw new Error(normalizeClientRequestError(error));

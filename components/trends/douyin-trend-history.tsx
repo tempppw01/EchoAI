@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowDownRight, ArrowLeft, ArrowUpRight, Brain, ChevronDown, ChevronUp, ExternalLink, History, Minus, RefreshCw, Search, Star, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, Brain, ChevronDown, ChevronUp, ExternalLink, History, Minus, RefreshCw, Search, Square, Star, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { requestOpenAICompatible } from '@/lib/openai-compatible';
@@ -92,6 +92,7 @@ export function DouyinTrendHistoryPage() {
   } | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [industryAnalysis, setIndustryAnalysis] = useState('');
+  const analysisAbortRef = useRef<AbortController | null>(null);
 
   const activeSnapshot = useMemo(
     () => snapshots.find((snapshot) => snapshot.id === activeSnapshotId) || snapshots[0],
@@ -138,6 +139,10 @@ export function DouyinTrendHistoryPage() {
 
   useEffect(() => {
     void loadSnapshots();
+  }, []);
+
+  useEffect(() => () => {
+    analysisAbortRef.current?.abort();
   }, []);
 
   const fetchAndSave = async () => {
@@ -260,8 +265,9 @@ export function DouyinTrendHistoryPage() {
 
   const analyzeActiveSnapshot = async () => {
     if (!activeSnapshot || analysisLoading) return;
+    const controller = new AbortController();
+    analysisAbortRef.current = controller;
     setAnalysisLoading(true);
-    setIndustryAnalysis('');
 
     try {
       const trendLines = activeSnapshotItems
@@ -284,13 +290,29 @@ export function DouyinTrendHistoryPage() {
             ].join('\n'),
           },
         ],
+        signal: controller.signal,
       });
       setIndustryAnalysis(content);
     } catch (error) {
+      if (controller.signal.aborted) {
+        setIndustryAnalysis((current) => current || '已停止分析。');
+        return;
+      }
+
       setIndustryAnalysis(error instanceof Error ? error.message : 'AI 分析失败，请检查模型设置。');
     } finally {
-      setAnalysisLoading(false);
+      if (analysisAbortRef.current === controller) {
+        analysisAbortRef.current = null;
+        setAnalysisLoading(false);
+      }
     }
+  };
+
+  const stopAnalyzeActiveSnapshot = () => {
+    analysisAbortRef.current?.abort();
+    analysisAbortRef.current = null;
+    setAnalysisLoading(false);
+    setIndustryAnalysis((current) => current || '已停止分析。');
   };
 
   return (
@@ -558,9 +580,9 @@ export function DouyinTrendHistoryPage() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="tint" size="sm" onClick={analyzeActiveSnapshot} disabled={analysisLoading}>
-                    <Brain size={14} className={analysisLoading ? 'animate-pulse' : ''} />
-                    AI分析行业
+                  <Button variant={analysisLoading ? 'secondary' : 'tint'} size="sm" onClick={analysisLoading ? stopAnalyzeActiveSnapshot : analyzeActiveSnapshot}>
+                    {analysisLoading ? <Square size={14} /> : <Brain size={14} />}
+                    {analysisLoading ? '停止分析' : 'AI分析行业'}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => deleteSnapshot(activeSnapshot.id)}>
                     <Trash2 size={14} />
