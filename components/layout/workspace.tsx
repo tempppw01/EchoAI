@@ -680,7 +680,6 @@ function SidebarNav({
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold">当前：{activeFeature.label}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">选择功能，或新建一个话题</p>
                     </div>
                     <Button size="sm" variant="primary" className="h-8 px-2.5 text-[11px]" onClick={() => onCreate(section)}>
                       <Plus size={13} />
