@@ -49,6 +49,7 @@ export const useSampleLibraryStore = create<{
   items: SampleLibraryItem[];
   addTextSample: (payload: { title: string; textContent: string }) => Promise<void>;
   addFileSample: (payload: { title: string; filename: string; contentType: string; size: number; textContent: string }) => Promise<void>;
+  updateSample: (id: string, payload: { title: string; textContent: string }) => Promise<void>;
   deleteSample: (id: string) => void;
   ensureEmbeddingForItem: (id: string) => Promise<void>;
   getRelevantSamples: (query: string, topK?: number) => Promise<SampleLibraryItem[]>;
@@ -85,6 +86,25 @@ export const useSampleLibraryStore = create<{
         };
         set((state) => ({ items: [item, ...state.items] }));
         await get().ensureEmbeddingForItem(item.id);
+      },
+      updateSample: async (id, { title, textContent }) => {
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  title: title.trim() || item.filename || '未命名样本',
+                  textContent,
+                  summary: textContent.trim().slice(0, 120),
+                  embeddingVector: undefined,
+                  embeddingModel: undefined,
+                  embeddingUpdatedAt: undefined,
+                  updatedAt: now(),
+                }
+              : item,
+          ),
+        }));
+        await get().ensureEmbeddingForItem(id);
       },
       deleteSample: (id) => set((state) => ({ items: state.items.filter((item) => item.id !== id) })),
       ensureEmbeddingForItem: async (id) => {

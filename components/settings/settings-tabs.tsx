@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { AlertCircle, CheckCircle2, Loader2, RefreshCcw, Server, Sparkles } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
-import { SampleLibraryPanel } from '@/components/settings/sample-library-panel';
 import { SettingsFormValues } from '@/components/settings/settings-form-schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +14,6 @@ interface SettingsTabsProps {
 
 const tabs = [
   { value: 'model', label: '模型设置' },
-  { value: 'samples', label: '样本库' },
   { value: 'webdav', label: 'WebDAV' },
 ] as const;
 
@@ -384,13 +382,6 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
             </div>
           </div>
         </section>
-      </Tabs.Content>
-
-      <Tabs.Content value="samples" className="space-y-3">
-        <SampleLibraryPanel />
-        <div className="rounded-3xl border border-dashed border-border/70 bg-[hsl(var(--background))] p-4 text-xs text-muted-foreground">
-          样本内容当前仍存储在本地浏览器中。嵌入刷新会直接复用当前设置中心里的默认嵌入模型与凭据优先级，不需要额外重复配置。
-        </div>
       </Tabs.Content>
 
       <Tabs.Content value="webdav" className="space-y-4">

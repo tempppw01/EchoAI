@@ -9,7 +9,6 @@ import { useChatStore } from '@/stores/chat-store';
 import { useShallow } from 'zustand/react/shallow';
 
 const modeLabelMap: Record<string, string> = {
-  chat: '对话',
   copywriting: '内容',
   videoScript: '内容',
   roleplay: '角色',
@@ -44,9 +43,10 @@ export function ChatList({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; session: (typeof sessions)[number] } | null>(null);
 
   const normalizedSearch = search.trim().toLowerCase();
+  const visibleSessions = useMemo(() => sessions.filter((session) => session.mode !== 'chat'), [sessions]);
   const filtered = useMemo(
-    () => sessions.filter((session) => `${session.title} ${session.summary}`.toLowerCase().includes(normalizedSearch)),
-    [sessions, normalizedSearch],
+    () => visibleSessions.filter((session) => `${session.title} ${session.summary}`.toLowerCase().includes(normalizedSearch)),
+    [visibleSessions, normalizedSearch],
   );
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function ChatList({
           <ChevronDown size={14} className={`shrink-0 text-muted-foreground transition ${listOpen ? 'rotate-0' : '-rotate-90'}`} />
           <span className="min-w-0 flex-1">
             <span className="block text-xs font-semibold text-foreground">全部话题</span>
-            <span className="block truncate text-[11px] text-muted-foreground">共 {sessions.length} 个，可展开搜索和管理</span>
+            <span className="block truncate text-[11px] text-muted-foreground">共 {visibleSessions.length} 个，可展开搜索和管理</span>
           </span>
         </button>
       </div>
@@ -90,7 +90,7 @@ export function ChatList({
                   layout
                   key={item.id}
                   className={`group w-full cursor-pointer rounded-xl border px-2.5 py-2 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${
-                    item.id === (activeSessionId ?? sessions[0]?.id)
+                    item.id === (activeSessionId ?? visibleSessions[0]?.id)
                       ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
                       : 'border-border/60 bg-background/55 text-foreground hover:border-primary/30 hover:bg-primary/5'
                   }`}
@@ -122,7 +122,7 @@ export function ChatList({
 
           <div className="flex items-center justify-between border-t border-border/70 pt-2">
             <span className="text-[11px] text-muted-foreground">右键话题可置顶、重命名或删除</span>
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] text-red-500 hover:text-red-600" onClick={() => setConfirmClearOpen(true)} disabled={sessions.length === 0}>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] text-red-500 hover:text-red-600" onClick={() => setConfirmClearOpen(true)} disabled={visibleSessions.length === 0}>
               清空全部
             </Button>
           </div>
@@ -169,7 +169,7 @@ export function ChatList({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="w-full max-w-sm rounded-2xl border bg-background p-5 shadow-2xl">
             <h3 className="text-base font-semibold">清空所有话题</h3>
-            <p className="mt-2 text-sm text-muted-foreground">确认删除全部会话话题吗？系统会保留一个新的空白通用对话。</p>
+            <p className="mt-2 text-sm text-muted-foreground">确认删除全部会话话题吗？系统会保留一个新的空白内容创作话题。</p>
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="secondary" size="sm" onClick={() => setConfirmClearOpen(false)}>
                 取消

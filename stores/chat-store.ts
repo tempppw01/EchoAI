@@ -49,16 +49,17 @@ const getDefaultTitleByMode = (mode: ChatMode) => {
 };
 
 const createInitialSession = (): ChatSession => ({
-  id: 'default-chat-session',
-  mode: 'chat',
-  title: getDefaultTitleByMode('chat'),
+  id: 'default-content-session',
+  mode: 'videoScript',
+  title: getDefaultTitleByMode('videoScript'),
   updatedAt: now(),
   summary: '开始你的第一条消息',
   pinned: false,
-  model: getDefaultModelByMode('chat'),
+  model: getDefaultModelByMode('videoScript'),
   messages: [],
   pinnedMemory: '',
   memorySummary: '',
+  videoScriptPreset: defaultVideoScriptPreset,
 });
 
 const newSession = (mode: ChatMode, model?: string): ChatSession => ({

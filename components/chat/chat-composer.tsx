@@ -280,22 +280,12 @@ const buildVideoScriptPromptWithPreset = (
       ]
     : [];
 
-  const manualSampleBlock = preset.referenceSamples?.trim()
-    ? [
-        '【用户提供的参考样本】',
-        preset.referenceSamples.trim(),
-        '请提炼这些样本的结构、语气、节奏和高频表达，不要照抄，不要复述明显不属于当前产品的事实。',
-        '',
-      ]
-    : [];
-
   return [
     '【内容创作参数】',
     ...lines,
     '',
     ...trendCatalogBlock,
     ...sampleBlock,
-    ...manualSampleBlock,
     ...viralReferenceBlock,
     ...antiHardTrendJackingRules,
     '',
@@ -436,7 +426,6 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       p.mustInclude?.trim() ||
       p.avoid?.trim() ||
       p.contentGoal?.trim() ||
-      p.referenceSamples?.trim() ||
       p.trendKeywords?.trim() ||
       activeTrendCatalog.length > 0 ||
       viralStructureReference?.content?.trim(),
@@ -712,7 +701,6 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       productName: prev.productName,
       targetAudience: prev.targetAudience || template.targetAudience || '',
       coreSellingPoints: prev.coreSellingPoints,
-      referenceSamples: prev.referenceSamples,
       trendKeywords: prev.trendKeywords,
     }));
     setShowVideoPreset(true);
@@ -790,7 +778,6 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         videoPreset.productName || '',
         videoPreset.targetAudience || '',
         videoPreset.coreSellingPoints || '',
-        videoPreset.referenceSamples || '',
         videoPreset.trendKeywords || '',
         formatTrendCatalog(activeTrendCatalog),
         viralStructureReference?.content || '',
@@ -1080,10 +1067,6 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
                     <label className="grid gap-1 md:col-span-4 xl:col-span-6">
                       <span className="text-muted-foreground">必须包含</span>
                       <Input className="h-9" value={videoPreset.mustInclude || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, mustInclude: e.target.value }))} placeholder="例如：运镜、成本对比、行动号召" />
-                    </label>
-                    <label className="grid gap-1 md:col-span-4 xl:col-span-6">
-                      <span className="text-muted-foreground">参考样本</span>
-                      <Textarea value={videoPreset.referenceSamples || ''} onChange={(e) => setVideoPreset((prev) => ({ ...prev, referenceSamples: e.target.value }))} rows={2} className="min-h-16 resize-y" placeholder="粘贴参考文案、竞品样本或历史高转化内容，系统学习结构和语气，不照抄。" />
                     </label>
                     <label className="grid gap-1 md:col-span-4 xl:col-span-6">
                       <span className="text-muted-foreground">避免内容</span>
