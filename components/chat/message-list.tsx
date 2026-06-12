@@ -92,6 +92,46 @@ const extractRecallSamples = (content: string) => {
   };
 };
 
+const extractTrendCatalog = (content: string) => {
+  const marker = '【可参考的抖音热搜完整列表】';
+  const markerIndex = content.indexOf(marker);
+  if (markerIndex === -1) {
+    return { cleanedContent: content, trendCatalog: null as null | { count: number; content: string; preview: string[] } };
+  }
+
+  const tail = content.slice(markerIndex + marker.length);
+  const tailEndCandidates = ['【召回到的示范样本】', '【已选择的爆款结构参考】', '【热点借势边界】', '【用户本次需求】', '【输出格式要求】'];
+  const endIndex = tailEndCandidates
+    .map((token) => tail.indexOf(token))
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b)[0] ?? tail.length;
+
+  const trendBlock = tail.slice(0, endIndex).trim();
+  const afterBlock = tail.slice(endIndex).trimStart();
+  const beforeBlock = content.slice(0, markerIndex).trimEnd();
+  const trendLines = trendBlock
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => /^TOP\s*\d+[.．]/i.test(line));
+  const count = trendLines.length || (trendBlock.match(/TOP\s*\d+[.．]/gi) || []).length;
+  const preview = trendLines.slice(0, 5).map((line) => line.replace(/（热度：.*?）/g, '').slice(0, 80));
+
+  const parts = [beforeBlock];
+  parts.push(`> 已折叠 ${count || '完整'} 条抖音热搜榜单，避免占用正文阅读区。`);
+  if (afterBlock) {
+    parts.push(afterBlock);
+  }
+
+  return {
+    cleanedContent: parts.filter(Boolean).join('\n\n').trim(),
+    trendCatalog: {
+      count,
+      content: trendBlock,
+      preview,
+    },
+  };
+};
+
 const parseVideoScriptSections = (content: string) => {
   const normalized = content.replace(/\r\n/g, '\n');
   const markers = [
@@ -540,6 +580,37 @@ const RecallSamplesPreview = memo(function RecallSamplesPreview({ samples }: { s
   );
 });
 
+const TrendCatalogPreview = memo(function TrendCatalogPreview({ trendCatalog }: { trendCatalog: null | { count: number; content: string; preview: string[] } }) {
+  const [open, setOpen] = useState(false);
+
+  if (!trendCatalog) return null;
+
+  return (
+    <div className="mb-3 rounded-xl border border-sky-400/20 bg-sky-500/10 p-3">
+      <button type="button" className="flex w-full items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition hover:bg-background/40" onClick={() => setOpen((prev) => !prev)}>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-200">抖音热搜榜单</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            已折叠 {trendCatalog.count || '完整'} 条热搜词，生成时仍会完整传给 AI。
+          </p>
+          {!open && trendCatalog.preview.length > 0 && (
+            <p className="mt-1 truncate text-xs text-muted-foreground">
+              预览：{trendCatalog.preview.join(' / ')}
+            </p>
+          )}
+        </div>
+        {open ? <ChevronUp size={16} className="shrink-0 text-muted-foreground" /> : <ChevronDown size={16} className="shrink-0 text-muted-foreground" />}
+      </button>
+
+      {open && (
+        <div className="mt-3 max-h-72 overflow-y-auto rounded-xl border border-sky-400/15 bg-background/65 p-3">
+          <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-5 text-muted-foreground">{trendCatalog.content}</pre>
+        </div>
+      )}
+    </div>
+  );
+});
+
 const MessageItem = memo(function MessageItem({
   session,
   msg,
@@ -559,7 +630,8 @@ const MessageItem = memo(function MessageItem({
 }) {
   const isUser = msg.role === 'user';
   const isError = msg.status === 'error';
-  const { cleanedContent, samples } = useMemo(() => extractRecallSamples(msg.content), [msg.content]);
+  const { cleanedContent: sampleCleanedContent, samples } = useMemo(() => extractRecallSamples(msg.content), [msg.content]);
+  const { cleanedContent, trendCatalog } = useMemo(() => extractTrendCatalog(sampleCleanedContent), [sampleCleanedContent]);
   const renderedMarkdown = useMemo(() => {
     const content = msg.status === 'streaming' ? stabilizeMarkdownForStreaming(cleanedContent) : cleanedContent;
     return !isUser ? formatStructuredVideoScript(content) : content;
@@ -611,6 +683,7 @@ const MessageItem = memo(function MessageItem({
         </div>
 
         <RecallSamplesPreview samples={samples} />
+        <TrendCatalogPreview trendCatalog={trendCatalog} />
 
         {isError && !isUser ? (
           <VideoScriptStateCard
