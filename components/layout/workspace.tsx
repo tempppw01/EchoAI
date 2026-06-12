@@ -267,12 +267,12 @@ export function Workspace({ mode }: { mode: ChatMode }) {
                 if (event.key === 'ArrowLeft') setSidebarWidth((width) => Math.max(SIDEBAR_MIN_WIDTH, width - 16));
                 if (event.key === 'ArrowRight') setSidebarWidth((width) => Math.min(SIDEBAR_MAX_WIDTH, width + 16));
               }}
-              className="group absolute -right-1.5 top-0 z-20 h-full w-3 cursor-col-resize outline-none"
+              className="group absolute -right-1 top-12 z-20 h-[calc(100%-3rem)] w-2 cursor-col-resize outline-none"
               title="拖动调整侧栏宽度"
             >
-              <span className="absolute left-1/2 top-16 h-14 w-1 -translate-x-1/2 rounded-full bg-border transition group-hover:bg-primary/50 group-focus-visible:bg-primary/70" />
+              <span className="absolute left-1/2 top-10 h-14 w-1 -translate-x-1/2 rounded-full bg-border/70 transition group-hover:bg-primary/50 group-focus-visible:bg-primary/70" />
             </div>
-            <div className="mb-2 flex justify-end">
+            <div className="mb-3 flex h-9 items-center justify-end border-b border-border/60 pb-2">
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -285,7 +285,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
                 <PanelLeftClose size={15} />
               </Button>
             </div>
-            <div className="min-h-0 overflow-y-auto">
+            <div className="no-scrollbar min-h-0 overflow-y-auto">
               <SidebarNav
                 section={section}
                 sessions={sessions}
@@ -346,7 +346,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
         <div className="fixed inset-0 z-30 md:hidden">
           <button className="absolute inset-0 bg-black/45" onClick={() => setSidebarOpen(false)} aria-label="关闭侧边栏" />
           <aside className="absolute left-0 top-0 flex h-full w-[84vw] max-w-xs flex-col border-r bg-background p-3 shadow-xl">
-            <div className="min-h-0 overflow-y-auto">
+            <div className="no-scrollbar min-h-0 overflow-y-auto">
               <SidebarNav
                 section={section}
                 sessions={sessions}

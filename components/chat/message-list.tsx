@@ -365,7 +365,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
   return (
     <div className="space-y-5">
       {session.mode !== 'training' && session.messages.length > 0 && (
-        <div className="sticky top-0 z-20 -mx-1 space-y-2 border-b border-border/60 bg-[linear-gradient(180deg,hsl(var(--background)/0.96),hsl(var(--background)/0.82))] px-1 py-2 backdrop-blur">
+        <div className="sticky top-0 z-30 mb-3 space-y-2 rounded-2xl border border-border/70 bg-background px-2 py-2 shadow-sm">
           {latestErrorMessage && (
             <div className="flex flex-col gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-start gap-2 text-red-700 dark:text-red-200">

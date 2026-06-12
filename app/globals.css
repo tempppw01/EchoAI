@@ -82,6 +82,15 @@ body {
 }
 * { @apply border-border; }
 
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .ui-icon-button {
   @apply inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/70 transition;
   background: hsl(var(--background) / 0.82);
