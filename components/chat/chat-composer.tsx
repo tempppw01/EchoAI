@@ -373,6 +373,18 @@ const buildEditingIdeaPrompt = (scriptContent: string, preset: VideoScriptPreset
   return lines.join('\n');
 };
 
+const mergeTrendKeywordTitles = (current: string | undefined, trends: DouyinTrendItem[], limit = 8) => {
+  const existing = (current || '')
+    .split(/[、,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const titles = trends
+    .map((item) => item.title.trim())
+    .filter(Boolean);
+
+  return [...new Set([...existing, ...titles])].slice(0, limit).join('、');
+};
+
 export function ChatComposer({ mode }: { mode: ChatMode }) {
   const [value, setValue] = useState('');
   const [isComposing, setIsComposing] = useState(false);
@@ -443,6 +455,10 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     videoPreset.versionCount ? `${videoPreset.versionCount}版` : '',
     videoPreset.productName?.trim() || videoPreset.businessType?.trim() || '',
   ].filter(Boolean).slice(0, 5).join(' · ') || '未填写参数';
+  const persistVideoPreset = (nextPreset: VideoScriptPreset) => {
+    if (!activeSession?.id || (activeSession.mode !== 'videoScript' && activeSession.mode !== 'copywriting')) return;
+    updateSession(activeSession.id, { videoScriptPreset: { ...nextPreset, viralStructureReference } });
+  };
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -659,6 +675,11 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       if (!response.ok) throw new Error(data.error || '拉取抖音热搜失败');
       const items = enrichTrendItemsWithHistory(data.items || [], trendSnapshots);
       setDouyinTrends(items);
+      if (items.length > 0) {
+        const nextPreset = { ...videoPreset, trendKeywords: mergeTrendKeywordTitles(videoPreset.trendKeywords, items) };
+        setVideoPreset(nextPreset);
+        persistVideoPreset(nextPreset);
+      }
       const sourceLabel = data.sourceLabel || '抖音热搜';
       if (items.length > 0) {
         const snapshotResponse = await fetch('/api/trends/douyin/snapshots', {
@@ -675,7 +696,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         if (!snapshotResponse.ok) throw new Error(snapshotData.error || '保存热搜快照失败');
         setTrendSnapshots(snapshotData.snapshots || []);
       }
-      setInputHint(items.length > 0 ? `已从${sourceLabel}拉取 ${items.length} 条热搜，生成时会自动筛选适合产品的自然切入点。` : '暂时没有拉取到热搜词条。');
+      setInputHint(items.length > 0 ? `已从${sourceLabel}拉取 ${items.length} 条热搜，已写入趋势关键词输入框并持久化。` : '暂时没有拉取到热搜词条。');
     } catch (error) {
       const message = error instanceof Error ? error.message : '拉取抖音热搜失败';
       setInputHint(message);
@@ -685,11 +706,11 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   };
 
   const applyTrendKeyword = (title: string) => {
-    setVideoPreset((prev) => {
-      const existing = (prev.trendKeywords || '').split(/[、,\n]/).map((item) => item.trim()).filter(Boolean);
-      if (existing.includes(title)) return prev;
-      return { ...prev, trendKeywords: [...existing, title].slice(0, 8).join('、') };
-    });
+    const nextTrendKeywords = mergeTrendKeywordTitles(videoPreset.trendKeywords, [{ title } as DouyinTrendItem]);
+    if (nextTrendKeywords === (videoPreset.trendKeywords || '')) return;
+    const nextPreset = { ...videoPreset, trendKeywords: nextTrendKeywords };
+    setVideoPreset(nextPreset);
+    persistVideoPreset(nextPreset);
   };
 
   const applyQuickTemplate = (template: Partial<VideoScriptPreset>) => {
