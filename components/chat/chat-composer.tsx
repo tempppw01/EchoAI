@@ -173,9 +173,9 @@ const formatTrendCatalog = (trends: DouyinTrendItem[]) =>
 
 const describeTrendContext = (manualKeywords?: string, trendCatalog: DouyinTrendItem[] = []) => {
   const manual = manualKeywords?.trim();
-  if (manual && trendCatalog.length > 0) return `${manual}；另已加载完整热搜榜单 ${trendCatalog.length} 条，见下方【可参考的抖音热搜完整列表】`;
+
   if (manual) return manual;
-  if (trendCatalog.length > 0) return `已加载完整热搜榜单 ${trendCatalog.length} 条，见下方【可参考的抖音热搜完整列表】`;
+  if (trendCatalog.length > 0) return `已加载完整热搜榜单 ${trendCatalog.length} 条`;
   return '无';
 };
 
@@ -316,7 +316,6 @@ const buildVideoScriptPromptWithPreset = (
     '要求：严格基于参数，不要擅自编造产品事实、客户案例、参与关系或供应关系；若关键信息缺失，先列出缺失项再给保守版本。',
   ].join('\n');
 };
-
 
 const buildEditingIdeaPrompt = (scriptContent: string, preset: VideoScriptPreset, userInput: string, trendCatalog: DouyinTrendItem[] = []) => {
   const trendCatalogBlock = buildTrendCatalogBlock(trendCatalog);

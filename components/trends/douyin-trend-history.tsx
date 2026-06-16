@@ -38,6 +38,11 @@ const formatFullTime = (value?: string) => {
   }).format(date);
 };
 
+const parseSnapshotLimit = (value: unknown): 10 | 20 | 30 => {
+  const numeric = Number(value);
+  return numeric === 10 || numeric === 20 || numeric === 30 ? numeric : 20;
+};
+
 function TrendMovementBadge({ item }: { item: DouyinTrendItem }) {
   const movement = getTrendRankMovement(item);
 
@@ -78,6 +83,7 @@ export function DouyinTrendHistoryPage() {
   const [activeSnapshotId, setActiveSnapshotId] = useState<string | undefined>();
   const [activeWatchId, setActiveWatchId] = useState<string | undefined>();
   const [snapshotsCollapsed, setSnapshotsCollapsed] = useState(true);
+  const [snapshotLimit, setSnapshotLimit] = useState<10 | 20 | 30>(20);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [keywordInput, setKeywordInput] = useState('');
@@ -138,6 +144,8 @@ export function DouyinTrendHistoryPage() {
   };
 
   useEffect(() => {
+    const storedLimit = window.localStorage.getItem('echoai-trend-snapshot-limit');
+    setSnapshotLimit(parseSnapshotLimit(storedLimit));
     void loadSnapshots();
   }, []);
 
@@ -151,7 +159,12 @@ export function DouyinTrendHistoryPage() {
     setStatus('');
 
     try {
-      const response = await fetch('/api/trends/douyin/snapshots', { method: 'POST', cache: 'no-store' });
+      const response = await fetch('/api/trends/douyin/snapshots', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: snapshotLimit }),
+      });
       const data = (await response.json()) as {
         snapshot?: DouyinTrendSnapshot;
         snapshots?: DouyinTrendSnapshot[];
@@ -169,7 +182,7 @@ export function DouyinTrendHistoryPage() {
       }
 
       setActiveSnapshotId(savedSnapshot.id);
-      setStatus(`已保存 ${savedSnapshot.items.length} 条热搜快照到服务端。`);
+      setStatus(`已保存 ${savedSnapshot.items.length} 条热搜快照，仅保留最近 ${snapshotLimit} 批。`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : '拉取抖音热搜失败');
     } finally {
@@ -200,6 +213,32 @@ export function DouyinTrendHistoryPage() {
       setStatus('已清空服务端热搜快照。');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : '清空热搜快照失败');
+    }
+  };
+
+  const handleSnapshotLimitChange = async (nextLimit: 10 | 20 | 30) => {
+    setSnapshotLimit(nextLimit);
+    window.localStorage.setItem('echoai-trend-snapshot-limit', String(nextLimit));
+
+    try {
+      setStatus(`正在保留最近 ${nextLimit} 批...`);
+      const response = await fetch('/api/trends/douyin/snapshots', {
+        method: 'PATCH',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: nextLimit }),
+      });
+      const data = (await response.json()) as { snapshots?: DouyinTrendSnapshot[]; error?: string };
+      if (!response.ok) throw new Error(data.error || '更新保留批次数失败');
+
+      const nextSnapshots = data.snapshots || [];
+      setSnapshots(nextSnapshots);
+      if (activeSnapshotId && !nextSnapshots.some((snapshot) => snapshot.id === activeSnapshotId)) {
+        setActiveSnapshotId(nextSnapshots[0]?.id);
+      }
+      setStatus(`已设置为保留最近 ${nextLimit} 批，旧快照已自动清理。`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : '更新保留批次数失败');
     }
   };
 
@@ -353,7 +392,7 @@ export function DouyinTrendHistoryPage() {
             <div className="flex items-center justify-between gap-2 px-1">
               <div>
                 <p className="text-sm font-semibold">历史批次</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">共 {snapshots.length} 个快照</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">共 {snapshots.length} 个快照，旧批次会自动清理</p>
               </div>
               <div className="flex items-center gap-1">
                 {status && <span className="max-w-[120px] truncate text-xs text-muted-foreground">{status}</span>}
@@ -363,6 +402,24 @@ export function DouyinTrendHistoryPage() {
                   </Button>
                 )}
               </div>
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-dashed border-border/75 bg-background/55 p-2">
+              <label className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                <span className="shrink-0">保留最近</span>
+                <select
+                  className="h-8 flex-1 rounded-xl border border-border/70 bg-card px-2 text-xs font-medium text-foreground outline-none transition focus:border-primary/45"
+                  value={snapshotLimit}
+                  onChange={(event) => void handleSnapshotLimitChange(parseSnapshotLimit(event.target.value))}
+                >
+                  <option value={10}>10 批</option>
+                  <option value={20}>20 批</option>
+                  <option value={30}>30 批</option>
+                </select>
+              </label>
+              <p className="mt-1.5 text-[11px] leading-5 text-muted-foreground">
+                切换后会立即清理服务端旧快照；下次保存也会按这个数量自动保留。
+              </p>
             </div>
 
             <div className="mt-3 max-h-[42vh] space-y-2 overflow-y-auto pr-1">

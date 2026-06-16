@@ -50,13 +50,13 @@ export async function readTrendSnapshots() {
   }
 }
 
-async function writeTrendSnapshots(snapshots: DouyinTrendSnapshot[]) {
+async function writeTrendSnapshots(snapshots: DouyinTrendSnapshot[], limit?: number) {
   const filePath = getSnapshotFilePath();
   await mkdir(path.dirname(filePath), { recursive: true });
   const normalized = snapshots
     .map((snapshot) => normalizeSnapshot(snapshot))
     .filter((snapshot): snapshot is DouyinTrendSnapshot => Boolean(snapshot))
-    .slice(0, MAX_SNAPSHOTS);
+    .slice(0, limit ?? MAX_SNAPSHOTS);
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
 
   await writeFile(tempPath, `${JSON.stringify({ snapshots: normalized }, null, 2)}\n`, 'utf8');
@@ -67,6 +67,7 @@ export async function addTrendSnapshot(payload: {
   source?: string;
   sourceLabel?: string;
   fetchedAt?: string;
+  limit?: number;
   items: DouyinTrendItem[];
 }) {
   const snapshots = await readTrendSnapshots();
@@ -78,8 +79,9 @@ export async function addTrendSnapshot(payload: {
     createdAt: now(),
     items: enrichTrendItemsWithHistory(payload.items, snapshots),
   };
-  const nextSnapshots = [snapshot, ...snapshots].slice(0, MAX_SNAPSHOTS);
-  await writeTrendSnapshots(nextSnapshots);
+  const maxCap = typeof payload.limit === 'number' && payload.limit > 0 ? payload.limit : MAX_SNAPSHOTS;
+  const nextSnapshots = [snapshot, ...snapshots].slice(0, maxCap);
+  await writeTrendSnapshots(nextSnapshots, maxCap);
 
   return { snapshot, snapshots: nextSnapshots };
 }
@@ -88,6 +90,14 @@ export async function deleteTrendSnapshot(id: string) {
   const snapshots = await readTrendSnapshots();
   const nextSnapshots = snapshots.filter((snapshot) => snapshot.id !== id);
   await writeTrendSnapshots(nextSnapshots);
+  return nextSnapshots;
+}
+
+export async function trimTrendSnapshots(limit: number) {
+  const snapshots = await readTrendSnapshots();
+  const maxCap = limit > 0 ? limit : MAX_SNAPSHOTS;
+  const nextSnapshots = snapshots.slice(0, maxCap);
+  await writeTrendSnapshots(nextSnapshots, maxCap);
   return nextSnapshots;
 }
 
