@@ -251,7 +251,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
       <div className="relative z-10 flex h-[calc(100vh-56px)] overflow-hidden">
         {!workspaceCollapsed && (
           <aside
-            className="relative hidden min-w-0 overflow-visible border-r bg-card/30 p-3 md:flex md:flex-col"
+            className="relative hidden min-w-0 overflow-hidden border-r bg-card/30 p-3 md:flex md:flex-col"
             style={{ width: sidebarWidth }}
           >
             <div
@@ -528,7 +528,7 @@ function SidebarNav({
                 type="button"
                 onClick={() => onSelectFeature(feature.key)}
                 className={cn(
-                  'cursor-pointer rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm',
+                  'min-w-0 cursor-pointer rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm',
                   isActive ? 'border-primary/35 bg-primary/[0.07] text-primary shadow-sm' : 'border-border/60 bg-background/70 text-foreground',
                 )}
               >
@@ -564,7 +564,7 @@ function SidebarNav({
           </Link>
         </div>
 
-        <div className="rounded-[24px] border border-primary/20 bg-background/72 p-2.5">
+        <div className="min-w-0 rounded-[24px] border border-primary/20 bg-background/72 p-2.5">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold">当前：{activeFeature.label}</p>
             <Button size="sm" variant="primary" className="h-8 px-2.5 text-[11px]" onClick={() => onCreate(section)}>
