@@ -227,6 +227,19 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             <Menu size={16} />
           </Button>
           <span className="text-sm font-medium">EchoAI</span>
+          {!workspaceCollapsed && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="hidden h-8 w-8 rounded-xl border border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:bg-primary/10 hover:text-primary md:inline-flex"
+              onClick={() => setWorkspaceCollapsed(true)}
+              aria-label="折叠工作区侧栏"
+              title="折叠工作区侧栏"
+              aria-expanded={!workspaceCollapsed}
+            >
+              <PanelLeftClose size={15} />
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggleButton isDark={isDarkTheme} onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')} />
@@ -271,19 +284,6 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               title="拖动调整侧栏宽度"
             >
               <span className="absolute left-1/2 top-10 h-14 w-1 -translate-x-1/2 rounded-full bg-border/70 transition group-hover:bg-primary/50 group-focus-visible:bg-primary/70" />
-            </div>
-            <div className="mb-3 flex h-9 items-center justify-end border-b border-border/60 pb-2">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="h-8 w-8 rounded-xl border border-border/70 bg-background/70 text-muted-foreground hover:border-primary/25 hover:bg-primary/10 hover:text-primary"
-                onClick={() => setWorkspaceCollapsed(true)}
-                aria-label="折叠工作区侧栏"
-                title="折叠工作区侧栏"
-                aria-expanded={!workspaceCollapsed}
-              >
-                <PanelLeftClose size={15} />
-              </Button>
             </div>
             <div className="no-scrollbar min-h-0 overflow-y-auto">
               <SidebarNav
