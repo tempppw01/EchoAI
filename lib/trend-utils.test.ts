@@ -21,7 +21,7 @@ describe('normalizeTrendTitle', () => {
   });
 
   it('handles various quote marks', () => {
-    expect(normalizeTrendTitle('"测试" '标题'')).toBe('测试标题');
+    expect(normalizeTrendTitle("\"测试\" '标题'")).toBe('测试标题');
   });
 
   it('trims and lowercases', () => {
