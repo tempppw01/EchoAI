@@ -48,7 +48,7 @@ function TrendMovementBadge({ item }: { item: DouyinTrendItem }) {
 
   if (movement.type === 'up') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-red-600 dark:text-red-300" title={`较上次上升 ${movement.delta} 位`}>
+      <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-0.5 text-danger" title={`较上次上升 ${movement.delta} 位`}>
         <ArrowUpRight size={11} />
         升{movement.delta}
       </span>
@@ -57,7 +57,7 @@ function TrendMovementBadge({ item }: { item: DouyinTrendItem }) {
 
   if (movement.type === 'down') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-blue-600 dark:text-blue-300" title={`较上次下降 ${movement.delta} 位`}>
+      <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-info" title={`较上次下降 ${movement.delta} 位`}>
         <ArrowDownRight size={11} />
         降{movement.delta}
       </span>
@@ -73,7 +73,7 @@ function TrendMovementBadge({ item }: { item: DouyinTrendItem }) {
     );
   }
 
-  return <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-emerald-700 dark:text-emerald-300">新进</span>;
+  return <span className="rounded-full bg-success/10 px-2 py-0.5 text-success">新进</span>;
 }
 
 export function DouyinTrendHistoryPage() {
@@ -355,7 +355,7 @@ export function DouyinTrendHistoryPage() {
   };
 
   return (
-    <div className="h-screen overflow-y-auto overscroll-contain bg-[linear-gradient(180deg,hsl(var(--background)),hsl(var(--surface)))] text-foreground">
+    <div className="h-screen overflow-y-auto overscroll-contain bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b bg-card/88 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -388,7 +388,7 @@ export function DouyinTrendHistoryPage() {
 
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <aside className="space-y-3">
-          <section className="rounded-3xl border bg-card/78 p-3 shadow-sm">
+          <section className="rounded-xl border bg-card/78 p-3 shadow-sm">
             <div className="flex items-center justify-between gap-2 px-1">
               <div>
                 <p className="text-sm font-semibold">历史批次</p>
@@ -404,11 +404,11 @@ export function DouyinTrendHistoryPage() {
               </div>
             </div>
 
-            <div className="mt-3 rounded-2xl border border-dashed border-border/75 bg-background/55 p-2">
+            <div className="mt-3 rounded-lg border border-dashed border-border/75 bg-background/55 p-2">
               <label className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                 <span className="shrink-0">保留最近</span>
                 <select
-                  className="h-8 flex-1 rounded-xl border border-border/70 bg-card px-2 text-xs font-medium text-foreground outline-none transition focus:border-primary/45"
+                  className="ui-select h-8 w-auto flex-1 text-xs font-medium"
                   value={snapshotLimit}
                   onChange={(event) => void handleSnapshotLimitChange(parseSnapshotLimit(event.target.value))}
                 >
@@ -424,7 +424,7 @@ export function DouyinTrendHistoryPage() {
 
             <div className="mt-3 max-h-[42vh] space-y-2 overflow-y-auto pr-1">
               {snapshots.length === 0 ? (
-                <div className="rounded-2xl border border-dashed bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
+                <div className="rounded-lg border border-dashed bg-background/60 px-4 py-8 text-center text-sm text-muted-foreground">
                   还没有热搜快照。点击右上角“拉取并保存”，或在内容创作面板里点击“热搜”。
                 </div>
               ) : (
@@ -434,7 +434,7 @@ export function DouyinTrendHistoryPage() {
                     type="button"
                     onClick={() => setActiveSnapshotId(snapshot.id)}
                     className={cn(
-                      'w-full rounded-2xl border p-3 text-left transition',
+                      'w-full rounded-lg border p-3 text-left transition',
                       activeSnapshot?.id === snapshot.id
                         ? 'border-primary/35 bg-primary/10 text-primary shadow-sm'
                         : 'border-border/70 bg-background/55 text-foreground hover:border-primary/25 hover:bg-primary/5',
@@ -463,7 +463,7 @@ export function DouyinTrendHistoryPage() {
             )}
           </section>
 
-          <section className="rounded-3xl border bg-card/78 p-3 shadow-sm">
+          <section className="rounded-xl border bg-card/78 p-3 shadow-sm">
             <div className="flex items-center justify-between gap-2 px-1">
               <div>
                 <p className="text-sm font-semibold">关键词趋势关注</p>
@@ -498,7 +498,7 @@ export function DouyinTrendHistoryPage() {
             {keywordStatus && <p className="mt-2 text-xs text-muted-foreground">{keywordStatus}</p>}
 
             {keywordResult && (
-              <div className="mt-3 rounded-2xl border bg-background/60 p-3">
+              <div className="mt-3 rounded-lg border bg-background/60 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-sm font-semibold">{keywordResult.keyword}</p>
                   <span className="shrink-0 text-[11px] text-muted-foreground">{keywordResult.suggestions.length} 个词</span>
@@ -516,7 +516,7 @@ export function DouyinTrendHistoryPage() {
                     <p className="text-[11px] font-medium text-muted-foreground">长尾词</p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {keywordResult.longTailSuggestions.slice(0, 12).map((item) => (
-                        <span key={`${item.keyword}-${item.rank}`} className="rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-700 dark:text-emerald-300">
+                        <span key={`${item.keyword}-${item.rank}`} className="rounded-full bg-success/10 px-2 py-1 text-[11px] text-success">
                           {item.keyword}
                         </span>
                       ))}
@@ -528,7 +528,7 @@ export function DouyinTrendHistoryPage() {
 
             <div className="mt-3 space-y-2">
               {keywordWatches.length === 0 ? (
-                <div className="rounded-2xl border border-dashed bg-background/50 px-3 py-4 text-center text-xs text-muted-foreground">
+                <div className="rounded-lg border border-dashed bg-background/50 px-3 py-4 text-center text-xs text-muted-foreground">
                   还没有关注关键词。
                 </div>
               ) : (
@@ -541,7 +541,7 @@ export function DouyinTrendHistoryPage() {
                       setKeywordInput(watch.keyword);
                     }}
                     className={cn(
-                      'w-full rounded-2xl border p-3 text-left transition',
+                      'w-full rounded-lg border p-3 text-left transition',
                       activeWatch?.id === watch.id ? 'border-primary/35 bg-primary/10 text-primary' : 'border-border/70 bg-background/55 hover:border-primary/25 hover:bg-primary/5',
                     )}
                   >
@@ -557,9 +557,9 @@ export function DouyinTrendHistoryPage() {
           </section>
         </aside>
 
-        <section className="min-w-0 rounded-3xl border bg-card/78 p-4 shadow-sm">
+        <section className="min-w-0 rounded-xl border bg-card/78 p-4 shadow-sm">
           {activeWatch && (
-            <div className="mb-4 rounded-3xl border border-blue-500/15 bg-blue-500/5 p-4">
+            <div className="mb-4 rounded-xl border border-info/15 bg-info/5 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">正在关注：{activeWatch.keyword}</p>
@@ -581,24 +581,24 @@ export function DouyinTrendHistoryPage() {
 
               {latestKeywordSnapshot ? (
                 <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                  <div className="rounded-2xl border bg-background/65 p-3">
+                  <div className="rounded-lg border bg-background/65 p-3">
                     <p className="text-xs font-semibold text-muted-foreground">热门联想趋势</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {watchedKeywordMomentum.slice(0, 16).map((item) => (
                         <span key={`${item.keyword}-${item.rank}`} className="rounded-full border border-border/70 bg-card/75 px-2 py-1 text-[11px]">
                           TOP{item.rank} {item.keyword}
-                          {item.momentum === 'new' && <span className="ml-1 text-emerald-600">新</span>}
-                          {item.momentum === 'up' && <span className="ml-1 text-red-600">升{item.delta}</span>}
+                          {item.momentum === 'new' && <span className="ml-1 text-success">新</span>}
+                          {item.momentum === 'up' && <span className="ml-1 text-danger">升{item.delta}</span>}
                           {item.momentum === 'down' && <span className="ml-1 text-muted-foreground">降{Math.abs(item.delta || 0)}</span>}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-2xl border bg-background/65 p-3">
+                  <div className="rounded-lg border bg-background/65 p-3">
                     <p className="text-xs font-semibold text-muted-foreground">长尾词趋势</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {latestKeywordSnapshot.longTailSuggestions.slice(0, 18).map((item) => (
-                        <span key={`${item.keyword}-${item.rank}`} className="rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-700 dark:text-emerald-300">
+                        <span key={`${item.keyword}-${item.rank}`} className="rounded-full bg-success/10 px-2 py-1 text-[11px] text-success">
                           {item.keyword}
                         </span>
                       ))}
@@ -606,7 +606,7 @@ export function DouyinTrendHistoryPage() {
                   </div>
                 </div>
               ) : (
-                <div className="mt-3 rounded-2xl border border-dashed bg-background/55 px-4 py-5 text-center text-sm text-muted-foreground">
+                <div className="mt-3 rounded-lg border border-dashed bg-background/55 px-4 py-5 text-center text-sm text-muted-foreground">
                   这个关键词还没有趋势快照，点击“刷新趋势”后会记录热门联想和长尾词。
                 </div>
               )}
@@ -649,7 +649,7 @@ export function DouyinTrendHistoryPage() {
               </div>
 
               {(industryAnalysis || analysisLoading) && (
-                <div className="mt-4 rounded-3xl border border-primary/15 bg-primary/5 p-4">
+                <div className="mt-4 rounded-xl border border-primary/15 bg-primary/5 p-4">
                   <div className="flex items-center gap-2 text-sm font-semibold">
                     <Brain size={15} className="text-primary" />
                     热搜词行业分析
@@ -675,7 +675,7 @@ export function DouyinTrendHistoryPage() {
                   {activeSnapshotItems.map((item, index) => (
                     <div
                       key={`${item.title}-${item.hot || ''}-${index}`}
-                      className="group rounded-2xl border border-border/70 bg-background/60 p-3 transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
+                      className="group rounded-lg border border-border/70 bg-background/60 p-3 transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
                     >
                       <div className="flex items-start gap-3">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-muted text-xs font-semibold text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary">
@@ -695,7 +695,7 @@ export function DouyinTrendHistoryPage() {
                             <TrendMovementBadge item={item} />
                             {item.hot && <span className="rounded-full bg-muted px-2 py-0.5">热度 {item.hot}</span>}
                             {item.label && <span className="rounded-full bg-muted px-2 py-0.5">{item.label}</span>}
-                            <span className={cn('rounded-full px-2 py-0.5', item.seenBefore ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300')}>
+                            <span className={cn('rounded-full px-2 py-0.5', item.seenBefore ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success')}>
                               {formatTrendHistoryLabel(item)}
                             </span>
                           </div>
@@ -722,7 +722,7 @@ export function DouyinTrendHistoryPage() {
                     {droppedHistoricalItems.map((item, index) => (
                       <div
                         key={`${item.title}-${item.previousSeenAt || ''}-${index}`}
-                        className="rounded-2xl border border-dashed border-border/75 bg-background/42 p-3"
+                        className="rounded-lg border border-dashed border-border/75 bg-background/42 p-3"
                       >
                         <div className="flex items-start gap-3">
                           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-muted/70 text-xs font-semibold text-muted-foreground">
@@ -753,7 +753,7 @@ export function DouyinTrendHistoryPage() {
               )}
             </>
           ) : (
-            <div className="flex min-h-[420px] flex-col items-center justify-center rounded-3xl border border-dashed bg-background/55 px-6 text-center">
+            <div className="flex min-h-[420px] flex-col items-center justify-center rounded-xl border border-dashed bg-background/55 px-6 text-center">
               <History size={34} className="text-muted-foreground" />
               <h1 className="mt-4 text-xl font-semibold">还没有抖音热搜历史</h1>
               <p className="mt-2 max-w-md text-sm text-muted-foreground">

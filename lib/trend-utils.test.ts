@@ -172,7 +172,8 @@ describe('enrichTrendItemsWithHistory', () => {
 
 describe('formatTrendTime', () => {
   it('formats valid date string', () => {
-    const result = formatTrendTime('2024-01-15T13:30:00Z');
+    // 用本地时间构造，避免测试随运行环境时区变化而失败。
+    const result = formatTrendTime('2024-01-15T13:30:00');
     expect(result).toMatch(/01.*15.*13.*30/);
   });
 

@@ -47,7 +47,14 @@ const normalizeClientRequestError = (error: unknown) => {
 
   if (!raw) return '请求失败，请稍后重试';
 
-  if (lower.includes('load failed') || lower.includes('failed to fetch') || lower.includes('networkerror') || lower.includes('network request failed')) {
+  if (
+    lower.includes('load failed') ||
+    lower.includes('failed to fetch') ||
+    lower.includes('network error') ||
+    lower.includes('networkerror') ||
+    lower.includes('network request failed') ||
+    lower.includes('err_network')
+  ) {
     return '网络连接失败，请检查当前网络或稍后再试';
   }
 

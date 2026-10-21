@@ -1,5 +1,5 @@
 import { Workspace } from '@/components/layout/workspace';
 
 export default function ChatPage() {
-  return <Workspace mode="videoScript" />;
+  return <Workspace mode="chat" />;
 }

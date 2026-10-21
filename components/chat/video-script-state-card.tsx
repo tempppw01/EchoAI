@@ -16,8 +16,8 @@ type VideoScriptStateCardProps = {
 const variantConfig = {
   empty: {
     icon: Inbox,
-    wrapper: 'border-white/10 bg-white/[0.03]',
-    iconWrap: 'border-pink-400/20 bg-pink-500/10 text-pink-300',
+    wrapper: 'border-border bg-surface-soft',
+    iconWrap: 'border-border bg-muted text-muted-foreground',
   },
   loading: {
     icon: LoaderCircle,
@@ -26,8 +26,8 @@ const variantConfig = {
   },
   error: {
     icon: AlertCircle,
-    wrapper: 'border-rose-400/30 bg-rose-500/8',
-    iconWrap: 'border-rose-400/30 bg-rose-500/10 text-rose-300',
+    wrapper: 'border-danger/30 bg-danger/5',
+    iconWrap: 'border-danger/30 bg-danger/10 text-danger',
   },
 } as const;
 
@@ -36,9 +36,9 @@ export function VideoScriptStateCard({ variant, title, description, tips = [], a
   const Icon = config.icon;
 
   return (
-    <div className={cn('rounded-2xl border p-4 md:p-5', config.wrapper, compact && 'rounded-xl p-3 md:p-4')}>
+    <div className={cn('rounded-xl border p-4 md:p-5', config.wrapper, compact && 'p-3 md:p-4')}>
       <div className="flex items-start gap-3">
-        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border', config.iconWrap, compact && 'h-9 w-9 rounded-xl')}>
+        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border', config.iconWrap, compact && 'h-9 w-9')}>
           <Icon size={18} className={variant === 'loading' ? 'animate-spin' : ''} />
         </div>
         <div className="min-w-0 flex-1">

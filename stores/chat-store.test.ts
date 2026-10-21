@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { ChatSession, ChatMode, TrainingQuestion } from '@/lib/types';
+import type { ChatMessage, ChatSession, ChatMode, TrainingQuestion } from '@/lib/types';
 
 // Mock zustand persist
 vi.mock('zustand/middleware', () => ({
@@ -194,7 +194,7 @@ describe('ChatStore - Message Management', () => {
   });
 
   it('returns undefined when no user message found for retry', () => {
-    const messages = [
+    const messages: ChatMessage[] = [
       { id: '1', role: 'assistant' as const, content: 'Only assistant', createdAt: '', status: 'done' as const },
     ];
 

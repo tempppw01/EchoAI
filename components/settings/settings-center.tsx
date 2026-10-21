@@ -133,17 +133,17 @@ type SaveState = 'idle' | 'saving' | 'saved';
 const saveStateMeta: Record<SaveState, { label: string; className: string; icon: typeof CheckCircle2 | typeof Loader2 }> = {
   idle: {
     label: '自动保存已开启',
-    className: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200',
+    className: 'border-success/25 bg-success/10 text-success',
     icon: CheckCircle2,
   },
   saving: {
     label: '自动保存中',
-    className: 'border-amber-500/30 bg-amber-500/10 text-amber-200',
+    className: 'border-warning/30 bg-warning/10 text-warning',
     icon: Loader2,
   },
   saved: {
     label: '已自动保存',
-    className: 'border-sky-500/25 bg-sky-500/10 text-sky-200',
+    className: 'border-info/25 bg-info/10 text-info',
     icon: CheckCircle2,
   },
 };
@@ -324,14 +324,14 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
     <>
       <Dialog.Root open={open} onOpenChange={onOpenChange}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[min(94vw,880px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border border-border bg-[hsl(var(--card))] p-5 shadow-2xl ring-1 ring-black/5">
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-scrim/55 backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[min(94vw,880px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-2xl ring-1 ring-border/60">
             <div className="mb-4 flex shrink-0 items-start justify-between gap-4">
               <div>
                 <Dialog.Title className="text-lg font-semibold text-foreground">设置中心</Dialog.Title>
                 <p className="mt-1 text-sm text-muted-foreground">当前设置会自动保存到本地，模型配置默认优先使用前端填写内容。</p>
               </div>
-              <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${saveMeta.className}`}>
+              <div className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1 text-xs font-medium ${saveMeta.className}`}>
                 <SaveIcon size={14} className={saveState === 'saving' ? 'animate-spin' : ''} />
                 {saveMeta.label}
               </div>
@@ -366,7 +366,7 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
       </Dialog.Root>
 
       {notice && (
-        <div className="pointer-events-none fixed bottom-4 right-4 z-[70] rounded-2xl border border-border bg-[hsl(var(--card))] px-4 py-2 text-sm shadow-lg">
+        <div className="pointer-events-none fixed bottom-4 right-4 z-[70] rounded-lg border border-border bg-card px-4 py-2 text-sm shadow-lg">
           {notice}
         </div>
       )}

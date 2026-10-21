@@ -23,22 +23,22 @@ type FetchStatus =
   | { type: 'success'; message: string }
   | { type: 'error'; message: string };
 
-const sectionClassName = 'rounded-3xl border border-border/70 bg-[hsl(var(--background))] p-4 shadow-sm';
+const sectionClassName = 'rounded-xl border border-border/70 bg-background p-4 shadow-sm';
 const modelStatusMeta = {
   idle: {
-    className: 'border-border/70 bg-[hsl(var(--background))] text-muted-foreground',
+    className: 'border-border/70 bg-background text-muted-foreground',
     icon: Server,
   },
   loading: {
-    className: 'border-amber-500/25 bg-amber-500/10 text-amber-200',
+    className: 'border-warning/25 bg-warning/10 text-warning',
     icon: Loader2,
   },
   success: {
-    className: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200',
+    className: 'border-success/25 bg-success/10 text-success',
     icon: CheckCircle2,
   },
   error: {
-    className: 'border-red-500/25 bg-red-500/10 text-red-200',
+    className: 'border-danger/25 bg-danger/10 text-danger',
     icon: AlertCircle,
   },
 } as const;
@@ -144,7 +144,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
     const Icon = meta.icon;
 
     return (
-      <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${meta.className}`}>
+      <div className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm ${meta.className}`}>
         <Icon size={16} className={modelStatus.type === 'loading' ? 'mt-0.5 shrink-0 animate-spin' : 'mt-0.5 shrink-0'} />
         <div className="min-w-0">
           <p className="font-medium">{modelStatus.type === 'error' ? '拉取模型失败' : modelStatus.type === 'success' ? '模型列表已更新' : '模型连接状态'}</p>
@@ -161,7 +161,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
           <Tabs.Trigger
             key={tab.value}
             value={tab.value}
-            className="inline-flex items-center justify-center rounded-full border border-border/70 bg-[hsl(var(--background))] px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted/65 hover:text-foreground data-[state=active]:border-primary/20 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+            className="ui-segmented-trigger"
           >
             {tab.label}
           </Tabs.Trigger>
@@ -188,7 +188,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
             <label className="grid gap-2 text-xs text-muted-foreground">
               <span>Provider</span>
               <select
-                className="h-10 w-full rounded-xl border border-border/70 bg-background px-3 text-sm text-foreground"
+                className="ui-select h-10 rounded-xl bg-background"
                 value={form.watch('provider')}
                 onChange={(event) => form.setValue('provider', event.target.value, { shouldDirty: true })}
               >
@@ -234,12 +234,12 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
             </Button>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-border/70 bg-[hsl(var(--background))] p-3">
+            <div className="mt-4 rounded-lg border border-border/70 bg-background p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-foreground">已持久化模型</p>
               <span className="rounded-full border border-border/70 px-2.5 py-1 text-xs text-muted-foreground">{modelCatalog.length} 个</span>
             </div>
-            <div className="mt-3 max-h-28 overflow-y-auto rounded-2xl border border-dashed border-border/70 bg-[hsl(var(--background))] p-3 text-xs text-muted-foreground">
+              <div className="mt-3 max-h-28 overflow-y-auto rounded-lg border border-dashed border-border/70 bg-background p-3 text-xs text-muted-foreground">
               {modelCatalog.length > 0 ? modelCatalog.join('、') : '暂无模型列表，可保留当前配置后点击右侧按钮重试。'}
             </div>
           </div>
@@ -253,7 +253,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
             <label className="grid gap-2 text-xs text-muted-foreground">
               <span>默认文本模型</span>
               <select
-                className="h-10 w-full rounded-xl border border-border/70 bg-background px-3 text-sm text-foreground"
+                className="ui-select h-10 rounded-xl bg-background"
                 value={defaultTextModel}
                 onChange={(event) => form.setValue('defaultTextModel', event.target.value, { shouldDirty: true })}
                 disabled={modelCatalog.length === 0}
@@ -273,7 +273,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
             <label className="grid gap-2 text-xs text-muted-foreground">
               <span>默认绘图模型</span>
               <select
-                className="h-10 w-full rounded-xl border border-border/70 bg-background px-3 text-sm text-foreground"
+                className="ui-select h-10 rounded-xl bg-background"
                 value={defaultImageModel}
                 onChange={(event) => form.setValue('defaultImageModel', event.target.value, { shouldDirty: true })}
                 disabled={modelCatalog.length === 0}
@@ -293,7 +293,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
             <label className="grid gap-2 text-xs text-muted-foreground">
               <span>默认嵌入模型</span>
               <select
-                className="h-10 w-full rounded-xl border border-border/70 bg-background px-3 text-sm text-foreground"
+                className="ui-select h-10 rounded-xl bg-background"
                 value={defaultEmbeddingModel}
                 onChange={(event) => form.setValue('defaultEmbeddingModel', event.target.value, { shouldDirty: true })}
                 disabled={modelCatalog.length === 0}
@@ -314,7 +314,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
 
         <section className={sectionClassName}>
           <div className="grid gap-3 xl:grid-cols-[1.1fr,1.4fr]">
-            <label className="grid gap-2 rounded-2xl border border-border/70 bg-[hsl(var(--background))] p-4 text-xs text-muted-foreground">
+            <label className="grid gap-2 rounded-lg border border-border/70 bg-background p-4 text-xs text-muted-foreground">
               <span className="text-sm font-semibold text-foreground">样本召回 TopK</span>
               <span>控制样本库初始召回数量，建议与重排阈值搭配使用，避免一次召回过多噪声内容。</span>
               <Input
@@ -326,7 +326,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
               />
             </label>
 
-            <div className="rounded-2xl border border-border/70 bg-[hsl(var(--background))] p-4 text-xs text-muted-foreground">
+            <div className="rounded-lg border border-border/70 bg-background p-4 text-xs text-muted-foreground">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-foreground">召回重排</p>
@@ -346,7 +346,7 @@ export function SettingsTabs({ form, open }: SettingsTabsProps) {
                 <label className="grid gap-2">
                   <span>重排模型</span>
                   <select
-                    className="h-10 w-full rounded-xl border border-border/70 bg-background px-3 text-sm text-foreground"
+                    className="ui-select h-10 rounded-xl bg-background"
                     value={rerankModel}
                     onChange={(event) => form.setValue('rerankModel', event.target.value, { shouldDirty: true })}
                     disabled={modelCatalog.length === 0}

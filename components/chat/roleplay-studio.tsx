@@ -63,36 +63,36 @@ const rightPanelTabs: Array<{ key: RightPanelView; label: string; icon: typeof S
 
 const accentPresets: AccentPreset[] = [
   {
-    hero: 'from-fuchsia-500/20 via-violet-500/10 to-sky-500/18',
-    halo: 'bg-fuchsia-400/18',
-    avatar: 'border-fuchsia-400/30 bg-fuchsia-500/12',
-    card: 'border-fuchsia-400/24 bg-fuchsia-500/8',
-    chip: 'border-fuchsia-400/24 bg-fuchsia-500/12',
-    soft: 'bg-fuchsia-500/10',
+    hero: 'from-accent/20 via-accent/10 to-info/18',
+    halo: 'bg-accent/18',
+    avatar: 'border-accent/30 bg-accent/12',
+    card: 'border-accent/24 bg-accent/8',
+    chip: 'border-accent/24 bg-accent/12',
+    soft: 'bg-accent/10',
   },
   {
-    hero: 'from-cyan-500/20 via-sky-500/10 to-emerald-500/16',
-    halo: 'bg-cyan-400/16',
-    avatar: 'border-cyan-400/30 bg-cyan-500/12',
-    card: 'border-cyan-400/24 bg-cyan-500/8',
-    chip: 'border-cyan-400/24 bg-cyan-500/12',
-    soft: 'bg-cyan-500/10',
+    hero: 'from-info/20 via-info/10 to-success/16',
+    halo: 'bg-info/16',
+    avatar: 'border-info/30 bg-info/12',
+    card: 'border-info/24 bg-info/8',
+    chip: 'border-info/24 bg-info/12',
+    soft: 'bg-info/10',
   },
   {
-    hero: 'from-amber-500/18 via-orange-500/10 to-rose-500/18',
-    halo: 'bg-amber-400/16',
-    avatar: 'border-amber-400/30 bg-amber-500/12',
-    card: 'border-amber-400/24 bg-amber-500/8',
-    chip: 'border-amber-400/24 bg-amber-500/12',
-    soft: 'bg-amber-500/10',
+    hero: 'from-warning/18 via-warning/10 to-danger/18',
+    halo: 'bg-warning/16',
+    avatar: 'border-warning/30 bg-warning/12',
+    card: 'border-warning/24 bg-warning/8',
+    chip: 'border-warning/24 bg-warning/12',
+    soft: 'bg-warning/10',
   },
   {
-    hero: 'from-emerald-500/18 via-teal-500/10 to-lime-500/16',
-    halo: 'bg-emerald-400/16',
-    avatar: 'border-emerald-400/30 bg-emerald-500/12',
-    card: 'border-emerald-400/24 bg-emerald-500/8',
-    chip: 'border-emerald-400/24 bg-emerald-500/12',
-    soft: 'bg-emerald-500/10',
+    hero: 'from-success/18 via-success/10 to-success/16',
+    halo: 'bg-success/16',
+    avatar: 'border-success/30 bg-success/12',
+    card: 'border-success/24 bg-success/8',
+    chip: 'border-success/24 bg-success/12',
+    soft: 'bg-success/10',
   },
 ];
 
@@ -505,12 +505,12 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   const renderCastPanel = () => (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="relative">
-        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stage-foreground/35" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="搜名字 / 气质 / 标签"
-          className="h-11 rounded-2xl border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/30"
+          className="h-11 rounded-2xl border-stage-foreground/10 bg-stage-foreground/5 pl-10 text-stage-foreground placeholder:text-stage-foreground/30"
         />
       </div>
 
@@ -520,7 +520,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           onClick={() => setActiveTag('')}
           className={cn(
             'rounded-full border px-3 py-1 text-xs transition',
-            !activeTag ? 'border-white/20 bg-white/12 text-white' : 'border-white/10 bg-white/5 text-white/60 hover:bg-white/10',
+            !activeTag ? 'border-stage-foreground/20 bg-stage-foreground/12 text-stage-foreground' : 'border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground/60 hover:bg-stage-foreground/10',
           )}
         >
           全部
@@ -532,7 +532,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             onClick={() => setActiveTag((prev) => (prev === tag ? '' : tag))}
             className={cn(
               'rounded-full border px-3 py-1 text-xs transition',
-              activeTag === tag ? 'border-white/20 bg-white/12 text-white' : 'border-white/10 bg-white/5 text-white/60 hover:bg-white/10',
+              activeTag === tag ? 'border-stage-foreground/20 bg-stage-foreground/12 text-stage-foreground' : 'border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground/60 hover:bg-stage-foreground/10',
             )}
           >
             {tag}
@@ -547,17 +547,17 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               key="empty"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-[22px] border border-dashed border-white/10 bg-white/[0.03] p-5 text-center"
+              className="rounded-4xl border border-dashed border-stage-foreground/10 bg-stage-foreground/[0.03] p-5 text-center"
             >
-              <p className="text-sm text-white/72">没有匹配角色</p>
-              <p className="mt-1 text-xs text-white/35">换个关键词，或直接新建一个更有戏的人物。</p>
+              <p className="text-sm text-stage-foreground/72">没有匹配角色</p>
+              <p className="mt-1 text-xs text-stage-foreground/35">换个关键词，或直接新建一个更有戏的人物。</p>
             </motion.div>
           ) : (
             groupedCharacters.map((group) => (
               <div key={group.key} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-[0.28em] text-white/35">{group.label}</p>
-                  <span className="text-[11px] text-white/30">{group.items.length} 张</span>
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-stage-foreground/35">{group.label}</p>
+                  <span className="text-[11px] text-stage-foreground/30">{group.items.length} 张</span>
                 </div>
                 <div className="grid gap-3">
                   {group.items.map((item, index) => {
@@ -575,26 +575,26 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                         whileTap={{ scale: 0.985 }}
                         onClick={() => handleSelectCharacter(item.id)}
                         className={cn(
-                          'group relative w-full overflow-hidden rounded-[24px] border p-3 text-left transition',
-                          active ? cn('shadow-[0_18px_48px_-26px_rgba(168,85,247,0.7)]', accent.card) : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]',
+                          'group relative w-full overflow-hidden rounded-4xl border p-3 text-left transition',
+                          active ? cn('shadow-glow-accent-soft', accent.card) : 'border-stage-foreground/10 bg-stage-foreground/[0.03] hover:bg-stage-foreground/[0.06]',
                         )}
                       >
                         <div className={cn('absolute inset-0 bg-gradient-to-br opacity-80', accent.hero)} />
                         <div className="relative flex items-start gap-3">
-                          <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border text-2xl shadow-lg backdrop-blur', accent.avatar)}>
+                          <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-4xl border text-2xl shadow-lg backdrop-blur', accent.avatar)}>
                             {item.avatar || '✨'}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-2">
-                              <p className="truncate text-sm font-semibold text-white">{compactText(item.name, '未命名角色')}</p>
-                              {active && <Sparkles size={14} className="shrink-0 text-white/85" />}
+                              <p className="truncate text-sm font-semibold text-stage-foreground">{compactText(item.name, '未命名角色')}</p>
+                              {active && <Sparkles size={14} className="shrink-0 text-stage-foreground/85" />}
                             </div>
-                            <p className="mt-1 line-clamp-2 text-xs text-white/65">{compactText(item.personality, '先点进来，给他一点会让人想继续聊的气质。')}</p>
+                            <p className="mt-1 line-clamp-2 text-xs text-stage-foreground/65">{compactText(item.personality, '先点进来，给他一点会让人想继续聊的气质。')}</p>
                           </div>
                         </div>
                         <div className="relative mt-3 flex flex-wrap gap-2">
                           {(item.tags.length ? item.tags : ['待设定']).slice(0, 3).map((tag) => (
-                            <span key={tag} className={cn('rounded-full border px-2.5 py-1 text-[11px] text-white/75', accent.chip)}>
+                            <span key={tag} className={cn('rounded-full border px-2.5 py-1 text-[11px] text-stage-foreground/75', accent.chip)}>
                               {tag}
                             </span>
                           ))}
@@ -617,13 +617,13 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
   const renderDirectorPanel = () => (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className={cn('rounded-[22px] border p-3', stageLocked ? 'border-amber-400/20 bg-amber-500/10' : 'border-white/10 bg-white/[0.04]')}>
-        <p className="text-xs leading-6 text-white/70">
+      <div className={cn('rounded-4xl border p-3', stageLocked ? 'border-warning/20 bg-warning/10' : 'border-stage-foreground/10 bg-stage-foreground/[0.04]')}>
+        <p className="text-xs leading-6 text-stage-foreground/70">
           {stageLocked ? '当前对话已经开演，新的设定会优先用于下一场新会话。' : '现在改设定，点“新戏开场”就能立刻带着新氛围进入对话。'}
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2 rounded-full border border-white/10 bg-white/[0.04] p-1">
+      <div className="flex flex-wrap gap-2 rounded-full border border-stage-foreground/10 bg-stage-foreground/[0.04] p-1">
         {editorTabs.map((tab) => {
           const Icon = tab.icon;
           const active = editorTab === tab.key;
@@ -634,7 +634,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               onClick={() => setEditorTab(tab.key)}
               className={cn(
                 'flex items-center gap-2 rounded-full px-3 py-2 text-xs transition',
-                active ? 'bg-white text-slate-900 shadow-lg' : 'text-white/60 hover:text-white',
+                active ? 'bg-stage-foreground text-stage shadow-lg' : 'text-stage-foreground/60 hover:text-stage-foreground',
               )}
             >
               <Icon size={14} />
@@ -653,34 +653,34 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                   value={selectedCharacter?.name || ''}
                   onChange={(e) => selectedCharacter && updateCharacter(selectedCharacter.id, { name: e.target.value })}
                   placeholder="角色名"
-                  className="h-11 rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                  className="h-11 rounded-2xl border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground placeholder:text-stage-foreground/30"
                 />
                 <Input
                   value={selectedCharacter?.avatar || ''}
                   onChange={(e) => selectedCharacter && updateCharacter(selectedCharacter.id, { avatar: e.target.value })}
                   placeholder="头像"
-                  className="h-11 rounded-2xl border-white/10 bg-white/5 text-center text-white placeholder:text-white/30"
+                  className="h-11 rounded-2xl border-stage-foreground/10 bg-stage-foreground/5 text-center text-stage-foreground placeholder:text-stage-foreground/30"
                 />
               </div>
               <Input
                 value={(selectedCharacter?.tags || []).join(' ')}
                 onChange={(e) => selectedCharacter && updateCharacter(selectedCharacter.id, { tags: normalizeTags(e.target.value) })}
                 placeholder="标签：暧昧 治愈 危险感"
-                className="h-11 rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                className="h-11 rounded-2xl border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground placeholder:text-stage-foreground/30"
               />
               <Textarea
                 rows={3}
                 value={selectedCharacter?.personality || ''}
                 onChange={(e) => selectedCharacter && updateCharacter(selectedCharacter.id, { personality: e.target.value })}
                 placeholder="一句话写出这个人的气质和抓手"
-                className="rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                className="rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground placeholder:text-stage-foreground/30"
               />
               <Textarea
                 rows={5}
                 value={selectedCharacter?.background || ''}
                 onChange={(e) => selectedCharacter && updateCharacter(selectedCharacter.id, { background: e.target.value })}
                 placeholder="背景 / 秘密 / 与你的关系起点"
-                className="rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                className="rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground placeholder:text-stage-foreground/30"
               />
             </motion.div>
           )}
@@ -695,7 +695,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                     onClick={() => handleSelectWorld(world.id)}
                     className={cn(
                       'rounded-full border px-3 py-2 text-xs transition',
-                      world.id === selectedWorld?.id ? 'border-white/20 bg-white/12 text-white' : 'border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white',
+                      world.id === selectedWorld?.id ? 'border-stage-foreground/20 bg-stage-foreground/12 text-stage-foreground' : 'border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground/60 hover:bg-stage-foreground/10 hover:text-stage-foreground',
                     )}
                   >
                     {world.name}
@@ -704,7 +704,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 <button
                   type="button"
                   onClick={createStyledWorld}
-                  className="rounded-full border border-dashed border-white/15 px-3 py-2 text-xs text-white/60 hover:bg-white/10 hover:text-white"
+                  className="rounded-full border border-dashed border-stage-foreground/15 px-3 py-2 text-xs text-stage-foreground/60 hover:bg-stage-foreground/10 hover:text-stage-foreground"
                 >
                   + 新场景
                 </button>
@@ -714,14 +714,14 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 value={selectedCharacter?.scenario || ''}
                 onChange={(e) => selectedCharacter && updateCharacter(selectedCharacter.id, { scenario: e.target.value })}
                 placeholder="当前镜头：把初见场景写得有画面感一点"
-                className="rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                className="rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground placeholder:text-stage-foreground/30"
               />
               <Textarea
                 rows={5}
                 value={selectedWorld?.prompt || ''}
                 onChange={(e) => selectedWorld && updateWorld(selectedWorld.id, { prompt: e.target.value })}
                 placeholder="世界规则 / 氛围基调 / 禁忌边界"
-                className="rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                className="rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground placeholder:text-stage-foreground/30"
               />
             </motion.div>
           )}
@@ -733,21 +733,21 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 value={selectedCharacter?.speakingStyle || ''}
                 onChange={(e) => selectedCharacter && updateCharacter(selectedCharacter.id, { speakingStyle: e.target.value })}
                 placeholder="说话方式：冷、慢、会接梗，还是锋利直接？"
-                className="rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                className="rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground placeholder:text-stage-foreground/30"
               />
               <Textarea
                 rows={4}
                 value={selectedCharacter?.exampleDialogues || ''}
                 onChange={(e) => selectedCharacter && updateCharacter(selectedCharacter.id, { exampleDialogues: e.target.value })}
                 placeholder="写一小段参考对白，让角色更快有魂"
-                className="rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                className="rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground placeholder:text-stage-foreground/30"
               />
               <Textarea
                 rows={5}
                 value={selectedCharacter?.systemPrompt || ''}
                 onChange={(e) => selectedCharacter && updateCharacter(selectedCharacter.id, { systemPrompt: e.target.value })}
                 placeholder="扮演规则：什么能做，什么不能出戏"
-                className="rounded-[22px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                className="rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground placeholder:text-stage-foreground/30"
               />
             </motion.div>
           )}
@@ -758,33 +758,33 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
   const renderSpotlightPanel = () => (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className={cn('rounded-[24px] border p-4', stageAccent.card)}>
+      <div className={cn('rounded-4xl border p-4', stageAccent.card)}>
         <div className="mb-3 flex items-center gap-3">
-          <div className={cn('flex h-12 w-12 items-center justify-center rounded-[18px] border text-2xl', stageAccent.avatar)}>
+          <div className={cn('flex h-12 w-12 items-center justify-center rounded-4xl border text-2xl', stageAccent.avatar)}>
             {stageCharacter?.avatar || selectedCharacter?.avatar || '✨'}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{compactText(stageCharacter?.name || selectedCharacter?.name, '角色未命名')}</p>
-            <p className="truncate text-xs text-white/60">{compactText(stageWorld?.name || selectedWorld?.name, '世界待定')}</p>
+            <p className="truncate text-sm font-semibold text-stage-foreground">{compactText(stageCharacter?.name || selectedCharacter?.name, '角色未命名')}</p>
+            <p className="truncate text-xs text-stage-foreground/60">{compactText(stageWorld?.name || selectedWorld?.name, '世界待定')}</p>
           </div>
         </div>
-        <p className="text-sm leading-7 text-white/80">{compactText(stageCharacter?.personality, '先定义气质，聊天氛围会立刻更像真人。')}</p>
+        <p className="text-sm leading-7 text-stage-foreground/80">{compactText(stageCharacter?.personality, '先定义气质，聊天氛围会立刻更像真人。')}</p>
       </div>
 
       <div className="grid gap-3">
-        <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-          <p className="mb-2 text-[11px] uppercase tracking-[0.28em] text-white/35">场景</p>
-          <p className="text-sm leading-7 text-white/80">{compactText(stageCharacter?.scenario || stageWorld?.prompt, '先给一个镜头，角色自然会开口。')}</p>
+        <div className="rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.28em] text-stage-foreground/35">场景</p>
+          <p className="text-sm leading-7 text-stage-foreground/80">{compactText(stageCharacter?.scenario || stageWorld?.prompt, '先给一个镜头，角色自然会开口。')}</p>
         </div>
-        <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-          <p className="mb-2 text-[11px] uppercase tracking-[0.28em] text-white/35">语言</p>
-          <p className="text-sm leading-7 text-white/80">{compactText(stageCharacter?.speakingStyle, '给他一点说话节奏，会显得更有存在感。')}</p>
+        <div className="rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.28em] text-stage-foreground/35">语言</p>
+          <p className="text-sm leading-7 text-stage-foreground/80">{compactText(stageCharacter?.speakingStyle, '给他一点说话节奏，会显得更有存在感。')}</p>
         </div>
       </div>
 
-      <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-        <div className="mb-3 flex items-center gap-2 text-white">
-          <LayoutGrid size={16} className="text-white/70" />
+      <div className="rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-4">
+        <div className="mb-3 flex items-center gap-2 text-stage-foreground">
+          <LayoutGrid size={16} className="text-stage-foreground/70" />
           <h3 className="font-semibold">快捷动作</h3>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -807,9 +807,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
   const renderMemoryPanel = () => (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-        <div className="mb-3 flex items-center gap-2 text-white">
-          <Brain size={16} className="text-white/70" />
+      <div className="rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-4">
+        <div className="mb-3 flex items-center gap-2 text-stage-foreground">
+          <Brain size={16} className="text-stage-foreground/70" />
           <h3 className="font-semibold">固定记忆</h3>
         </div>
         <Textarea
@@ -817,23 +817,23 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           value={session?.pinnedMemory || ''}
           onChange={(e) => session && updateSession(session.id, { pinnedMemory: e.target.value })}
           placeholder={session ? '写下只属于这段关系的长期记忆' : '先开始一场对话，再沉淀关系记忆'}
-          className="rounded-[20px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+          className="rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-stage-foreground placeholder:text-stage-foreground/30"
           disabled={!session}
         />
       </div>
 
-      <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-        <div className="mb-3 flex items-center gap-2 text-white">
-          <BookOpen size={16} className="text-white/70" />
+      <div className="rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-4">
+        <div className="mb-3 flex items-center gap-2 text-stage-foreground">
+          <BookOpen size={16} className="text-stage-foreground/70" />
           <h3 className="font-semibold">摘要记忆</h3>
         </div>
-        <div className="min-h-[132px] rounded-[20px] border border-white/10 bg-black/10 p-4 text-sm leading-7 text-white/72">
+        <div className="min-h-[132px] rounded-4xl border border-stage-foreground/10 bg-stage/45 p-4 text-sm leading-7 text-stage-foreground/72">
           {session?.memorySummary || '还没有摘要。让剧情先走一会儿，系统会慢慢把关系和事件沉淀下来。'}
         </div>
       </div>
 
-      <div className={cn('rounded-[22px] border p-4', stageLocked ? 'border-amber-400/20 bg-amber-500/10' : 'border-white/10 bg-white/[0.04]')}>
-        <p className="text-sm leading-7 text-white/72">
+      <div className={cn('rounded-4xl border p-4', stageLocked ? 'border-warning/20 bg-warning/10' : 'border-stage-foreground/10 bg-stage-foreground/[0.04]')}>
+        <p className="text-sm leading-7 text-stage-foreground/72">
           {stageLocked ? '这场戏已经开始，修改记忆会影响后续回复，但不会重写之前的对话。' : '还没开演，现在写下记忆，会直接成为这场关系的底色。'}
         </p>
       </div>
@@ -846,7 +846,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         <button type="button" className="roleplay-rail-button" onClick={() => setLeftPanelOpen(true)} aria-label="展开左侧面板">
           <ChevronRight size={18} />
         </button>
-        <div className={cn('flex h-12 w-12 items-center justify-center rounded-[18px] border text-2xl', selectedAccent.avatar)}>
+        <div className={cn('flex h-12 w-12 items-center justify-center rounded-4xl border text-2xl', selectedAccent.avatar)}>
           {selectedCharacter?.avatar || '✨'}
         </div>
       </div>
@@ -859,7 +859,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               key={tab.key}
               type="button"
               onClick={() => openLeftPanel(tab.key)}
-              className={cn('roleplay-rail-button', active && 'bg-white text-slate-900')}
+              className={cn('roleplay-rail-button', active && 'bg-stage-foreground text-stage')}
               aria-label={tab.label}
             >
               <Icon size={16} />
@@ -876,7 +876,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         <button type="button" className="roleplay-rail-button" onClick={() => setRightPanelOpen(true)} aria-label="展开右侧面板">
           <ChevronLeft size={18} />
         </button>
-        <div className={cn('flex h-12 w-12 items-center justify-center rounded-[18px] border text-2xl', stageAccent.avatar)}>
+        <div className={cn('flex h-12 w-12 items-center justify-center rounded-4xl border text-2xl', stageAccent.avatar)}>
           {stageCharacter?.avatar || selectedCharacter?.avatar || '✨'}
         </div>
       </div>
@@ -889,7 +889,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               key={tab.key}
               type="button"
               onClick={() => openRightPanel(tab.key)}
-              className={cn('roleplay-rail-button', active && 'bg-white text-slate-900')}
+              className={cn('roleplay-rail-button', active && 'bg-stage-foreground text-stage')}
               aria-label={tab.label}
             >
               <Icon size={16} />
@@ -908,12 +908,12 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
     const subtitle = isLeft ? '角色池 / 导演台' : '侧写 / 记忆';
 
     return (
-      <div className="mb-3 rounded-[24px] border border-white/10 bg-black/16 p-3 lg:hidden">
-        <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
+      <div className="mb-3 rounded-4xl border border-stage-foreground/10 bg-stage/60 p-3 lg:hidden">
+        <div className="mb-3 flex items-center justify-between border-b border-stage-foreground/10 pb-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.3em] text-white/35">Top Drawer</p>
-            <h3 className="mt-1 text-base font-semibold text-white">{title}</h3>
-            <p className="mt-1 text-xs text-white/45">{subtitle}</p>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-stage-foreground/35">Top Drawer</p>
+            <h3 className="mt-1 text-base font-semibold text-stage-foreground">{title}</h3>
+            <p className="mt-1 text-xs text-stage-foreground/45">{subtitle}</p>
           </div>
           <button
             type="button"
@@ -941,7 +941,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                     onClick={() => setLeftPanelView(tab.key)}
                     className={cn(
                       'roleplay-segmented-button flex-1',
-                      active ? 'border-white/20 bg-white text-slate-900 shadow-lg' : 'border-white/10 bg-white/[0.05] text-white/65 hover:text-white',
+                      active ? 'border-stage-foreground/20 bg-stage-foreground text-stage shadow-lg' : 'border-stage-foreground/10 bg-stage-foreground/[0.05] text-stage-foreground/65 hover:text-stage-foreground',
                     )}
                   >
                     <Icon size={14} />
@@ -967,7 +967,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                     onClick={() => setRightPanelView(tab.key)}
                     className={cn(
                       'roleplay-segmented-button flex-1',
-                      active ? 'border-white/20 bg-white text-slate-900 shadow-lg' : 'border-white/10 bg-white/[0.05] text-white/65 hover:text-white',
+                      active ? 'border-stage-foreground/20 bg-stage-foreground text-stage shadow-lg' : 'border-stage-foreground/10 bg-stage-foreground/[0.05] text-stage-foreground/65 hover:text-stage-foreground',
                     )}
                   >
                     <Icon size={14} />
@@ -986,22 +986,22 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   };
 
   const renderComposerNotice = () => (
-    <div className="mb-1.5 flex items-start gap-2 rounded-[14px] border border-white/7 bg-white/[0.025] px-2.5 py-1.5 text-[10px] leading-4 text-white/42">
-      <Shield size={11} className="mt-0.5 shrink-0 text-white/28" />
+    <div className="mb-1.5 flex items-start gap-2 rounded-3xl border border-stage-foreground/7 bg-stage-foreground/[0.025] px-2.5 py-1.5 text-[10px] leading-4 text-stage-foreground/42">
+      <Shield size={11} className="mt-0.5 shrink-0 text-stage-foreground/28" />
       <p>AI 生成，仅供角色扮演与创作体验；勿代入现实人物，不要输入隐私、违法或伤害性内容。</p>
     </div>
   );
 
   const renderEmptyStage = () => (
-    <div className="flex flex-1 flex-col gap-4 overflow-hidden">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative min-h-0 flex-1 overflow-y-auto rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-5">
         <div className={cn('absolute inset-0 bg-gradient-to-br opacity-90', stageAccent.hero)} />
         <div className="relative">
-          <div className={cn('mb-4 flex h-16 w-16 items-center justify-center rounded-[22px] border text-3xl shadow-lg', stageAccent.avatar)}>
+          <div className={cn('mb-4 flex h-16 w-16 items-center justify-center rounded-4xl border text-3xl shadow-lg', stageAccent.avatar)}>
             {selectedCharacter?.avatar || '✨'}
           </div>
-          <h4 className="text-xl font-semibold text-white">把舞台留给聊天</h4>
-          <p className="mt-2 max-w-2xl text-sm leading-7 text-white/72">
+          <h4 className="text-xl font-semibold text-stage-foreground">把舞台留给聊天</h4>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-stage-foreground/72">
             左边是角色与设定，右边是记忆与氛围。都可以折叠。你只需要把注意力放在中间这块主舞台，点一个提示词就能入戏。
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -1010,7 +1010,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 key={item.label}
                 type="button"
                 onClick={() => injectPrompt(item.value)}
-                className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm text-white/80 transition hover:bg-white/15"
+                className="rounded-full border border-stage-foreground/10 bg-stage-foreground/10 px-3 py-2 text-sm text-stage-foreground/80 transition hover:bg-stage-foreground/15"
               >
                 {item.label}
               </button>
@@ -1019,7 +1019,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
         </div>
       </motion.div>
 
-      <div className="flex min-h-0 flex-1 flex-col rounded-[24px] border border-white/10 bg-white/[0.03] p-3">
+      <div className="flex shrink-0 flex-col rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.03] p-3">
         <div className="mb-2 flex flex-wrap gap-2">
           {quickPrompts.slice(0, 4).map((item) => (
             <button
@@ -1048,9 +1048,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 e.preventDefault();
                 onSend();
               }}
-              className="min-h-[72px] rounded-[18px] border-white/10 bg-white/5 text-base text-white placeholder:text-white/30 sm:min-h-[84px] sm:rounded-[20px] sm:text-sm"
+              className="min-h-[72px] rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-base text-stage-foreground placeholder:text-stage-foreground/30 sm:min-h-[84px] sm:rounded-4xl sm:text-sm"
             />
-            <Button type="button" className="h-10 w-full rounded-[16px] px-4 sm:h-11 sm:w-auto sm:rounded-[18px]" onClick={onSend}>
+            <Button type="button" className="h-10 w-full rounded-4xl px-4 sm:h-11 sm:w-auto sm:rounded-4xl" onClick={onSend}>
               <SendHorizontal size={17} className="mr-2 sm:mr-0" />
               <span className="sm:hidden">发送</span>
             </Button>
@@ -1087,27 +1087,27 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             >
               <div
                 className={cn(
-                  'max-w-[92%] rounded-[26px] border px-4 py-3 shadow-[0_18px_60px_-28px_rgba(15,23,42,0.8)] backdrop-blur',
-                  msg.role === 'user' ? 'border-violet-400/20 bg-violet-500/12' : 'border-white/10 bg-white/[0.05]',
+                  'max-w-[92%] rounded-4xl border px-4 py-3 shadow-glow-stage backdrop-blur',
+                  msg.role === 'user' ? 'border-accent/20 bg-accent/12' : 'border-stage-foreground/10 bg-stage-foreground/[0.05]',
                 )}
               >
-                <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.26em] text-white/35">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/10 text-[13px] normal-case tracking-normal text-white/85">
+                <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.26em] text-stage-foreground/35">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full border border-stage-foreground/10 bg-stage-foreground/10 text-[13px] normal-case tracking-normal text-stage-foreground/85">
                     {msg.role === 'assistant' ? stageCharacter?.avatar || '✨' : '你'}
                   </span>
-                  <span className="normal-case tracking-normal text-white/60">
+                  <span className="normal-case tracking-normal text-stage-foreground/60">
                     {msg.role === 'assistant' ? compactText(stageCharacter?.name, '角色') : '你'}
                   </span>
                 </div>
-                <p className="whitespace-pre-wrap text-sm leading-7 text-white/82">{msg.content}</p>
+                <p className="whitespace-pre-wrap text-sm leading-7 text-stage-foreground/82">{msg.content}</p>
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
 
-      <div className="mt-3 rounded-[20px] border border-white/10 bg-white/[0.04] p-2.5 sm:rounded-[22px] sm:p-3">
-        <div className="mb-1.5 flex items-center justify-between text-[11px] text-white/42">
+      <div className="mt-3 rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-2.5 sm:rounded-4xl sm:p-3">
+        <div className="mb-1.5 flex items-center justify-between text-[11px] text-stage-foreground/42">
           <span>Enter 发送</span>
           <span>Shift + Enter 换行</span>
         </div>
@@ -1126,9 +1126,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               e.preventDefault();
               onSend();
             }}
-              className="min-h-[68px] rounded-[16px] border-white/10 bg-white/5 text-base text-white placeholder:text-white/30 sm:min-h-[80px] sm:rounded-[20px] sm:text-sm"
+              className="min-h-[68px] rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-base text-stage-foreground placeholder:text-stage-foreground/30 sm:min-h-[80px] sm:rounded-4xl sm:text-sm"
           />
-          <Button type="button" className="h-10 w-full rounded-[16px] px-4 sm:h-11 sm:w-auto sm:rounded-[18px]" onClick={onSend}>
+          <Button type="button" className="h-10 w-full rounded-4xl px-4 sm:h-11 sm:w-auto sm:rounded-4xl" onClick={onSend}>
             <SendHorizontal size={17} className="mr-2 sm:mr-0" />
             <span className="sm:hidden">发送</span>
           </Button>
@@ -1138,13 +1138,8 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   );
 
   return (
-    <div className="roleplay-shell relative h-full overflow-y-auto overscroll-none rounded-[30px] border border-white/10 p-3 text-foreground shadow-[0_30px_120px_-40px_rgba(76,29,149,0.65)] [overscroll-behavior-y:none] sm:p-4 lg:overflow-hidden">
-      <div className="roleplay-orb pointer-events-none absolute -left-16 top-10 h-52 w-52 rounded-full bg-fuchsia-500/18 blur-3xl" />
-      <div className="roleplay-orb roleplay-orb-delay pointer-events-none absolute right-0 top-16 h-56 w-56 rounded-full bg-cyan-500/14 blur-3xl" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_18%,transparent_82%,rgba(255,255,255,0.04))] opacity-60" />
-      <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.2)_1px,transparent_0)] [background-size:22px_22px]" />
-
-      <div className="relative flex min-h-full flex-col gap-4 lg:h-full lg:min-h-0 lg:flex-row">
+    <div className="roleplay-shell relative h-full overflow-y-auto overscroll-none rounded-4xl border border-stage-foreground/10 p-3 text-stage-foreground shadow-glow-accent [overscroll-behavior-y:none] sm:p-4 lg:overflow-hidden">
+<div className="relative flex min-h-full flex-col gap-4 lg:h-full lg:min-h-0 lg:flex-row">
         <motion.aside
           layout
           className={cn(
@@ -1152,13 +1147,13 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             leftPanelOpen ? 'lg:block lg:w-[280px] xl:w-[300px]' : 'lg:block lg:w-[74px]',
           )}
         >
-          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-0">
+          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-4xl border border-stage-foreground/10 bg-stage/45 lg:min-h-0">
             {leftPanelOpen ? (
               <>
-                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                <div className="flex items-center justify-between border-b border-stage-foreground/10 px-4 py-3">
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.34em] text-white/35">Side Deck</p>
-                    <h3 className="mt-1 text-lg font-semibold text-white">角色侧边台</h3>
+                    <p className="text-[11px] uppercase tracking-[0.34em] text-stage-foreground/35">Side Deck</p>
+                    <h3 className="mt-1 text-lg font-semibold text-stage-foreground">角色侧边台</h3>
                   </div>
                   <button type="button" className="roleplay-rail-button" onClick={() => setLeftPanelOpen(false)} aria-label="收起左侧面板">
                     <ChevronLeft size={18} />
@@ -1175,7 +1170,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                         onClick={() => setLeftPanelView(tab.key)}
                         className={cn(
                       'roleplay-segmented-button flex-1',
-                          active ? 'border-white/20 bg-white text-slate-900 shadow-lg' : 'border-white/10 bg-white/[0.05] text-white/65 hover:text-white',
+                          active ? 'border-stage-foreground/20 bg-stage-foreground text-stage shadow-lg' : 'border-stage-foreground/10 bg-stage-foreground/[0.05] text-stage-foreground/65 hover:text-stage-foreground',
                         )}
                       >
                         <Icon size={14} />
@@ -1194,25 +1189,25 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           </div>
         </motion.aside>
 
-        <section className="order-1 roleplay-panel relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/12 p-4 lg:order-none lg:min-h-0 xl:p-5">
-          <div className="sticky top-0 z-10 -mx-4 mb-3 border-b border-white/10 bg-[linear-gradient(180deg,rgba(8,11,19,0.98),rgba(8,11,19,0.92))] px-4 pb-3 pt-2 backdrop-blur sm:static sm:mx-0 sm:mb-4 sm:border-b-0 sm:bg-transparent sm:px-0 sm:pb-4 sm:pt-0 xl:flex-row xl:items-start xl:justify-between">
+        <section className="order-1 roleplay-panel relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-4xl border border-stage-foreground/10 bg-stage/45 p-4 lg:order-none lg:min-h-0 xl:p-5">
+          <div className="sticky top-0 z-10 -mx-4 mb-3 border-b border-stage-foreground/10 bg-stage/92 px-4 pb-3 pt-2 backdrop-blur sm:static sm:mx-0 sm:mb-4 sm:border-b-0 sm:bg-transparent sm:px-0 sm:pb-4 sm:pt-0 xl:flex-row xl:items-start xl:justify-between">
             <div className="flex min-w-0 items-start gap-3 sm:gap-4">
               <motion.div
                 animate={{ y: [0, -5, 0], rotate: [0, -2, 0, 2, 0] }}
                 transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
-                className={cn('flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] border text-2xl shadow-xl sm:h-16 sm:w-16 sm:rounded-[22px] sm:text-3xl', stageAccent.avatar)}
+                className={cn('flex h-14 w-14 shrink-0 items-center justify-center rounded-4xl border text-2xl shadow-xl sm:h-16 sm:w-16 sm:rounded-4xl sm:text-3xl', stageAccent.avatar)}
               >
                 {stageCharacter?.avatar || selectedCharacter?.avatar || '✨'}
               </motion.div>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/35 sm:text-[11px] sm:tracking-[0.32em]">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-stage-foreground/35 sm:text-[11px] sm:tracking-[0.32em]">
                   <span>Main Stage</span>
-                  {stageWorld && <span className="rounded-full border border-white/10 bg-white/10 px-2 py-1 normal-case tracking-normal text-white/70 sm:px-2.5">{stageWorld.name}</span>}
-                  {stageLocked && <span className="rounded-full border border-white/10 bg-white/10 px-2 py-1 normal-case tracking-normal text-white/70 sm:px-2.5">本场锁定</span>}
+                  {stageWorld && <span className="rounded-full border border-stage-foreground/10 bg-stage-foreground/10 px-2 py-1 normal-case tracking-normal text-stage-foreground/70 sm:px-2.5">{stageWorld.name}</span>}
+                  {stageLocked && <span className="rounded-full border border-stage-foreground/10 bg-stage-foreground/10 px-2 py-1 normal-case tracking-normal text-stage-foreground/70 sm:px-2.5">本场锁定</span>}
                 </div>
-                <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:mt-3 sm:text-2xl xl:text-3xl">{compactText(stageCharacter?.name || selectedCharacter?.name, '角色未就位')}</h2>
-                <p className="mt-1 truncate text-xs leading-6 text-white/68 sm:hidden">{compactText(stageCharacter?.background || selectedCharacter?.background, '把所有设定都收进两侧抽屉，只把最重要的舞台留给当前这段对话。')}</p>
-                <p className="mt-2 hidden max-w-3xl text-sm leading-7 text-white/72 sm:block">{compactText(stageCharacter?.background || selectedCharacter?.background, '把所有设定都收进两侧抽屉，只把最重要的舞台留给当前这段对话。')}</p>
+                <h2 className="mt-2 text-xl font-semibold tracking-tight text-stage-foreground sm:mt-3 sm:text-2xl xl:text-3xl">{compactText(stageCharacter?.name || selectedCharacter?.name, '角色未就位')}</h2>
+                <p className="mt-1 truncate text-xs leading-6 text-stage-foreground/68 sm:hidden">{compactText(stageCharacter?.background || selectedCharacter?.background, '把所有设定都收进两侧抽屉，只把最重要的舞台留给当前这段对话。')}</p>
+                <p className="mt-2 hidden max-w-3xl text-sm leading-7 text-stage-foreground/72 sm:block">{compactText(stageCharacter?.background || selectedCharacter?.background, '把所有设定都收进两侧抽屉，只把最重要的舞台留给当前这段对话。')}</p>
               </div>
             </div>
 
@@ -1261,10 +1256,10 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
           {renderMobileTopDrawer()}
 
-          <div className="mb-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-3">
+          <div className="mb-4 rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-3">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] uppercase tracking-[0.32em] text-white/35">Model Deck</p>
+                <p className="text-[11px] uppercase tracking-[0.32em] text-stage-foreground/35">Model Deck</p>
                 <div className="roleplay-scroll mt-2 flex gap-2 overflow-x-auto pb-1">
                   {availableRoleplayModels.length > 0 ? (
                     availableRoleplayModels.map((model) => (
@@ -1275,19 +1270,19 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                         className={cn(
                           'roleplay-segmented-button whitespace-nowrap',
                           activeRoleplayModel === model
-                            ? 'border-white/20 bg-white text-slate-900 shadow-lg'
-                            : 'border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/10 hover:text-white',
+                            ? 'border-stage-foreground/20 bg-stage-foreground text-stage shadow-lg'
+                            : 'border-stage-foreground/10 bg-stage-foreground/[0.05] text-stage-foreground/70 hover:bg-stage-foreground/10 hover:text-stage-foreground',
                         )}
                       >
                         {model}
                       </button>
                     ))
                   ) : (
-                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-white/45">暂无模型</span>
+                    <span className="rounded-full border border-stage-foreground/10 bg-stage-foreground/[0.05] px-3 py-2 text-xs text-stage-foreground/45">暂无模型</span>
                   )}
                 </div>
               </div>
-              <p className="text-xs leading-6 text-white/50">
+              <p className="text-xs leading-6 text-stage-foreground/50">
                 {session ? '切换当前会话模型' : '当前未开演，切换后会用于下一场角色扮演'}
               </p>
             </div>
@@ -1305,13 +1300,13 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             rightPanelOpen ? 'lg:block lg:w-[260px] xl:w-[280px]' : 'lg:block lg:w-[74px]',
           )}
         >
-          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black/12 lg:min-h-0">
+          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-4xl border border-stage-foreground/10 bg-stage/45 lg:min-h-0">
             {rightPanelOpen ? (
               <>
-                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                <div className="flex items-center justify-between border-b border-stage-foreground/10 px-4 py-3">
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.34em] text-white/35">Ambient Dock</p>
-                    <h3 className="mt-1 text-lg font-semibold text-white">气氛侧边台</h3>
+                    <p className="text-[11px] uppercase tracking-[0.34em] text-stage-foreground/35">Ambient Dock</p>
+                    <h3 className="mt-1 text-lg font-semibold text-stage-foreground">气氛侧边台</h3>
                   </div>
                   <button type="button" className="roleplay-rail-button" onClick={() => setRightPanelOpen(false)} aria-label="收起右侧面板">
                     <ChevronRight size={18} />
@@ -1328,7 +1323,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                         onClick={() => setRightPanelView(tab.key)}
                         className={cn(
                       'roleplay-segmented-button flex-1',
-                          active ? 'border-white/20 bg-white text-slate-900 shadow-lg' : 'border-white/10 bg-white/[0.05] text-white/65 hover:text-white',
+                          active ? 'border-stage-foreground/20 bg-stage-foreground text-stage shadow-lg' : 'border-stage-foreground/10 bg-stage-foreground/[0.05] text-stage-foreground/65 hover:text-stage-foreground',
                         )}
                       >
                         <Icon size={14} />
@@ -1351,15 +1346,15 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
       <style jsx>{`
         .roleplay-shell {
           background:
-            radial-gradient(circle at top left, rgba(168, 85, 247, 0.22), transparent 28%),
-            radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 24%),
-            linear-gradient(180deg, rgba(9, 12, 22, 0.96), rgba(7, 10, 18, 0.98));
+            radial-gradient(circle at top left, hsl(var(--accent) / 0.16), transparent 28%),
+            radial-gradient(circle at top right, hsl(var(--info) / 0.12), transparent 24%),
+            linear-gradient(180deg, hsl(var(--stage)), hsl(var(--stage-soft)));
         }
 
         .roleplay-panel {
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          box-shadow: inset 0 1px 0 hsl(var(--stage-foreground) / 0.05);
         }
 
         .roleplay-rail-button {
@@ -1369,21 +1364,21 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           width: 2.75rem;
           height: 2.75rem;
           border-radius: 1rem;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.08);
-          color: rgba(255, 255, 255, 0.82);
+          border: 1px solid hsl(var(--stage-foreground) / 0.12);
+          background: hsl(var(--stage-foreground) / 0.08);
+          color: hsl(var(--stage-foreground) / 0.82);
           transition: transform 180ms ease, background 180ms ease, color 180ms ease;
         }
 
         .roleplay-rail-button:hover {
           transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.14);
-          color: white;
+          background: hsl(var(--stage-foreground) / 0.14);
+          color: hsl(var(--stage-foreground));
         }
 
         .roleplay-scroll {
           scrollbar-width: thin;
-          scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+          scrollbar-color: hsl(var(--stage-foreground) / 0.18) transparent;
         }
 
         .roleplay-scroll::-webkit-scrollbar {
@@ -1397,22 +1392,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
         .roleplay-scroll::-webkit-scrollbar-thumb {
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.16);
+          background: hsl(var(--stage-foreground) / 0.16);
         }
 
-        .roleplay-orb {
-          animation: roleplayFloat 11s ease-in-out infinite;
-        }
-
-        .roleplay-orb-delay {
-          animation-delay: -5.5s;
-        }
-
-        @keyframes roleplayFloat {
-          0%,
-          100% {
-            transform: translate3d(0, 0, 0) scale(1);
-          }
           50% {
             transform: translate3d(0, -18px, 0) scale(1.04);
           }

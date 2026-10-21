@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { create } from 'zustand';
-import { defaultSettings, sanitizeSettingsForExport } from './settings-store';
+import { defaultSettings, mergePersistedSettings, sanitizeSettingsForExport } from './settings-store';
 import type { AppSettings } from '@/lib/types';
 
 // Mock localStorage
@@ -191,20 +191,16 @@ describe('useSettingsStore', () => {
   });
 
   it('preserves legacy preset models during migration', () => {
-    const useTestStore = create<{
-      settings: AppSettings;
-    }>(() => ({
-      settings: {
-        ...defaultSettings,
-        modelCatalog: ['gpt-4o-mini', 'gpt-4o'],
-      },
-    }));
-
-    // Legacy models should be cleared
     const legacyModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-image-1'];
-    const hasOnlyLegacy = legacyModels.every(m => ['gpt-4o-mini', 'gpt-4o'].includes(m));
-    
-    expect(hasOnlyLegacy).toBe(true);
+
+    // 全部由内置预置模型组成时，应在迁移阶段被清空。
+    expect(mergePersistedSettings({ modelCatalog: legacyModels }).modelCatalog).toEqual([]);
+
+    // 只要包含用户自定义模型，就整体保留。
+    expect(mergePersistedSettings({ modelCatalog: [...legacyModels, 'my-model'] }).modelCatalog).toEqual([
+      ...legacyModels,
+      'my-model',
+    ]);
   });
 
   it('handles empty model catalog', () => {

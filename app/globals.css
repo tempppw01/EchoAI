@@ -50,37 +50,124 @@
   font-display: swap;
 }
 
+/*
+ * 设计令牌（Design Tokens）
+ * ---------------------------------------------------------------
+ * 全部颜色以「空格分隔的 HSL 三元组」存放，因此既能写成 hsl(var(--x))，
+ * 也能写成 hsl(var(--x) / 0.5)，Tailwind 侧的 <alpha-value> 依赖这一点。
+ *
+ * 语义分层：
+ *   background / surface / surface-soft / surface-raised  —— 由外向内的层级
+ *   card / border / border-strong                          —— 容器与描边
+ *   foreground / muted-foreground                         —— 文本
+ *   primary / accent / info / success / warning / danger  —— 状态语义
+ *   stage-*                                               —— 沉浸式深色舞台（角色扮演 / 绘图）
+ */
 :root {
   --font-sans: 'MiSans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-mono: 'GeistMono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, monospace;
+
   --background: 0 0% 100%;
   --foreground: 222 47% 11%;
-  --muted: 220 14% 96%;
-  --border: 220 13% 91%;
+  --muted: 220 16% 96%;
+  --muted-foreground: 220 9% 42%;
+  --border: 220 14% 91%;
+  --border-strong: 220 12% 82%;
   --card: 0 0% 100%;
-  --primary: 214 90% 52%;
   --surface: 0 0% 100%;
-  --surface-soft: 220 33% 98%;
-  --muted-foreground: 215 16% 47%;
+  --surface-soft: 220 26% 98%;
+  --surface-raised: 0 0% 100%;
+  --primary: 222 83% 53%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 262 60% 55%;
+  --info: 190 85% 40%;
+  --success: 142 66% 33%;
+  --warning: 30 92% 40%;
+  --danger: 0 72% 48%;
+  --danger-foreground: 0 0% 100%;
+  --ring: 222 83% 53%;
+  --scrim: 0 0% 0%;
+  --shadow-color: 222 47% 11%;
+  color-scheme: light;
+
+  --stage: 222 47% 8%;
+  --stage-soft: 222 32% 13%;
+  --stage-border: 220 18% 20%;
+  --stage-foreground: 210 40% 96%;
+  --stage-muted: 218 14% 68%;
 }
 
 .dark {
   --background: 222 47% 7%;
-  --foreground: 210 40% 98%;
-  --muted: 222 34% 16%;
-  --border: 217 33% 20%;
-  --card: 222 44% 10%;
-  --primary: 212 92% 58%;
-  --surface: 222 40% 11%;
-  --surface-soft: 223 31% 14%;
-  --muted-foreground: 215 20% 70%;
+  --foreground: 210 40% 96%;
+  --muted: 222 30% 15%;
+  --muted-foreground: 218 14% 65%;
+  --border: 220 20% 18%;
+  --border-strong: 220 18% 26%;
+  --card: 222 40% 10%;
+  --surface: 222 40% 10%;
+  --surface-soft: 222 32% 13%;
+  --surface-raised: 222 38% 12%;
+  --primary: 213 94% 68%;
+  --primary-foreground: 222 47% 8%;
+  --accent: 262 82% 74%;
+  --info: 190 90% 58%;
+  --success: 142 60% 50%;
+  --warning: 38 92% 60%;
+  --danger: 0 84% 66%;
+  --danger-foreground: 222 47% 8%;
+  --ring: 213 94% 68%;
+  --scrim: 0 0% 0%;
+  --shadow-color: 222 70% 3%;
+  color-scheme: dark;
 }
 
-body {
-  @apply bg-background text-foreground antialiased;
-  font-family: var(--font-sans);
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-feature-settings: 'tnum' 0;
+    text-rendering: optimizeLegibility;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring/60 ring-offset-2 ring-offset-background;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+  }
+
+  /* 统一滚动条，避免每个面板各写一套 */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border-strong)) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border-strong) / 0.9);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.6);
+  }
 }
-* { @apply border-border; }
 
 .no-scrollbar {
   scrollbar-width: none;
@@ -91,20 +178,32 @@ body {
   display: none;
 }
 
+/* ------------------------------------------------------------------
+ * 基础 UI 原语
+ * ---------------------------------------------------------------- */
+
+/*
+ * 这些原语放在 @layer components 里，而不是裸写在文件尾部。
+ * Tailwind v3 会把 @layer components 提升到 utilities 之前，
+ * 于是 "ui-icon-button h-6 w-6" 这类尺寸微调才能真正生效；
+ * 裸写时 utilities 反而被原语压制，改动会静默失效。
+ */
+@layer components {
+
 .ui-icon-button {
-  @apply inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/70 transition;
+  @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-muted-foreground transition-colors;
   background: hsl(var(--background) / 0.82);
   color: hsl(var(--muted-foreground));
 }
 
 .ui-inline-action {
-  @apply inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border/70 px-2.5 text-xs font-medium transition;
+  @apply inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 text-xs font-medium text-muted-foreground transition-colors;
   background: hsl(var(--background) / 0.82);
   color: hsl(var(--muted-foreground));
 }
 
 .ui-segmented-trigger {
-  @apply inline-flex items-center justify-center rounded-full border border-border/70 px-3 py-1.5 text-xs font-medium transition;
+  @apply inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors;
   background: hsl(var(--background) / 0.82);
   color: hsl(var(--muted-foreground));
 }
@@ -122,44 +221,81 @@ body {
 }
 
 .ui-segmented-trigger[data-state='active'] {
-  @apply border-primary/20 bg-primary/10 text-primary;
+  @apply border-primary/30 bg-primary/10 text-primary;
 }
 
+/* 统一的卡片 / 分区容器 */
+.ui-panel {
+  @apply rounded-xl border border-border bg-card shadow-xs;
+}
+
+.ui-section-title {
+  @apply text-sm font-semibold tracking-tight text-foreground;
+}
+
+.ui-label {
+  @apply text-xs font-medium text-muted-foreground;
+}
+
+.ui-select {
+  @apply h-9 w-full cursor-pointer rounded-md border border-border bg-card px-2.5 text-sm text-foreground transition-colors hover:border-border-strong;
+}
+
+}
+
+/* ------------------------------------------------------------------
+ * 沉浸式舞台（角色扮演 / 绘图）
+ * 独立于浅深主题，始终为深色，但所有颜色都走 stage-* 令牌，
+ * 避免散落的 text-white/65 之类硬编码。
+ *
+ * 这几个类故意不放在 @layer components 里：
+ * 它们要压过 Button 组件 ghost 变体里的 bg-transparent / text-muted-foreground，
+ * 而 Button 的变体类属于 utilities 层。放进 components 层会让舞台按钮反被盖掉。
+ * ---------------------------------------------------------------- */
+
 .roleplay-glass-button {
-  @apply inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 text-sm font-medium text-white transition hover:bg-white/15;
+  @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-stage-border bg-stage-foreground/10 px-3 text-sm font-medium text-stage-foreground transition-colors hover:bg-stage-foreground/15;
 }
 
 .roleplay-chip-button {
-  @apply inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] text-white/70 transition hover:bg-white/10 hover:text-white;
+  @apply inline-flex items-center justify-center rounded-full border border-stage-border bg-stage-foreground/[0.05] px-3 py-1.5 text-[11px] text-stage-foreground/70 transition-colors hover:bg-stage-foreground/10 hover:text-stage-foreground;
 }
 
 .roleplay-segmented-button {
-  @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs text-white/65 transition hover:text-white;
+  @apply inline-flex items-center justify-center gap-2 rounded-full border border-stage-border bg-stage-foreground/[0.05] px-3 py-1.5 text-xs text-stage-foreground/65 transition-colors hover:text-stage-foreground;
 }
 
 .roleplay-segmented-button[data-state='active'] {
-  @apply border-white/20 bg-white text-slate-900 shadow-lg;
+  @apply border-stage-foreground/20 bg-stage-foreground text-stage shadow-lg;
 }
 
+/* 舞台头部：深色底 + 令牌化的accent 光晕 */
+.stage-hero {
+  background:
+    radial-gradient(circle at top left, hsl(var(--accent) / 0.18), transparent 38%),
+    linear-gradient(135deg, hsl(var(--stage)), hsl(var(--stage-soft)));
+}
+
+/* ------------------------------------------------------------------
+ * 聊天区
+ * ---------------------------------------------------------------- */
+
+@layer components {
+
 .chat-panel {
-  @apply rounded-[28px] border shadow-sm;
-  background: linear-gradient(180deg, hsl(var(--surface) / 0.96), hsl(var(--surface-soft) / 0.92));
+  @apply rounded-xl border shadow-sm;
+  background: linear-gradient(180deg, hsl(var(--surface-raised) / 0.96), hsl(var(--surface-soft) / 0.92));
   backdrop-filter: blur(18px);
 }
 
 .chat-bubble-user {
-  @apply rounded-2xl border border-primary/20 shadow-sm;
+  @apply rounded-xl border border-primary/20 shadow-sm;
   background: linear-gradient(180deg, hsl(var(--primary) / 0.12), hsl(var(--primary) / 0.06));
 }
 
 .chat-bubble-assistant {
-  @apply rounded-2xl border border-slate-300/70 shadow-sm;
-  background: linear-gradient(180deg, hsl(var(--surface-soft) / 0.98), hsl(210 30% 98% / 0.92));
-}
-
-.dark .chat-bubble-assistant {
-  @apply rounded-2xl border border-slate-700/70 shadow-sm;
-  background: linear-gradient(180deg, hsl(var(--surface-soft) / 0.98), hsl(222 35% 16% / 0.92));
+  @apply rounded-xl border border-border shadow-sm;
+  background: linear-gradient(180deg, hsl(var(--surface-soft) / 0.98), hsl(var(--muted) / 0.6));
 }
 
 .message-markdown {
@@ -210,7 +346,7 @@ body {
 }
 
 .message-markdown blockquote {
-  @apply my-3 rounded-xl border-l-4 border-primary/30 bg-background/40 px-4 py-3 text-sm;
+  @apply my-3 rounded-lg border-l-4 border-primary/30 bg-muted/50 px-4 py-3 text-sm;
   color: hsl(var(--muted-foreground));
 }
 
@@ -221,6 +357,8 @@ body {
 
 .dark .message-markdown code {
   @apply bg-white/10;
+}
+
 }
 
 pre,

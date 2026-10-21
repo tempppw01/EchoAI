@@ -5,6 +5,8 @@ import ReactMarkdown from 'react-markdown';
 import { AlertTriangle, Bot, ChevronDown, ChevronUp, Copy, Download, Eraser, Heart, Pencil, RefreshCcw, RotateCw, Save, Trash2, UserRound, Wand2 } from 'lucide-react';
 import { VideoScriptStateCard } from '@/components/chat/video-script-state-card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { ConfirmDialog } from '@/components/ui/modal';
 import { ChatSession } from '@/lib/types';
 import { useChatStore } from '@/stores/chat-store';
 import { useSampleLibraryStore } from '@/stores/sample-library-store';
@@ -405,10 +407,10 @@ export function MessageList({ session }: { session?: ChatSession }) {
   return (
     <div className="space-y-5">
       {session.mode !== 'training' && session.messages.length > 0 && (
-        <div className="sticky top-0 z-30 mb-3 space-y-2 rounded-2xl border border-border/70 bg-background px-2 py-2 shadow-sm">
+        <div className="sticky top-0 z-30 mb-3 space-y-2 rounded-xl border border-border/70 bg-background px-2 py-2 shadow-sm">
           {latestErrorMessage && (
-            <div className="flex flex-col gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-start gap-2 text-red-700 dark:text-red-200">
+            <div className="flex flex-col gap-2 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-2 text-danger">
                 <AlertTriangle size={15} className="mt-0.5 shrink-0" />
                 <div className="min-w-0">
                   <p className="font-medium">生成内容失败</p>
@@ -442,40 +444,31 @@ export function MessageList({ session }: { session?: ChatSession }) {
       )}
 
       {session.mode === 'training' && (
-        <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-emerald-500/10 p-4">
+        <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 via-info/10 to-success/10 p-4">
           <div className="mb-2 flex items-center justify-between text-sm">
             <span>当前水平分数</span>
             <span className="text-lg font-semibold">{session.trainingScore ?? 60} / 100</span>
           </div>
           <div className="h-3 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 transition-all" style={{ width: `${session.trainingScore ?? 60}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-primary via-info to-success transition-all" style={{ width: `${session.trainingScore ?? 60}%` }} />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">主题：{session.trainingTopic || '尚未设置'} · 已完成 {session.trainingRound ?? 0} 题</p>
         </div>
       )}
 
       {clearConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-border bg-background p-5 shadow-2xl">
-            <p className="text-base font-semibold text-foreground">确认清空当前会话上下文？</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">会删除本会话的消息内容，但不会影响其它会话。</p>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setClearConfirmOpen(false)}>
-                取消
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => {
-                  clearContext(session.id);
-                  setClearConfirmOpen(false);
-                }}
-              >
-                清空
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          open={clearConfirmOpen}
+          onClose={() => setClearConfirmOpen(false)}
+          onConfirm={() => {
+            clearContext(session.id);
+            setClearConfirmOpen(false);
+          }}
+          title="确认清空当前会话上下文？"
+          description="会删除本会话的消息内容，但不会影响其它会话。"
+          confirmLabel="清空"
+          danger
+        />
       )}
 
       {showVideoScriptLoadingState && (
@@ -495,7 +488,7 @@ export function MessageList({ session }: { session?: ChatSession }) {
         if (editingId === msg.id && msg.role === 'user') {
           return (
             <div key={msg.id} className="chat-bubble-user ml-auto max-w-[90%] p-4">
-              <textarea className="w-full rounded border bg-background p-2 text-sm" rows={4} value={editingText} onChange={(e) => setEditingText(e.target.value)} />
+              <Textarea rows={4} value={editingText} onChange={(e) => setEditingText(e.target.value)} />
               <div className="mt-2 flex justify-end gap-2 text-xs">
                 <Button variant="secondary" size="sm" onClick={() => setEditingId(undefined)}>取消</Button>
                 <button
@@ -529,13 +522,13 @@ export function MessageList({ session }: { session?: ChatSession }) {
         );
       })}
       {session.mode === 'training' && session.trainingCurrentQuestion && (
-        <div ref={trainingQuestionRef} className="space-y-3 rounded-2xl border bg-card/80 p-4">
+        <div ref={trainingQuestionRef} className="space-y-3 rounded-xl border border-border bg-card p-4">
           <p className="text-base font-semibold">{session.trainingCurrentQuestion.stem}</p>
           <div className="grid gap-3 md:grid-cols-2">
             {session.trainingCurrentQuestion.options.map((option) => (
               <button
                 key={option.id}
-                className="min-h-24 rounded-2xl border border-primary/20 bg-gradient-to-br from-sky-500/20 via-blue-500/10 to-cyan-500/20 p-4 text-left text-base font-medium transition hover:scale-[1.01] hover:border-primary/40"
+                className="min-h-24 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/15 via-info/10 to-success/15 p-4 text-left text-base font-medium transition hover:border-primary/40"
                 onClick={() => answerTrainingQuestion(session.id, option.id)}
               >
                 <p className="text-xs text-muted-foreground">选项 {option.id}</p>
@@ -556,7 +549,7 @@ const RecallSamplesPreview = memo(function RecallSamplesPreview({ samples }: { s
   if (samples.length === 0) return null;
 
   return (
-    <div className="mb-3 rounded-xl border border-dashed border-white/15 bg-background/35 p-3">
+    <div className="mb-3 rounded-xl border border-dashed border-border bg-background/35 p-3">
       <button type="button" className="flex w-full items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition hover:bg-background/40" onClick={() => setOpen((prev) => !prev)}>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">召回样本</p>
@@ -568,7 +561,7 @@ const RecallSamplesPreview = memo(function RecallSamplesPreview({ samples }: { s
       {open && (
         <div className="mt-3 space-y-3">
           {samples.map((sample, index) => (
-            <div key={`${sample.title}-${index}`} className="rounded-xl border border-white/10 bg-background/55 p-3">
+            <div key={`${sample.title}-${index}`} className="rounded-xl border border-border bg-background/55 p-3">
               <p className="text-sm font-semibold">样本 {index + 1}</p>
               <p className="mt-1 text-xs text-muted-foreground">{sample.title}</p>
               <p className="mt-2 line-clamp-5 whitespace-pre-wrap text-sm text-muted-foreground">{sample.content}</p>
@@ -586,10 +579,10 @@ const TrendCatalogPreview = memo(function TrendCatalogPreview({ trendCatalog }: 
   if (!trendCatalog) return null;
 
   return (
-    <div className="mb-3 rounded-xl border border-sky-400/20 bg-sky-500/10 p-3">
+    <div className="mb-3 rounded-xl border border-info/20 bg-info/10 p-3">
       <button type="button" className="flex w-full items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition hover:bg-background/40" onClick={() => setOpen((prev) => !prev)}>
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-200">抖音热搜榜单</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-info">抖音热搜榜单</p>
           <p className="mt-1 text-sm text-muted-foreground">
             已折叠 {trendCatalog.count || '完整'} 条热搜词，生成时仍会完整传给 AI。
           </p>
@@ -603,7 +596,7 @@ const TrendCatalogPreview = memo(function TrendCatalogPreview({ trendCatalog }: 
       </button>
 
       {open && (
-        <div className="mt-3 max-h-72 overflow-y-auto rounded-xl border border-sky-400/15 bg-background/65 p-3">
+        <div className="mt-3 max-h-72 overflow-y-auto rounded-xl border border-info/15 bg-background/65 p-3">
           <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-5 text-muted-foreground">{trendCatalog.content}</pre>
         </div>
       )}
@@ -702,7 +695,7 @@ const MessageItem = memo(function MessageItem({
             {versionCards.map((version, index) => {
               const isPreferred = preferredCandidate?.sourceMessageId === msg.id && preferredCandidate?.versionKey === version.key;
               return (
-              <div key={version.key} className={`rounded-2xl border p-4 ${index === 0 ? 'border-primary/30 bg-primary/5 shadow-sm' : 'border-white/10 bg-white/[0.03]'}`}>
+              <div key={version.key} className={`rounded-xl border p-4 ${index === 0 ? 'border-primary/30 bg-primary/5 shadow-sm' : 'border-border bg-surface-soft'}`}>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
                     <p className="text-base font-semibold tracking-tight">{version.label}</p>
@@ -714,16 +707,16 @@ const MessageItem = memo(function MessageItem({
                 {version.sections && version.sections.length > 0 ? (
                   <div className="space-y-3">
                     {version.sections.map((section) => (
-                      <div key={`${version.key}-${section.key}`} className="rounded-xl border border-white/10 bg-background/40 p-3">
+                      <div key={`${version.key}-${section.key}`} className="rounded-xl border border-border bg-background/40 p-3">
                         <p className="mb-2 text-sm font-semibold">{section.label}</p>
-                        <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                        <div className="message-markdown">
                           <ReactMarkdown>{section.body}</ReactMarkdown>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                  <div className="message-markdown">
                     <ReactMarkdown>{version.body}</ReactMarkdown>
                   </div>
                 )}
@@ -738,7 +731,7 @@ const MessageItem = memo(function MessageItem({
                       content: version.body,
                       savedAt: new Date().toISOString(),
                     })}
-                    className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition ${isPreferred ? 'border-rose-400/40 bg-rose-500/10 text-rose-300' : 'border-white/10 bg-background/40 text-muted-foreground hover:border-primary/30 hover:text-foreground'}`}
+                    className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition ${isPreferred ? 'border-accent/40 bg-accent/10 text-accent' : 'border-border bg-background/40 text-muted-foreground hover:border-primary/30 hover:text-foreground'}`}
                   >
                     <Heart size={14} className={isPreferred ? 'fill-current' : ''} />
                     {isPreferred ? '已作为下一轮参考' : '点赞为下一轮参考'}
@@ -750,7 +743,7 @@ const MessageItem = memo(function MessageItem({
         ) : viralAnalysisSections && viralAnalysisSections.length > 0 ? (
           <div className="grid gap-3 md:grid-cols-2">
             {viralAnalysisSections.map((section) => (
-              <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div key={section.key} className="rounded-xl border border-border bg-surface-soft p-3">
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <p className="text-sm font-semibold">{section.label}</p>
                   {section.key === 'template' && (
@@ -765,14 +758,14 @@ const MessageItem = memo(function MessageItem({
                           savedAt: new Date().toISOString(),
                         });
                       }}
-                      className="inline-flex h-7 items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 text-[11px] font-medium text-emerald-300 transition hover:border-emerald-300/40 hover:text-emerald-200"
+                      className="inline-flex h-7 items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2.5 text-[11px] font-medium text-success transition hover:border-success/40"
                     >
                       <Wand2 size={12} />
                       一键套用到新的选题生成
                     </button>
                   )}
                 </div>
-                <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                <div className="message-markdown">
                   <ReactMarkdown>{section.body}</ReactMarkdown>
                 </div>
               </div>
@@ -781,13 +774,13 @@ const MessageItem = memo(function MessageItem({
         ) : editingIdeaSections && editingIdeaSections.length > 0 ? (
           <div className="space-y-3">
             {storyboardRows && storyboardRows.length > 0 ? (
-              <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
-                <div className="border-b border-white/10 px-3 py-2">
+              <div className="overflow-hidden rounded-xl border border-border bg-surface-soft">
+                <div className="border-b border-border px-3 py-2">
                   <p className="text-sm font-semibold">分镜表</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
-                    <thead className="bg-white/[0.04] text-muted-foreground">
+                    <thead className="bg-surface-soft text-muted-foreground">
                       <tr>
                         <th className="px-3 py-2 font-medium">段落</th>
                         <th className="px-3 py-2 font-medium">旁白</th>
@@ -798,7 +791,7 @@ const MessageItem = memo(function MessageItem({
                     </thead>
                     <tbody>
                       {storyboardRows.map((row, index) => (
-                        <tr key={`${row.segment}-${index}`} className="border-t border-white/10 align-top">
+                        <tr key={`${row.segment}-${index}`} className="border-t border-border align-top">
                           <td className="px-3 py-2">{row.segment}</td>
                           <td className="px-3 py-2 whitespace-pre-wrap">{row.voiceover}</td>
                           <td className="px-3 py-2 whitespace-pre-wrap">{row.shot}</td>
@@ -813,17 +806,17 @@ const MessageItem = memo(function MessageItem({
             ) : null}
             <div className="grid gap-3 md:grid-cols-2">
               {editingIdeaSections.filter((section) => section.key !== 'storyboardTable').map((section) => (
-                <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <div key={section.key} className="rounded-xl border border-border bg-surface-soft p-3">
                   <p className="mb-2 text-sm font-semibold">{section.label}</p>
                   {section.key === 'music' && musicCueRows && musicCueRows.length > 0 ? (
                     <div className="space-y-3">
-                      <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                      <div className="message-markdown">
                         <ReactMarkdown>{section.body}</ReactMarkdown>
                       </div>
-                      <div className="overflow-hidden rounded-lg border border-white/10 bg-background/30">
+                      <div className="overflow-hidden rounded-lg border border-border bg-background/30">
                         <div className="overflow-x-auto">
                           <table className="min-w-full text-left text-xs md:text-sm">
-                            <thead className="bg-white/[0.04] text-muted-foreground">
+                            <thead className="bg-surface-soft text-muted-foreground">
                               <tr>
                                 <th className="px-3 py-2 font-medium">触发位置</th>
                                 <th className="px-3 py-2 font-medium">建议音效</th>
@@ -832,7 +825,7 @@ const MessageItem = memo(function MessageItem({
                             </thead>
                             <tbody>
                               {musicCueRows.map((row, index) => (
-                                <tr key={`${row.trigger}-${index}`} className="border-t border-white/10 align-top">
+                                <tr key={`${row.trigger}-${index}`} className="border-t border-border align-top">
                                   <td className="px-3 py-2 whitespace-pre-wrap">{row.trigger}</td>
                                   <td className="px-3 py-2 whitespace-pre-wrap">{row.effect}</td>
                                   <td className="px-3 py-2 whitespace-pre-wrap">{row.purpose}</td>
@@ -844,7 +837,7 @@ const MessageItem = memo(function MessageItem({
                       </div>
                     </div>
                   ) : (
-                    <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                    <div className="message-markdown">
                       <ReactMarkdown>{section.body}</ReactMarkdown>
                     </div>
                   )}
@@ -855,16 +848,16 @@ const MessageItem = memo(function MessageItem({
         ) : structuredSections && structuredSections.length > 0 ? (
           <div className="space-y-3">
             {structuredSections.map((section) => (
-              <div key={section.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div key={section.key} className="rounded-xl border border-border bg-surface-soft p-3">
                 <p className="mb-2 text-sm font-semibold">{section.label}</p>
-                <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+                <div className="message-markdown">
                   <ReactMarkdown>{section.body}</ReactMarkdown>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="message-markdown prose prose-sm max-w-none dark:prose-invert">
+          <div className="message-markdown">
             <ReactMarkdown>{renderedMarkdown}</ReactMarkdown>
           </div>
         )}

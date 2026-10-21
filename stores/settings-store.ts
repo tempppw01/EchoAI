@@ -35,6 +35,24 @@ const isLegacyPresetModels = (models?: string[]) => {
   return models.every((model) => LEGACY_PRESET_MODELS.has(model));
 };
 
+/**
+ * 把持久化数据合并进当前设置。
+ * 旧版本会自动写入一批内置预置模型，这些模型对用户没有意义，
+ * 因此这里要识别出来并清空，让用户从空目录开始配置。
+ */
+export const mergePersistedSettings = (persisted?: Partial<AppSettings>): AppSettings => {
+  const mergedSettings: AppSettings = {
+    ...defaultSettings,
+    ...(persisted ?? {}),
+  };
+
+  if (isLegacyPresetModels(mergedSettings.modelCatalog)) {
+    mergedSettings.modelCatalog = [];
+  }
+
+  return mergedSettings;
+};
+
 export const useSettingsStore = create<{
   settings: AppSettings;
   setSettings: (settings: Partial<AppSettings>) => void;
@@ -64,14 +82,7 @@ export const useSettingsStore = create<{
       partialize: (state) => ({ settings: state.settings }),
       merge: (persistedState, currentState) => {
         const persistedSettings = ((persistedState as { settings?: Partial<AppSettings> } | undefined)?.settings ?? {}) as Partial<AppSettings>;
-        const mergedSettings = {
-          ...defaultSettings,
-          ...persistedSettings,
-        };
-
-        if (isLegacyPresetModels(mergedSettings.modelCatalog)) {
-          mergedSettings.modelCatalog = [];
-        }
+        const mergedSettings = mergePersistedSettings(persistedSettings);
 
         return {
           ...currentState,

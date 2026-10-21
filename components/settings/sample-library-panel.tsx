@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useRef, useState } from 'react';
 import { CheckCircle2, FileText, Pencil, RefreshCcw, Trash2, Upload, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSampleLibraryStore } from '@/stores/sample-library-store';
@@ -80,7 +81,7 @@ export function SampleLibraryPanel() {
 
   return (
     <div className="space-y-3 text-sm">
-      <div className="rounded-3xl border bg-card/72 p-4 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
         <div className="mb-3 flex flex-col gap-1">
           <p className="font-semibold">新增参考样本</p>
           <p className="text-xs text-muted-foreground">
@@ -97,7 +98,7 @@ export function SampleLibraryPanel() {
           </div>
         </div>
         <textarea
-          className="mt-2 min-h-32 w-full rounded-xl border bg-background px-3 py-2 text-sm"
+          className="mt-2 min-h-32 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
           placeholder="直接粘贴示范样本文本，后续可用于嵌入召回。"
           value={textContent}
           onChange={(e) => setTextContent(e.target.value)}
@@ -123,24 +124,24 @@ export function SampleLibraryPanel() {
         </div>
       </div>
 
-      <div className="rounded-3xl border bg-card/72 p-4 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
         <div className="mb-2 flex items-center justify-between">
           <p className="font-semibold">已保存样本</p>
           <span className="text-xs text-muted-foreground">{items.length} 条</span>
         </div>
         <div className="grid gap-2">
           {items.length === 0 ? (
-            <div className="rounded-2xl border border-dashed p-4 text-xs text-muted-foreground">暂无样本，先上传一份示范文本或文件。</div>
+            <div className="rounded-lg border border-dashed border-border p-4 text-xs text-muted-foreground">暂无样本，先上传一份示范文本或文件。</div>
           ) : (
             items.map((item) => (
-              <div key={item.id} className="rounded-2xl border bg-background/70 p-3">
+              <div key={item.id} className="rounded-lg border border-border bg-surface-soft p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     {editing?.id === item.id ? (
                       <div className="space-y-2">
                         <Input value={editing.title} onChange={(event) => setEditing((prev) => (prev ? { ...prev, title: event.target.value } : prev))} />
                         <textarea
-                          className="min-h-36 w-full rounded-xl border bg-background px-3 py-2 text-sm"
+                          className="min-h-36 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                           value={editing.textContent}
                           onChange={(event) => setEditing((prev) => (prev ? { ...prev, textContent: event.target.value } : prev))}
                         />
@@ -157,19 +158,19 @@ export function SampleLibraryPanel() {
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                           {item.embeddingVector?.length ? (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-600 dark:text-emerald-300">
+                            <Badge tone="success">
                               <CheckCircle2 size={12} /> 已嵌入
-                            </span>
+                            </Badge>
                           ) : (
-                            <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-600 dark:text-amber-300">
+                            <Badge tone="warning">
                               未嵌入
-                            </span>
+                            </Badge>
                           )}
-                          <span className="rounded-full border border-border/60 bg-background/60 px-2 py-1 text-muted-foreground">
+                          <span className="rounded-md border border-border bg-muted px-2 py-1 text-muted-foreground">
                             模型：{item.embeddingModel || '未生成'}
                           </span>
                           {item.embeddingUpdatedAt && (
-                            <span className="rounded-full border border-border/60 bg-background/60 px-2 py-1 text-muted-foreground">
+                            <span className="rounded-md border border-border bg-muted px-2 py-1 text-muted-foreground">
                               更新时间：{new Date(item.embeddingUpdatedAt).toLocaleString()}
                             </span>
                           )}
