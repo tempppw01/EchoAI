@@ -336,16 +336,38 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
     });
   }, [characters, search, activeTag]);
 
-  const groupedCharacters = useMemo(
-    () =>
-      presetGroups
-        .map((group) => ({
-          ...group,
-          items: filteredCharacters.filter((item) => group.matcher(item.tags || [])),
-        }))
-        .filter((group) => group.items.length > 0),
-    [filteredCharacters],
-  );
+  const groupedCharacters = useMemo(() => {
+    const groups: Array<{
+      key: string;
+      label: string;
+      matcher: (tags: string[]) => boolean;
+      items: CharacterCard[];
+    }> = presetGroups.map((group) => ({
+      ...group,
+      items: [] as CharacterCard[],
+    }));
+    const unmatched: CharacterCard[] = [];
+
+    filteredCharacters.forEach((item) => {
+      const group = groups.find((candidate) => candidate.matcher(item.tags || []));
+      if (group) {
+        group.items.push(item);
+      } else {
+        unmatched.push(item);
+      }
+    });
+
+    if (unmatched.length > 0) {
+      groups.push({
+        key: 'more',
+        label: '更多角色',
+        matcher: () => false,
+        items: unmatched,
+      });
+    }
+
+    return groups.filter((group) => group.items.length > 0);
+  }, [filteredCharacters]);
 
   const quickPrompts = useMemo(() => {
     const roleName = stageCharacter?.name || selectedCharacter?.name || '角色';
@@ -364,9 +386,12 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
   const availableRoleplayModels = Array.from(
     new Set(
-      [settings.defaultTextModel?.trim(), ...settings.modelCatalog.map((model) => model.trim())].filter(
-        (model): model is string => Boolean(model),
-      ),
+      [
+        session?.model?.trim(),
+        draftModel.trim(),
+        settings.defaultTextModel?.trim(),
+        ...settings.modelCatalog.map((model) => model.trim()),
+      ].filter((model): model is string => Boolean(model)),
     ),
   );
 
@@ -908,7 +933,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
     const subtitle = isLeft ? '角色池 / 导演台' : '侧写 / 记忆';
 
     return (
-      <div className="mb-3 rounded-4xl border border-stage-foreground/10 bg-stage/60 p-3 lg:hidden">
+      <div className="roleplay-top-drawer mb-3 rounded-4xl border border-stage-foreground/10 bg-stage/60 p-3">
         <div className="mb-3 flex items-center justify-between border-b border-stage-foreground/10 pb-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.3em] text-stage-foreground/35">Top Drawer</p>
@@ -924,7 +949,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             }}
             aria-label="收起顶部设置"
           >
-            {isLeft ? <ChevronUp size={16} /> : <ChevronUp size={16} />}
+            <ChevronUp size={16} />
           </button>
         </div>
 
@@ -950,7 +975,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 );
               })}
             </div>
-            <div className="max-h-[44vh] overflow-y-auto pr-1">
+            <div className="roleplay-scroll max-h-[min(44vh,360px)] overflow-y-auto overscroll-contain pr-1">
               {leftPanelView === 'cast' ? renderCastPanel() : renderDirectorPanel()}
             </div>
           </div>
@@ -976,7 +1001,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 );
               })}
             </div>
-            <div className="max-h-[44vh] overflow-y-auto pr-1">
+            <div className="roleplay-scroll max-h-[min(44vh,360px)] overflow-y-auto overscroll-contain pr-1">
               {rightPanelView === 'spotlight' ? renderSpotlightPanel() : renderMemoryPanel()}
             </div>
           </div>
@@ -993,28 +1018,23 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   );
 
   const renderEmptyStage = () => (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative min-h-0 flex-1 overflow-y-auto rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-5">
+    <div className="roleplay-empty-stage flex min-h-0 flex-1 flex-col gap-3">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative flex min-h-[136px] flex-1 items-center overflow-hidden rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-4 sm:p-5"
+      >
         <div className={cn('absolute inset-0 bg-gradient-to-br opacity-90', stageAccent.hero)} />
-        <div className="relative">
-          <div className={cn('mb-4 flex h-16 w-16 items-center justify-center rounded-4xl border text-3xl shadow-lg', stageAccent.avatar)}>
+        <div className="relative flex w-full items-center gap-4">
+          <div className={cn('flex h-14 w-14 shrink-0 items-center justify-center rounded-4xl border text-2xl shadow-lg sm:h-16 sm:w-16 sm:text-3xl', stageAccent.avatar)}>
             {selectedCharacter?.avatar || '✨'}
           </div>
-          <h4 className="text-xl font-semibold text-stage-foreground">把舞台留给聊天</h4>
-          <p className="mt-2 max-w-2xl text-sm leading-7 text-stage-foreground/72">
-            左边是角色与设定，右边是记忆与氛围。都可以折叠。你只需要把注意力放在中间这块主舞台，点一个提示词就能入戏。
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {quickPrompts.slice(0, 3).map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => injectPrompt(item.value)}
-                className="rounded-full border border-stage-foreground/10 bg-stage-foreground/10 px-3 py-2 text-sm text-stage-foreground/80 transition hover:bg-stage-foreground/15"
-              >
-                {item.label}
-              </button>
-            ))}
+          <div className="min-w-0 max-w-2xl">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-stage-foreground/40">Ready for the first line</p>
+            <h4 className="mt-1.5 text-xl font-semibold text-stage-foreground sm:text-2xl">把舞台留给聊天</h4>
+            <p className="mt-2 text-sm leading-6 text-stage-foreground/68 sm:leading-7">
+              角色与记忆都在两侧，选定一个开场提示，第一句话就会把场景接起来。
+            </p>
           </div>
         </div>
       </motion.div>
@@ -1039,7 +1059,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               ref={composerRef}
               value={composerValue}
               onChange={(e) => setComposerValue(e.target.value)}
-              rows={3}
+              rows={2}
               placeholder="比如：你先别说喜欢我，先用一句话把氛围拉满。"
               onCompositionStart={() => setIsComposing(true)}
               onCompositionEnd={() => setIsComposing(false)}
@@ -1048,7 +1068,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
                 e.preventDefault();
                 onSend();
               }}
-              className="min-h-[72px] rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-base text-stage-foreground placeholder:text-stage-foreground/30 sm:min-h-[84px] sm:rounded-4xl sm:text-sm"
+              className="min-h-[64px] rounded-4xl border-stage-foreground/10 bg-stage-foreground/5 text-base text-stage-foreground placeholder:text-stage-foreground/30 sm:min-h-[68px] sm:rounded-4xl sm:text-sm"
             />
             <Button type="button" className="h-10 w-full rounded-4xl px-4 sm:h-11 sm:w-auto sm:rounded-4xl" onClick={onSend}>
               <SendHorizontal size={17} className="mr-2 sm:mr-0" />
@@ -1138,16 +1158,23 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
   );
 
   return (
-    <div className="roleplay-shell relative h-full overflow-y-auto overscroll-none rounded-4xl border border-stage-foreground/10 p-3 text-stage-foreground shadow-glow-accent [overscroll-behavior-y:none] sm:p-4 lg:overflow-hidden">
-<div className="relative flex min-h-full flex-col gap-4 lg:h-full lg:min-h-0 lg:flex-row">
+    <div
+      className="roleplay-container h-full min-h-0"
+      style={{ containerName: 'roleplay', containerType: 'inline-size' }}
+    >
+      <div
+        className="roleplay-shell relative h-full overflow-y-auto overscroll-none rounded-4xl border border-stage-foreground/10 p-3 text-stage-foreground shadow-glow-accent [overscroll-behavior-y:none] sm:p-4"
+        data-stage-empty={!session || session.messages.length === 0}
+      >
+        <div className="roleplay-workbench relative flex min-h-full flex-col gap-4">
         <motion.aside
           layout
+          data-open={leftPanelOpen}
           className={cn(
-            'order-2 hidden w-full lg:order-none lg:shrink-0',
-            leftPanelOpen ? 'lg:block lg:w-[280px] xl:w-[300px]' : 'lg:block lg:w-[74px]',
+            'roleplay-sidebar roleplay-sidebar-left order-2 hidden w-full',
           )}
         >
-          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-4xl border border-stage-foreground/10 bg-stage/45 lg:min-h-0">
+          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-4xl border border-stage-foreground/10 bg-stage/45">
             {leftPanelOpen ? (
               <>
                 <div className="flex items-center justify-between border-b border-stage-foreground/10 px-4 py-3">
@@ -1211,7 +1238,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
               </div>
             </div>
 
-            <div className="mt-3 hidden flex-wrap gap-2 xl:mt-0 xl:justify-end lg:flex">
+            <div className="roleplay-stage-actions mt-3 hidden flex-wrap gap-2 xl:mt-0 xl:justify-end">
               <Button type="button" variant="ghost" className="roleplay-glass-button h-10" onClick={() => openLeftPanel('director')}>
                 <PenSquare size={15} className="mr-2" /> 设定
               </Button>
@@ -1224,7 +1251,7 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             </div>
           </div>
 
-          <div className="mb-3 flex flex-wrap gap-2 lg:hidden">
+          <div className="roleplay-mobile-controls mb-3 flex flex-wrap gap-2">
             <Button
               type="button"
               variant="ghost"
@@ -1252,11 +1279,31 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             <Button type="button" variant="ghost" className="roleplay-glass-button" disabled={!session || session.messages.length === 0} onClick={handleClearContext}>
               <RotateCcw size={14} className="mr-2" /> 清空
             </Button>
+            <label className="flex min-w-0 basis-full items-center gap-2 rounded-xl border border-stage-foreground/10 bg-stage-foreground/[0.05] px-3 py-2 text-xs text-stage-foreground/55 sm:basis-auto sm:flex-1">
+              <span className="shrink-0">模型</span>
+              <select
+                value={activeRoleplayModel}
+                onChange={(event) => switchRoleplayModel(event.target.value)}
+                className="min-w-0 flex-1 cursor-pointer bg-transparent text-right text-xs text-stage-foreground outline-none"
+                aria-label="选择角色扮演模型"
+                disabled={availableRoleplayModels.length === 0}
+              >
+                {availableRoleplayModels.length > 0 ? (
+                  availableRoleplayModels.map((model) => (
+                    <option key={model} value={model} className="bg-stage text-stage-foreground">
+                      {model}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" className="bg-stage text-stage-foreground">暂无模型</option>
+                )}
+              </select>
+            </label>
           </div>
 
           {renderMobileTopDrawer()}
 
-          <div className="mb-4 rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-3">
+          <div className="roleplay-model-deck mb-4 rounded-4xl border border-stage-foreground/10 bg-stage-foreground/[0.04] p-3">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] uppercase tracking-[0.32em] text-stage-foreground/35">Model Deck</p>
@@ -1295,12 +1342,12 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
 
         <motion.aside
           layout
+          data-open={rightPanelOpen}
           className={cn(
-            'order-3 hidden w-full lg:order-none lg:shrink-0',
-            rightPanelOpen ? 'lg:block lg:w-[260px] xl:w-[280px]' : 'lg:block lg:w-[74px]',
+            'roleplay-sidebar roleplay-sidebar-right order-3 hidden w-full',
           )}
         >
-          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-4xl border border-stage-foreground/10 bg-stage/45 lg:min-h-0">
+          <div className="roleplay-panel flex h-full min-h-[220px] flex-col overflow-hidden rounded-4xl border border-stage-foreground/10 bg-stage/45">
             {rightPanelOpen ? (
               <>
                 <div className="flex items-center justify-between border-b border-stage-foreground/10 px-4 py-3">
@@ -1341,9 +1388,9 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
             )}
           </div>
         </motion.aside>
-      </div>
+        </div>
 
-      <style jsx>{`
+        <style jsx>{`
         .roleplay-shell {
           background:
             radial-gradient(circle at top left, hsl(var(--accent) / 0.16), transparent 28%),
@@ -1394,12 +1441,8 @@ export function RoleplayStudio({ session }: { session?: ChatSession }) {
           border-radius: 999px;
           background: hsl(var(--stage-foreground) / 0.16);
         }
-
-          50% {
-            transform: translate3d(0, -18px, 0) scale(1.04);
-          }
-        }
       `}</style>
+      </div>
     </div>
   );
 }

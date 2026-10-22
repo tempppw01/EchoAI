@@ -2,7 +2,7 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle2, Download, Loader2, Upload } from 'lucide-react';
+import { CheckCircle2, Download, Loader2, Upload, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -325,24 +325,33 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
       <Dialog.Root open={open} onOpenChange={onOpenChange}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-40 bg-scrim/55 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[min(94vw,880px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-2xl ring-1 ring-border/60">
-            <div className="mb-4 flex shrink-0 items-start justify-between gap-4">
-              <div>
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-border bg-card p-3 shadow-2xl ring-1 ring-border/60 sm:max-h-[90vh] sm:w-[min(94vw,880px)] sm:rounded-2xl sm:p-5">
+            <div className="mb-3 flex shrink-0 items-start justify-between gap-3 sm:mb-4">
+              <div className="min-w-0">
                 <Dialog.Title className="text-lg font-semibold text-foreground">设置中心</Dialog.Title>
-                <p className="mt-1 text-sm text-muted-foreground">当前设置会自动保存到本地，模型配置默认优先使用前端填写内容。</p>
+                <Dialog.Description className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground sm:text-sm">
+                  当前设置会自动保存到本地，模型配置默认优先使用前端填写内容。
+                </Dialog.Description>
               </div>
-              <div className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1 text-xs font-medium ${saveMeta.className}`}>
-                <SaveIcon size={14} className={saveState === 'saving' ? 'animate-spin' : ''} />
-                {saveMeta.label}
+              <div className="flex shrink-0 items-center gap-2">
+                <div className={`inline-flex items-center gap-2 whitespace-nowrap rounded-lg border px-2.5 py-1 text-[11px] font-medium sm:px-3 sm:text-xs ${saveMeta.className}`}>
+                  <SaveIcon size={14} className={saveState === 'saving' ? 'animate-spin' : ''} />
+                  {saveMeta.label}
+                </div>
+                <Dialog.Close asChild>
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label="关闭设置中心">
+                    <X size={15} />
+                  </Button>
+                </Dialog.Close>
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pr-0.5">
               <SettingsTabs form={form} open={open} />
             </div>
 
-            <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-4">
-              <div className="flex flex-wrap gap-2">
+            <div className="mt-3 flex shrink-0 flex-col-reverse gap-2 border-t border-border/70 pt-3 sm:mt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:pt-4">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 <Button type="button" variant="secondary" size="sm" onClick={exportData}>
                   <Download size={14} /> 导出 JSON
                 </Button>
@@ -357,16 +366,22 @@ export function SettingsCenter({ open, onOpenChange }: SettingsCenterProps) {
                   <Upload size={14} /> 导入 JSON
                 </Button>
               </div>
-              <Button type="button" variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
-                关闭
-              </Button>
+              <Dialog.Close asChild>
+                <Button type="button" variant="secondary" size="sm" className="w-full sm:w-auto">
+                  关闭
+                </Button>
+              </Dialog.Close>
             </div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
 
       {notice && (
-        <div className="pointer-events-none fixed bottom-4 right-4 z-[70] rounded-lg border border-border bg-card px-4 py-2 text-sm shadow-lg">
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-4 left-1/2 z-[70] max-w-[calc(100vw-2rem)] -translate-x-1/2 break-words rounded-lg border border-border bg-card px-4 py-2 text-sm shadow-lg sm:left-auto sm:right-4 sm:translate-x-0"
+        >
           {notice}
         </div>
       )}

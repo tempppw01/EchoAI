@@ -82,6 +82,7 @@ export function DouyinTrendHistoryPage() {
   const [snapshots, setSnapshots] = useState<DouyinTrendSnapshot[]>([]);
   const [activeSnapshotId, setActiveSnapshotId] = useState<string | undefined>();
   const [activeWatchId, setActiveWatchId] = useState<string | undefined>();
+  const [mobilePanel, setMobilePanel] = useState<'ranking' | 'library'>('ranking');
   const [snapshotsCollapsed, setSnapshotsCollapsed] = useState(true);
   const [snapshotLimit, setSnapshotLimit] = useState<10 | 20 | 30>(20);
   const [loading, setLoading] = useState(false);
@@ -367,27 +368,64 @@ export function DouyinTrendHistoryPage() {
               <ArrowLeft size={16} />
             </Link>
             <div className="min-w-0">
-              <p className="flex items-center gap-2 text-sm font-semibold">
-                <History size={16} className="text-primary" />
-                抖音热搜历史快照
+              <p className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                <History size={16} className="shrink-0 text-primary" />
+                <span className="truncate whitespace-nowrap">抖音热搜历史快照</span>
               </p>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">记录每次拉取的完整榜单，用于回看选题窗口和内容借势。</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Button variant="secondary" size="sm" onClick={fetchAndSave} disabled={loading}>
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              拉取并保存
+              <span className="hidden sm:inline">拉取并保存</span>
+              <span className="sm:hidden">拉取</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={clearSnapshots} disabled={snapshots.length === 0}>
+            <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={clearSnapshots} disabled={snapshots.length === 0}>
               清空
             </Button>
+          </div>
+        </div>
+        <div className="border-t bg-background/55 lg:hidden">
+          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-1 px-4 py-2" role="tablist" aria-label="热搜历史视图">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobilePanel === 'ranking'}
+              onClick={() => setMobilePanel('ranking')}
+              className={cn(
+                'inline-flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-medium transition',
+                mobilePanel === 'ranking'
+                  ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+              )}
+            >
+              <History size={15} />
+              当前榜单
+              {activeSnapshotItems.length > 0 && <span className="text-xs text-muted-foreground">{activeSnapshotItems.length}</span>}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobilePanel === 'library'}
+              onClick={() => setMobilePanel('library')}
+              className={cn(
+                'inline-flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-medium transition',
+                mobilePanel === 'library'
+                  ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+              )}
+            >
+              <Search size={15} />
+              历史与关注
+              {snapshots.length > 0 && <span className="text-xs text-muted-foreground">{snapshots.length}</span>}
+            </button>
           </div>
         </div>
       </header>
 
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-3">
+        <aside className={cn('space-y-3', mobilePanel === 'library' ? 'block' : 'hidden', 'lg:block')}>
           <section className="rounded-xl border bg-card/78 p-3 shadow-sm">
             <div className="flex items-center justify-between gap-2 px-1">
               <div>
@@ -557,7 +595,13 @@ export function DouyinTrendHistoryPage() {
           </section>
         </aside>
 
-        <section className="min-w-0 rounded-xl border bg-card/78 p-4 shadow-sm">
+        <section className={cn('min-w-0 rounded-xl border bg-card/78 p-4 shadow-sm', mobilePanel === 'ranking' ? 'block' : 'hidden', 'lg:block')}>
+          {status && (
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-border/70 bg-background/65 px-3 py-2 text-xs leading-5 text-muted-foreground lg:hidden" role="status">
+              <RefreshCw size={13} className={cn('mt-0.5 shrink-0', loading && 'animate-spin')} />
+              <span>{status}</span>
+            </div>
+          )}
           {activeWatch && (
             <div className="mb-4 rounded-xl border border-info/15 bg-info/5 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -629,7 +673,7 @@ export function DouyinTrendHistoryPage() {
                       href={activeSnapshot.source}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      className="mt-2 inline-flex min-h-8 items-center gap-1 rounded-md px-1 py-1 text-xs text-primary hover:bg-primary/5 hover:underline"
                     >
                       打开榜单来源
                       <ExternalLink size={12} />
@@ -686,7 +730,7 @@ export function DouyinTrendHistoryPage() {
                             href={getDouyinTrendUrl(item)}
                             target="_blank"
                             rel="noreferrer"
-                            className="line-clamp-2 text-sm font-medium text-foreground transition hover:text-primary hover:underline"
+                            className="line-clamp-2 py-1 text-sm font-medium text-foreground transition hover:text-primary hover:underline"
                           >
                             {item.title}
                             <ExternalLink size={11} className="ml-1 inline align-[-1px]" />
@@ -733,7 +777,7 @@ export function DouyinTrendHistoryPage() {
                               href={getDouyinTrendUrl(item)}
                               target="_blank"
                               rel="noreferrer"
-                              className="line-clamp-2 text-sm font-medium text-foreground transition hover:text-primary hover:underline"
+                              className="line-clamp-2 py-1 text-sm font-medium text-foreground transition hover:text-primary hover:underline"
                             >
                               {item.title}
                               <ExternalLink size={11} className="ml-1 inline align-[-1px]" />
@@ -759,10 +803,16 @@ export function DouyinTrendHistoryPage() {
               <p className="mt-2 max-w-md text-sm text-muted-foreground">
                 点击“拉取并保存”后会记录完整榜单。之后在内容创作里拉取热搜，也会自动写入这里。
               </p>
-              <Button className="mt-5" onClick={fetchAndSave} disabled={loading}>
-                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                拉取第一份快照
-              </Button>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <Button onClick={fetchAndSave} disabled={loading}>
+                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                  拉取第一份快照
+                </Button>
+                <Button variant="secondary" onClick={() => setMobilePanel('library')}>
+                  <Search size={14} />
+                  先看历史与关注
+                </Button>
+              </div>
             </div>
           )}
         </section>

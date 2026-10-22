@@ -2,14 +2,37 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { AlertTriangle, Bot, ChevronDown, ChevronUp, Copy, Download, Eraser, Heart, Pencil, RefreshCcw, RotateCw, Save, Trash2, UserRound, Wand2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  BookOpen,
+  Bot,
+  Brush,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Download,
+  Eraser,
+  FileText,
+  Heart,
+  MessageSquare,
+  Pencil,
+  RefreshCcw,
+  RotateCw,
+  Save,
+  Trash2,
+  UserRound,
+  Wand2,
+} from 'lucide-react';
 import { VideoScriptStateCard } from '@/components/chat/video-script-state-card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ConfirmDialog } from '@/components/ui/modal';
-import { ChatSession } from '@/lib/types';
+import { ChatMode, ChatSession } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { useChatStore } from '@/stores/chat-store';
 import { useSampleLibraryStore } from '@/stores/sample-library-store';
+import { useUIStore } from '@/stores/ui-store';
 
 const stabilizeMarkdownForStreaming = (content: string) => {
   let stabilized = content;
@@ -359,37 +382,172 @@ const parseViralAnalysisSections = (content: string) => {
     .filter((item) => item.body);
 };
 
-export function MessageList({ session }: { session?: ChatSession }) {
+const getEmptyWorkspaceCopy = (mode: ChatMode) => {
+  if (mode === 'videoScript' || mode === 'copywriting') {
+    return {
+      icon: FileText,
+      title: '从一个选题或素材开始',
+      description: '生成可继续修改的文案与短视频脚本。',
+      suggestions: ['为新品写 30 秒短视频脚本', '拆解一个爆款开场钩子', '把产品卖点写成口播文案'],
+    };
+  }
+
+  if (mode === 'image' || mode === 'proImage') {
+    return {
+      icon: Brush,
+      title: '先确定一个画面方向',
+      description: '描述主体、场景、风格与构图，再继续迭代。',
+      suggestions: ['生成一张电影感产品海报', '设计一组极简品牌视觉', '写出可直接绘图的提示词'],
+    };
+  }
+
+  if (mode === 'training') {
+    return {
+      icon: BookOpen,
+      title: '设置主题后开始练习',
+      description: '系统会连续出题，并根据作答更新掌握度。',
+      suggestions: [],
+    };
+  }
+
+  return {
+    icon: MessageSquare,
+    title: '今天想从哪里开始？',
+    description: '提问、写作、分析，或把一段还不成熟的想法放进来。',
+    suggestions: ['帮我制定本周工作计划', '解释一个复杂概念', '把这段想法整理成结构'],
+  };
+};
+
+export function MessageList({ session, embedded = false }: { session?: ChatSession; embedded?: boolean }) {
   const { retryMessage, regenerateLastAssistant, clearContext, deleteMessage, editUserMessage, answerTrainingQuestion, setPreferredCandidate, applyViralStructureToNewVideoSession } = useChatStore();
   const [editingId, setEditingId] = useState<string>();
   const [editingText, setEditingText] = useState('');
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const trainingQuestionRef = useRef<HTMLDivElement>(null);
-  const messageEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldFollowRef = useRef(true);
+  const previousSessionIdRef = useRef<string>();
+  const previousMessageCountRef = useRef(0);
+  const previousLastMessageLengthRef = useRef(0);
+  const setComposerDraft = useUIStore((state) => state.setComposerDraft);
   const isTrainingMode = session?.mode === 'training';
   const trainingQuestionStem = session?.trainingCurrentQuestion?.stem;
   const isVideoScriptMode = session?.mode === 'videoScript';
   const hasStreamingMessage = session?.messages.some((msg) => msg.status === 'streaming');
+  const sessionId = session?.id;
+  const messageCount = session?.messages.length ?? 0;
+  const lastMessage = session?.messages[messageCount - 1];
+  const lastMessageId = lastMessage?.id;
+  const lastMessageStatus = lastMessage?.status;
+  const lastMessageLength = lastMessage?.content.length ?? 0;
   const latestErrorMessage = useMemo(() => {
     const error = [...(session?.messages || [])].reverse().find((msg) => msg.role === 'assistant' && msg.status === 'error');
     return error?.content.replace(/^⚠️\s*/, '').trim();
   }, [session?.messages]);
 
   useEffect(() => {
-    if (!isTrainingMode || !trainingQuestionStem) return;
-    trainingQuestionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [isTrainingMode, trainingQuestionStem]);
+    if (!sessionId || embedded) return;
+    const viewport = scrollRef.current;
+    if (!viewport) return;
+    const sessionChanged = previousSessionIdRef.current !== sessionId;
+    const messageCountChanged = messageCount !== previousMessageCountRef.current;
+    const streamingContentChanged = lastMessageStatus === 'streaming' && lastMessageLength !== previousLastMessageLengthRef.current;
+
+    if (sessionChanged || messageCountChanged) shouldFollowRef.current = true;
+
+    if (sessionChanged || messageCountChanged || (streamingContentChanged && shouldFollowRef.current)) {
+      requestAnimationFrame(() => {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: lastMessageStatus === 'streaming' || sessionChanged ? 'auto' : 'smooth',
+        });
+      });
+    }
+
+    previousSessionIdRef.current = sessionId;
+    previousMessageCountRef.current = messageCount;
+    previousLastMessageLengthRef.current = lastMessageLength;
+  }, [embedded, lastMessageLength, lastMessageStatus, messageCount, sessionId]);
 
   useEffect(() => {
-    if (!session) return;
-    messageEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [session]);
+    if (!isTrainingMode || !trainingQuestionStem || embedded) return;
+    const viewport = scrollRef.current;
+    if (!viewport) return;
+    requestAnimationFrame(() => viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' }));
+  }, [embedded, isTrainingMode, trainingQuestionStem]);
 
   useEffect(() => {
     setClearConfirmOpen(false);
   }, [session?.id]);
 
   if (!session) return null;
+
+  if (session.messages.length === 0) {
+    const emptyCopy = getEmptyWorkspaceCopy(session.mode);
+    const EmptyIcon = emptyCopy.icon;
+
+    return (
+      <div className={cn('flex min-h-0 flex-col', embedded ? 'h-auto' : 'h-full')}>
+        <div className={cn('flex flex-1 flex-col justify-center', embedded ? 'py-5' : 'px-2 py-7 md:px-4 lg:py-10')}>
+          <div
+            className={cn(
+              'mx-auto grid w-full items-center gap-7',
+              emptyCopy.suggestions.length > 0
+                ? 'max-w-4xl lg:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)] lg:gap-10'
+                : 'max-w-2xl',
+            )}
+          >
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-foreground shadow-xs">
+                  <EmptyIcon size={21} />
+                </span>
+                <span className="rounded-full border border-border bg-muted/45 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  New workspace
+                </span>
+              </div>
+              <h2 className="mt-5 text-[28px] font-semibold leading-tight tracking-tight text-foreground md:text-[34px]">
+                {emptyCopy.title}
+              </h2>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground md:text-[15px]">
+                {emptyCopy.description}
+              </p>
+            </div>
+
+            {emptyCopy.suggestions.length > 0 && (
+              <div className="grid gap-2.5">
+                <div className="flex items-center justify-between px-0.5">
+                  <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    快捷开始
+                  </span>
+                  <span className="text-[11px] tabular-nums text-muted-foreground/65">
+                    0{emptyCopy.suggestions.length}
+                  </span>
+                </div>
+                {emptyCopy.suggestions.map((suggestion, index) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    className="group flex min-h-[76px] items-center gap-3 rounded-lg border border-border bg-card px-4 py-3.5 text-left shadow-xs transition-colors hover:border-primary/30 hover:bg-primary/5"
+                    onClick={() => setComposerDraft(suggestion)}
+                  >
+                    <span className="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground/55">
+                      0{index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1 text-sm leading-5 text-foreground">{suggestion}</span>
+                    <ArrowUpRight
+                      size={15}
+                      className="shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const exportContent = () => {
     const text = session.messages.map((m) => `[${m.role}]\n${m.content}`).join('\n\n');
@@ -404,8 +562,20 @@ export function MessageList({ session }: { session?: ChatSession }) {
 
   const showVideoScriptLoadingState = isVideoScriptMode && hasStreamingMessage;
 
+  const handleScroll = () => {
+    const viewport = scrollRef.current;
+    if (!viewport) return;
+    shouldFollowRef.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 72;
+  };
+
   return (
-    <div className="space-y-5">
+    <div className={cn('flex min-h-0 flex-col', embedded ? 'h-auto' : 'h-full')}>
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className={cn(embedded ? 'pb-1' : 'min-h-0 flex-1 overflow-y-auto overscroll-contain')}
+      >
+        <div className="space-y-5 pb-2">
       {session.mode !== 'training' && session.messages.length > 0 && (
         <div className="sticky top-0 z-30 mb-3 space-y-2 rounded-xl border border-border/70 bg-background px-2 py-2 shadow-sm">
           {latestErrorMessage && (
@@ -538,7 +708,8 @@ export function MessageList({ session }: { session?: ChatSession }) {
           </div>
         </div>
       )}
-      <div ref={messageEndRef} />
+        </div>
+      </div>
     </div>
   );
 }

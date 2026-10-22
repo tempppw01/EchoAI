@@ -82,7 +82,7 @@
   --accent: 262 60% 55%;
   --info: 190 85% 40%;
   --success: 142 66% 33%;
-  --warning: 30 92% 40%;
+  --warning: 28 85% 34%;
   --danger: 0 72% 48%;
   --danger-foreground: 0 0% 100%;
   --ring: 222 83% 53%;
@@ -267,6 +267,107 @@
 
 .roleplay-segmented-button[data-state='active'] {
   @apply border-stage-foreground/20 bg-stage-foreground text-stage shadow-lg;
+}
+
+@media (min-width: 768px) {
+  .roleplay-shell:not(:has(.roleplay-top-drawer)) {
+    overflow: hidden;
+  }
+
+  .roleplay-shell:not(:has(.roleplay-top-drawer)) .roleplay-workbench {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .roleplay-shell:not(:has(.roleplay-top-drawer)) .roleplay-workbench > section {
+    min-height: 0;
+  }
+}
+
+@container roleplay (max-width: 1099px) {
+  .roleplay-shell .roleplay-model-deck {
+    display: none;
+  }
+
+  .roleplay-shell .roleplay-empty-stage > div:first-child {
+    flex: 1 1 auto;
+  }
+
+  .roleplay-shell:has(.roleplay-top-drawer) {
+    overflow-y: auto;
+  }
+
+  .roleplay-shell:has(.roleplay-top-drawer) .roleplay-workbench {
+    height: auto;
+    min-height: 100%;
+  }
+
+  .roleplay-shell:has(.roleplay-top-drawer) .roleplay-workbench > section {
+    min-height: min(620px, 74vh);
+  }
+}
+
+/* 角色扮演按组件可用宽度切换布局，避免工作区侧栏挤压主舞台。 */
+@container roleplay (min-width: 1100px) {
+  .roleplay-shell {
+    overflow: hidden;
+  }
+
+  .roleplay-shell .roleplay-workbench {
+    height: 100%;
+    min-height: 0;
+    flex-direction: row;
+  }
+
+  .roleplay-shell .roleplay-sidebar {
+    display: block;
+    flex: none;
+    order: 0;
+  }
+
+  .roleplay-shell .roleplay-sidebar-left {
+    width: 74px;
+  }
+
+  .roleplay-shell .roleplay-sidebar-left[data-open='true'] {
+    width: 280px;
+  }
+
+  .roleplay-shell .roleplay-sidebar-right {
+    width: 74px;
+  }
+
+  .roleplay-shell .roleplay-sidebar-right[data-open='true'] {
+    width: 260px;
+  }
+
+  .roleplay-shell .roleplay-sidebar > .roleplay-panel {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .roleplay-shell .roleplay-stage-actions {
+    display: flex;
+  }
+
+  .roleplay-shell .roleplay-mobile-controls,
+  .roleplay-shell .roleplay-top-drawer {
+    display: none;
+  }
+
+  .roleplay-shell .roleplay-empty-stage > div:first-child {
+    min-height: 152px;
+  }
+}
+
+@container roleplay (min-width: 1320px) {
+  .roleplay-shell .roleplay-sidebar-left[data-open='true'] {
+    width: 300px;
+  }
+
+  .roleplay-shell .roleplay-sidebar-right[data-open='true'] {
+    width: 280px;
+  }
 }
 
 /* 舞台头部：深色底 + 令牌化的accent 光晕 */

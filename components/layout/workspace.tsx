@@ -114,6 +114,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     [sessions, activeSessionId],
   );
   const lastRouteSectionRef = useRef<FeatureKey | null>(null);
+  const routeAlignedRef = useRef(false);
 
   /**
    * 创建一个属于指定模块的会话。
@@ -145,11 +146,19 @@ export function Workspace({ mode }: { mode: ChatMode }) {
   // 路由变化时定位到目标模块：有可用会话就复用，没有就创建一个。
   useEffect(() => {
     const targetSection = modeToFeature(mode);
-    if (lastRouteSectionRef.current === targetSection) return;
-    lastRouteSectionRef.current = targetSection;
-    setSection(targetSection);
+    if (lastRouteSectionRef.current !== targetSection) {
+      lastRouteSectionRef.current = targetSection;
+      routeAlignedRef.current = false;
+      setSection(targetSection);
+    }
 
-    if (active && isSessionInFeature(active, targetSection)) return;
+    if (routeAlignedRef.current) return;
+
+    if (activeSessionId && active?.id === activeSessionId && isSessionInFeature(active, targetSection)) {
+      routeAlignedRef.current = true;
+      setSection(targetSection);
+      return;
+    }
 
     const existing = sessions.find((item) => isSessionInFeature(item, targetSection));
     if (existing) {
@@ -158,7 +167,7 @@ export function Workspace({ mode }: { mode: ChatMode }) {
     }
 
     createSessionForFeature(targetSection);
-  }, [mode, active, sessions, selectSession, createSessionForFeature]);
+  }, [mode, active, activeSessionId, sessions, selectSession, createSessionForFeature]);
 
   // 当前会话切换时，模块跟随会话所在的模块。
   useEffect(() => {
@@ -321,6 +330,10 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             </div>
 
             <div className="min-h-0 border-t px-2.5 py-3">
+              <div className="mb-1.5 flex items-center gap-1.5 px-1 text-[11px] font-medium text-muted-foreground">
+                <History size={12} />
+                跨模块
+              </div>
               <ChatList search={search} setSearch={setSearch} />
             </div>
           </aside>
@@ -379,8 +392,12 @@ export function Workspace({ mode }: { mode: ChatMode }) {
             >
               <div
                 className={cn(
-                  'min-h-0 flex-1 overflow-hidden',
-                  isRoleplayMode ? 'overscroll-none p-2 md:p-3' : 'overflow-y-auto px-3 py-4 md:px-6',
+                  'min-h-0 flex-1',
+                  isRoleplayMode
+                    ? 'overflow-hidden overscroll-none p-2 md:p-3'
+                    : isImageMode
+                      ? 'overflow-y-auto px-3 py-4 md:px-6'
+                      : 'overflow-hidden px-3 py-4 md:px-6',
                 )}
               >
                 <div
@@ -388,9 +405,9 @@ export function Workspace({ mode }: { mode: ChatMode }) {
                     'mx-auto w-full',
                     isRoleplayMode
                       ? 'h-full max-w-none overflow-hidden'
-                      : section === 'chat'
-                        ? 'max-w-3xl'
-                        : 'max-w-5xl',
+                      : isImageMode
+                        ? 'max-w-5xl space-y-6'
+                        : cn('flex h-full min-h-0 flex-col', section === 'chat' ? 'max-w-3xl' : 'max-w-5xl'),
                   )}
                 >
                   {!visibleSession && !isRoleplayMode ? (
@@ -425,10 +442,10 @@ export function Workspace({ mode }: { mode: ChatMode }) {
                       />
                     )
                   ) : isImageMode ? (
-                    <div className="space-y-6">
+                    <>
                       <ProImagePanel session={visibleSession} />
-                      <MessageList session={visibleSession} />
-                    </div>
+                      {visibleSession && visibleSession.messages.length > 0 && <MessageList session={visibleSession} embedded />}
+                    </>
                   ) : isRoleplayMode ? (
                     <RoleplayStudio session={visibleSession} />
                   ) : (
@@ -475,6 +492,10 @@ export function Workspace({ mode }: { mode: ChatMode }) {
               />
             </div>
             <div className="min-h-0 border-t px-2.5 py-3">
+              <div className="mb-1.5 flex items-center gap-1.5 px-1 text-[11px] font-medium text-muted-foreground">
+                <History size={12} />
+                跨模块
+              </div>
               <ChatList
                 search={search}
                 setSearch={setSearch}
@@ -670,12 +691,11 @@ function SidebarNav({
   return (
     <>
       <div className="space-y-3" onClick={() => setContextMenu(null)}>
-        <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">模块</p>
+        <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">工作区</p>
 
         <nav className="space-y-0.5">
           {features.map((feature) => {
             const Icon = feature.icon;
-            const count = sessions.filter((sessionItem) => isSessionInFeature(sessionItem, feature.key)).length;
             const isActive = section === feature.key;
 
             return (
@@ -706,40 +726,55 @@ function SidebarNav({
                     </span>
                   ) : null}
                 </span>
-
-                <span
-                  className={cn(
-                    'shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums',
-                    isActive ? 'bg-card text-muted-foreground' : 'text-muted-foreground/70',
-                  )}
-                >
-                  {count}
-                </span>
               </button>
             );
           })}
-
-          <Link
-            href="/samples"
-            className="group flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:text-foreground">
-              <Database size={14} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-medium leading-tight">样本库</span>
-              <span className="mt-0.5 block truncate text-[11px] leading-tight text-muted-foreground">
-                参考样本与召回素材
-              </span>
-            </span>
-          </Link>
         </nav>
+
+        <div className="border-t pt-2.5">
+          <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">资源</p>
+          <nav className="mt-1 space-y-0.5">
+            <Link
+              href="/samples"
+              className="group flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:text-foreground">
+                <Database size={14} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-medium leading-tight">样本库</span>
+                <span className="mt-0.5 block truncate text-[11px] leading-tight text-muted-foreground">
+                  参考样本与召回素材
+                </span>
+              </span>
+            </Link>
+            <Link
+              href="/trends"
+              className="group flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:text-foreground">
+                <History size={14} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-medium leading-tight">热搜历史</span>
+                <span className="mt-0.5 block truncate text-[11px] leading-tight text-muted-foreground">
+                  热点快照与趋势回看
+                </span>
+              </span>
+            </Link>
+          </nav>
+        </div>
 
         <div className="border-t pt-3">
           <div className="flex items-center justify-between gap-2 px-1">
-            <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              {activeFeature.label}会话
-            </p>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                当前模块
+              </p>
+              <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                {activeFeatureSessions.length}
+              </span>
+            </div>
             <Button
               size="sm"
               variant="ghost"

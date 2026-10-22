@@ -1,7 +1,8 @@
 'use client';
 
 import { type ChangeEvent, type ClipboardEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Paperclip, SendHorizontal, Settings, SlidersHorizontal, Sparkles, Square, Upload, X } from 'lucide-react';
+import { Check, Palette, Paperclip, Ratio, SendHorizontal, Settings, SlidersHorizontal, Sparkles, Square, Upload, X } from 'lucide-react';
+import { buildImageRequest, imageRatioPresets, imageStylePresets } from '@/components/image/image-workbench-config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
@@ -415,6 +416,10 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   );
   const { settings, setSettings } = useSettingsStore();
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen);
+  const composerDraft = useUIStore((state) => state.composerDraft);
+  const setComposerDraft = useUIStore((state) => state.setComposerDraft);
+  const imageDraft = useUIStore((state) => state.imageDraft);
+  const setImageDraft = useUIStore((state) => state.setImageDraft);
   const getRelevantSamples = useSampleLibraryStore((state) => state.getRelevantSamples);
   const [trendSnapshots, setTrendSnapshots] = useState<DouyinTrendSnapshot[]>([]);
   const hasApiKey = Boolean(settings.apiKey?.trim());
@@ -424,6 +429,8 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   const isGenerating = !!activeSession?.id && generatingSessionIds.includes(activeSession.id);
   const isImageMode = mode === 'image' || mode === 'proImage';
   const isContentMode = mode === 'videoScript' || mode === 'copywriting';
+  const inputValue = isImageMode ? imageDraft.prompt : value;
+  const canSendImage = isImageMode && (Boolean(imageDraft.prompt.trim()) || attachments.length > 0);
   const viralStructureReference = activeSession?.viralStructureReference;
   const hasVideoPresetInput = useMemo(() => {
     const p = videoPreset;
@@ -465,7 +472,20 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     if (!textarea) return;
     textarea.style.height = '0px';
     textarea.style.height = `${Math.min(textarea.scrollHeight, 220)}px`;
-  }, [value]);
+  }, [inputValue]);
+
+  useEffect(() => {
+    if (!composerDraft) return;
+    const nextDraft = composerDraft.slice(0, MAX_INPUT_CHARS);
+    if (isImageMode) {
+      setImageDraft({ prompt: nextDraft });
+    } else {
+      setValue(nextDraft);
+    }
+    setComposerDraft('');
+    setInputHint('');
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  }, [composerDraft, isImageMode, setComposerDraft, setImageDraft]);
 
   useEffect(() => {
     if (activeSession?.mode !== 'videoScript' && activeSession?.mode !== 'copywriting') return;
@@ -729,7 +749,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
   };
 
   const onSend = async () => {
-    if (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset && !canSendEditingIdea) return;
+    if (!inputValue.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset && !canSendEditingIdea) return;
 
     let sid = activeSession?.id;
     if (!sid) sid = createSession(mode);
@@ -738,10 +758,12 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
       .map((item) => (item.previewUrl ? `![${item.name}](${item.previewUrl})` : `[附件] ${item.name} (${Math.ceil(item.size / 1024)}KB)`))
       .join('\n');
 
-    let contentToSend = value.trim();
+    let contentToSend = inputValue.trim();
     const trendCatalogBlock = buildTrendCatalogBlock(activeTrendCatalog);
 
-    if (isContentMode && videoTaskType === 'viral-analysis') {
+    if (isImageMode) {
+      contentToSend = buildImageRequest(imageDraft);
+    } else if (isContentMode && videoTaskType === 'viral-analysis') {
       contentToSend = [
         '【爆款文案分析任务】',
         '请分析下面这段爆款文案，并严格按以下结构输出，不要合并栏目，不要遗漏标题：',
@@ -815,9 +837,10 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
     sendMessage(finalContent, sid);
 
     setValue('');
+    if (isImageMode) setImageDraft({ prompt: '' });
     setAttachments([]);
     setImportedTranscriptMeta(null);
-    setInputHint('');
+    setInputHint(isImageMode ? `已提交：${imageDraft.style} · ${imageDraft.ratio}，参数已保留。` : '');
     setShowOptions(false);
   };
 
@@ -852,6 +875,46 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
           e.target.value = '';
         }}
       />
+
+      {isImageMode && (
+        <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-background/72 p-2 text-xs shadow-sm">
+          <span className="inline-flex shrink-0 items-center gap-1.5 font-medium text-muted-foreground">
+            <Palette size={13} className="text-primary" />
+            图像参数
+          </span>
+          <label className="min-w-0">
+            <span className="sr-only">视觉风格</span>
+            <select
+              className="ui-select h-8 max-w-[150px] text-xs"
+              value={imageDraft.style}
+              onChange={(event) => setImageDraft({ style: event.target.value })}
+            >
+              {imageStylePresets.map((preset) => (
+                <option key={preset} value={preset}>{preset}</option>
+              ))}
+            </select>
+          </label>
+          <div className="inline-flex shrink-0 items-center gap-0.5 rounded-lg border border-border/70 bg-card/80 p-0.5">
+            <Ratio size={12} className="ml-1 text-muted-foreground" />
+            {imageRatioPresets.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                data-state={imageDraft.ratio === preset.value ? 'active' : 'inactive'}
+                className="ui-segmented-trigger h-7 min-w-10 rounded-md px-1.5 text-[10px]"
+                title={preset.description}
+                onClick={() => setImageDraft({ ratio: preset.value })}
+              >
+                {preset.value}
+              </button>
+            ))}
+          </div>
+          <span className={`ml-auto inline-flex shrink-0 items-center gap-1 text-[11px] ${canSendImage ? 'text-success' : 'text-muted-foreground'}`}>
+            <Check size={12} />
+            {canSendImage ? '已同步到输入框' : '等待提示词'}
+          </span>
+        </div>
+      )}
 
       {isContentMode && (
         <div className="mb-2 rounded-lg border border-border/70 bg-background/72 p-2 text-xs shadow-sm">
@@ -1141,26 +1204,34 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
 
         {mode !== 'training' && <Textarea
           ref={textareaRef}
-          value={value}
+          value={inputValue}
           onChange={(e) => {
             const nextValue = e.target.value;
             if (nextValue.length > MAX_INPUT_CHARS) {
-              setValue(nextValue.slice(0, MAX_INPUT_CHARS));
+              if (isImageMode) {
+                setImageDraft({ prompt: nextValue.slice(0, MAX_INPUT_CHARS) });
+              } else {
+                setValue(nextValue.slice(0, MAX_INPUT_CHARS));
+              }
               setInputHint(`已达到 ${MAX_INPUT_CHARS} 字上限。`);
               return;
             }
-            setValue(nextValue);
+            if (isImageMode) {
+              setImageDraft({ prompt: nextValue });
+            } else {
+              setValue(nextValue);
+            }
             if (inputHint) setInputHint('');
           }}
           rows={1}
           className={`${isImageMode ? 'min-h-10' : 'min-h-[54px]'} max-h-[220px] resize-none overflow-y-auto rounded-md border-0 bg-transparent py-2.5 shadow-none focus-visible:ring-0`}
-          placeholder={isContentMode && videoTaskType === 'viral-analysis' ? '直接粘贴爆款文案，或导入 txt/md/srt/vtt/json 转录文本后回车发送分析' : isContentMode && videoTaskType === 'editing-idea' ? '可补充剪辑重点；若当前没有脚本结果，也可直接粘贴脚本文本后生成剪辑思路' : mode === 'image' || mode === 'proImage' ? '描述你想生成的图片内容，发送后会把图片工作流记录保留在本页。' : '支持 Markdown。Enter 发送，Shift + Enter 换行'}
+          placeholder={isContentMode && videoTaskType === 'viral-analysis' ? '粘贴爆款文案，或导入转录文本' : isContentMode && videoTaskType === 'editing-idea' ? '补充剪辑重点，或粘贴一段脚本' : mode === 'image' || mode === 'proImage' ? '描述画面主体、风格与构图' : '输入消息，Enter 发送'}
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
           onPaste={handlePaste}
           onKeyDown={(e) => {
             if (e.key !== 'Enter' || isComposing || e.shiftKey) return;
-            if (!value.trim() && !attachments.length && !canSendVideoScriptFromPreset && !canSendEditingIdea) return;
+            if (!inputValue.trim() && !attachments.length && !canSendVideoScriptFromPreset && !canSendEditingIdea) return;
             e.preventDefault();
             onSend();
           }}
@@ -1171,7 +1242,7 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
             <Square size={16} />
           </Button>
         ) : (
-          <Button size="icon" disabled={mode === 'training' || (!value.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset && !canSendEditingIdea)} onClick={onSend}>
+          <Button size="icon" disabled={mode === 'training' || (!inputValue.trim() && attachments.length === 0 && !canSendVideoScriptFromPreset && !canSendEditingIdea)} onClick={onSend}>
             <SendHorizontal size={16} />
           </Button>
         )}
@@ -1179,15 +1250,39 @@ export function ChatComposer({ mode }: { mode: ChatMode }) {
         <Button
           variant="ghost"
           size="icon"
-          aria-label={showOptions ? '收起输入设置' : '展开输入设置'}
-          title={showOptions ? '收起输入设置' : '展开输入设置'}
+          aria-label={
+            isImageMode
+              ? showOptions
+                ? '收起负面提示词'
+                : '编辑负面提示词'
+              : showOptions
+                ? '收起输入设置'
+                : '展开输入设置'
+          }
+          title={isImageMode ? '负面提示词' : showOptions ? '收起输入设置' : '展开输入设置'}
           onClick={() => setShowOptions((prev) => !prev)}
         >
-          <SlidersHorizontal size={16} />
+          {isImageMode ? <Palette size={16} /> : <SlidersHorizontal size={16} />}
         </Button>
       </div>
 
-      {showOptions && (
+      {showOptions && isImageMode && (
+        <div className="mt-2 rounded-xl border bg-background/80 p-3 text-xs">
+          <label className="grid gap-1">
+            <span className="text-muted-foreground">负面提示词</span>
+            <Input
+              value={imageDraft.negativePrompt}
+              onChange={(event) => setImageDraft({ negativePrompt: event.target.value })}
+              placeholder="不希望出现的瑕疵、元素或风格"
+            />
+          </label>
+          <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+            会随本次绘图请求一起发送；清空后则明确标记为“无负面约束”。
+          </p>
+        </div>
+      )}
+
+      {showOptions && !isImageMode && (
         <div className="mt-2 grid gap-2 rounded-xl border bg-background/80 p-3 text-xs md:grid-cols-2">
           <label className="grid gap-1">
             <span className="text-muted-foreground">temperature</span>
